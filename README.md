@@ -46,7 +46,7 @@ the clay pot in which *café de olla* is brewed.
 
 ```bash
 git clone https://github.com/jorgegonzalezsevilla/olla-dft.git
-cd olla-dft-en
+cd olla-dft
 python3 -m venv .venv && source .venv/bin/activate   # optional but recommended
 pip install .
 ```
@@ -272,7 +272,9 @@ python -m pytest -q          # 977 tests, ~35 s, no QE needed (real QE outputs l
 python -m pyflakes qekit tests
 ```
 
-Bug reports, questions and pull requests are welcome — see
+Olla-DFT is written and maintained by a single author and does not accept
+pull requests. Bug reports, questions and feature requests are very welcome
+as [issues](https://github.com/jorgegonzalezsevilla/olla-dft/issues) — see
 [CONTRIBUTING.md](CONTRIBUTING.md). A bug report is most useful with the
 output of `olla-dft report --export incidencias.json`.
 
