@@ -21,7 +21,8 @@ phonons, optics, work function, charges, defects, surfaces, transport,
 Wannier functions and a long list of derived properties — each one exported
 as a table with its provenance and drawn as a journal-quality figure.
 
-It was written in Mexico by Jorge Enrique González Sevilla. The name keeps
+It was written with love in Guadalajara, Jalisco, Mexico, by Jorge Enrique
+González Sevilla. The name keeps
 the coffee wink of Quantum ESPRESSO and gives it a local identity: *olla* is
 the clay pot in which *café de olla* is brewed.
 
@@ -295,3 +296,7 @@ It depends on numpy, scipy, matplotlib, ASE, spglib and seekpath, bundles the
 atomic scattering-factor table from pymatgen (MIT), and drives Quantum
 ESPRESSO as a separate process; see
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+---
+
+Made with love in Guadalajara, Jalisco, Mexico.
