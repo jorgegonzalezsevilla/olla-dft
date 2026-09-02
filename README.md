@@ -1,15 +1,33 @@
-# Olla-DFT
+<h1 align="center">Olla-DFT</h1>
 
-**A command-line toolkit for Quantum ESPRESSO: from a CIF to publication-ready
-band structures, phonons, elastic constants, optics and more — with the physics
-behind every number written down.**
+<p align="center">
+<b>A command-line toolkit for Quantum ESPRESSO: from a CIF to publication-ready
+band structures, phonons, elastic constants, optics and more, with the physics
+behind every number written down.</b>
+</p>
 
-[Versión en español → https://github.com/jorgegonzalezsevilla/olla-dft-esp](https://github.com/jorgegonzalezsevilla/olla-dft-esp)
+<p align="center">
+<a href="https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml"><img src="https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL v3"></a>
+<img src="https://img.shields.io/badge/python-3.9%20–%203.13-blue" alt="Python 3.9 to 3.13">
+<img src="https://img.shields.io/badge/tests-977-brightgreen" alt="977 tests">
+<img src="https://img.shields.io/badge/commands-78-orange" alt="78 commands">
+</p>
 
-[![CI](https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml/badge.svg)](https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml)
-[![License: GPL v3](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
-![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)
-![Tests](https://img.shields.io/badge/tests-977%20passed-brightgreen)
+<p align="center">
+<a href="https://github.com/jorgegonzalezsevilla/olla-dft-esp">Versión en español</a> ·
+<a href="#install">Install</a> ·
+<a href="#five-minute-tour">Five-minute tour</a> ·
+<a href="docs/THEORY.md">Theory</a> ·
+<a href="docs/COMMANDS.md">Commands</a> ·
+<a href="examples/">Examples</a>
+</p>
+
+<p align="center">
+<img src="examples/demo_Si/Si_bandas_dos.png" alt="Silicon band structure and DOS produced by olla-dft plot" width="720">
+<br>
+<sub>Silicon bands and DOS from a real Quantum ESPRESSO run, one command: <code>olla-dft plot .</code></sub>
+</p>
 
 Olla-DFT plays the role that VASPKIT plays for VASP, but for
 [Quantum ESPRESSO](https://www.quantum-espresso.org): it reads your structure
@@ -18,16 +36,36 @@ pseudopotentials, proposes cutoffs and k-meshes, builds the high-symmetry path
 and writes every input file ready to run. After the calculation it closes the
 loop: band gap, bands, DOS/PDOS, equation of state, elastic constants,
 phonons, optics, work function, charges, defects, surfaces, transport,
-Wannier functions and a long list of derived properties — each one exported
+Wannier functions and a long list of derived properties, each one exported
 as a table with its provenance and drawn as a journal-quality figure.
 
-It was written with love in Guadalajara, Jalisco, Mexico, by Jorge Enrique
-González Sevilla. The name keeps
-the coffee wink of Quantum ESPRESSO and gives it a local identity: *olla* is
-the clay pot in which *café de olla* is brewed.
+## About this project
+
+Olla-DFT is a **one-person hobby project**. It is written, tested and
+maintained by Jorge Enrique González Sevilla in his free time, out of a
+personal need: a single tool that takes a Quantum ESPRESSO workflow from the
+structure file to the figure without a pile of ad-hoc scripts, and that
+explains the physics it applies instead of hiding it. It is not affiliated
+with, funded by, or endorsed by any university, research institute or
+company, and it is not an official part of Quantum ESPRESSO.
+
+Because it is one person's spare-time work, a few things follow:
+
+- **Releases come when they come.** There is no roadmap with dates.
+- **The code is not open to outside commits.** Pull requests are not
+  accepted; the author is and will remain the only one touching the code.
+  What is very welcome is your feedback: bugs, wrong numbers and feature
+  ideas as [issues](https://github.com/jorgegonzalezsevilla/olla-dft/issues).
+- **Everything is free software.** GPL-3.0, no telemetry, nothing is ever
+  sent anywhere. Clone it, read it, run it, fork it under the licence.
+
+The name keeps the coffee wink of Quantum ESPRESSO and gives it a local
+identity: *olla* is the clay pot in which *café de olla* is brewed. It is made
+with love in Guadalajara, Jalisco, Mexico.
 
 ## Contents
 
+- [About this project](#about-this-project)
 - [Install](#install)
 - [Five-minute tour](#five-minute-tour)
 - [Two languages](#two-languages)
@@ -230,6 +268,12 @@ safe palettes validated in OKLab, and a monochrome mode for journals that
 charge for colour. See `olla-dft templates list` and the gallery in
 [examples/plantillas](examples/plantillas).
 
+<p align="center">
+<img src="examples/plantillas/galeria_plantillas.png" alt="The same figure rendered in every visual template" width="760">
+<br>
+<sub>The same silicon figure in the <code>journal</code>, <code>latex</code>, <code>minimal</code>, <code>dark</code>, <code>slides</code>, <code>poster</code> and <code>mono</code> templates.</sub>
+</p>
+
 ## Validation
 
 The whole cycle (generate → run QE → post-process) was validated end to end
@@ -241,6 +285,13 @@ Si lattice thermal conductivity 101 W/m·K in RTA, f-sum rule of ε₂ fulfilled
 to 0.1 %, XRD peak positions within 0.05° of the PDF cards. The full list,
 with references, is in [docs/VALIDATION.md](docs/VALIDATION.md). The folder
 [examples/](examples/) contains real outputs and figures, not mock-ups.
+
+<p align="center">
+<img src="examples/demo_propiedades/fonones_Si.png" alt="Silicon phonon dispersion and DOS" width="360">
+<img src="examples/demo_calculo/elastic.png" alt="Elastic constants of silicon" width="360">
+<br>
+<sub>Left: DFPT phonons of silicon (<code>olla-dft phonons</code>). Right: elastic constants (<code>olla-dft elastic</code>).</sub>
+</p>
 
 ## Documentation
 
@@ -268,7 +319,7 @@ Details, including the Windows console encoding story and `--ascii`, in
 
 ```bash
 pip install -e ".[test]"
-python -m pytest -q          # 977 tests, ~35 s, no QE needed (real QE outputs live in tests/datos/)
+python -m pytest -q          # 977 tests, ~30 s, no QE needed (real QE outputs live in tests/datos/)
 python -m pyflakes qekit tests
 ```
 
@@ -301,4 +352,7 @@ ESPRESSO as a separate process; see
 
 ---
 
-Made with love in Guadalajara, Jalisco, Mexico.
+<p align="center">
+Made with love in Guadalajara, Jalisco, Mexico.<br>
+<sub>A one-person project, on free time, for the pleasure of getting the physics right.</sub>
+</p>
