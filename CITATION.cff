@@ -5,7 +5,7 @@ title: "Olla-DFT: a command-line toolkit for Quantum ESPRESSO"
 version: 1.0.0
 date-released: 2026-09-02
 license: GPL-3.0
-repository-code: "https://github.com/jorgegonzalezsevilla/olla-dft-en"
+repository-code: "https://github.com/jorgegonzalezsevilla/olla-dft"
 authors:
   - family-names: "González Sevilla"
     given-names: "Jorge Enrique"

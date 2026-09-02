@@ -3,7 +3,7 @@
 ## Set up
 
 ```bash
-git clone https://github.com/jorgegonzalezsevilla/olla-dft-en
+git clone https://github.com/jorgegonzalezsevilla/olla-dft
 cd olla-dft-en
 python -m venv .venv && source .venv/bin/activate   # optional
 pip install -e ".[test]"
@@ -76,7 +76,7 @@ olla-dft report --export incidencias.json
 ```
 
 and attach that file to the issue at
-https://github.com/jorgegonzalezsevilla/olla-dft-en/issues, together with the
+https://github.com/jorgegonzalezsevilla/olla-dft/issues, together with the
 structure file if it is not confidential (`--attach archivo.cif` copies it
 into the log). `olla-dft report "what happened"` records something that did
 not crash but was confusing; `olla-dft report --stats` shows which commands
