@@ -9,7 +9,6 @@ repository-code: "https://github.com/jorgegonzalezsevilla/olla-dft"
 authors:
   - family-names: "González Sevilla"
     given-names: "Jorge Enrique"
-    affiliation: "Universidad de Guadalajara, CUCEI"
 keywords:
   - Quantum ESPRESSO
   - density functional theory
