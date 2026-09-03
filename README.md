@@ -75,6 +75,7 @@ with love in Guadalajara, Jalisco, Mexico.
 - [Reproducibility and quality control](#reproducibility-and-quality-control)
 - [Figures for publication](#figures-for-publication)
 - [Validation](#validation)
+- [Benchmarks](#benchmarks)
 - [Documentation](#documentation)
 - [Requirements and platforms](#requirements-and-platforms)
 - [Tests and contributing](#tests-and-contributing)
@@ -293,6 +294,14 @@ with references, is in [docs/VALIDATION.md](docs/VALIDATION.md). The folder
 <br>
 <sub>Left: DFPT phonons of silicon (<code>olla-dft phonons</code>). Right: elastic constants (<code>olla-dft elastic</code>).</sub>
 </p>
+
+## Benchmarks
+
+Olla-DFT is benchmarked against ASE, pymatgen and seekpath on the same inputs, with independent
+reference implementations, recomputable statistics and an automatically generated list of its
+weak points. Results, protocol and the harness are in
+[olla-dft-bench](https://github.com/jorgegonzalezsevilla/olla-dft-bench); anyone can rerun them
+or add another tool.
 
 ## Documentation
 
