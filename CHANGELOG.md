@@ -2,6 +2,19 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.1.0 — 2026-09-03
+
+Changes driven by the first benchmark runs (olla-dft-bench):
+
+- Start-up is about 8× cheaper: `import qekit.cli` went from ~0.6 s to ~0.07 s.
+  seekpath, ase.io, matplotlib, strain and defects are now imported on first
+  use instead of on every invocation.
+- `gen --kgrid N N N`: explicit scf/relax k-grid (overrides `--kspacing` and
+  `--klevel`). Until now only a spacing could be given.
+- `mixing_beta` is 0.7 (QE's default) with fixed occupations and stays 0.4
+  with smearing. On the benchmark's Si cell this takes the scf from 14 to
+  about 7 iterations with the same energy.
+
 ## 1.0.1 — 2026-09-03
 
 - New `olla-dft update` (alias `actualizar`): checks the latest published

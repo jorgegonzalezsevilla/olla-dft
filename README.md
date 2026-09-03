@@ -194,7 +194,8 @@ language); every quantity in them is documented in English in
 Some highlights:
 
 - **Inputs that run unedited.** Presets for scf, relax, vc-relax, nscf, bands,
-  DOS, MD; cutoffs read from the UPF headers; spin polarisation, DFT+U (both
+  DOS, MD; cutoffs read from the UPF headers; k-mesh by spacing or explicit
+  (`--kgrid 6 6 4`); spin polarisation, DFT+U (both
   QE syntaxes), spin–orbit with pseudopotential checks, hybrid functionals,
   dipole corrections.
 - **Post-processing of what QE already left behind.** Gap (direct/indirect,
@@ -348,7 +349,7 @@ output of `olla-dft report --export incidencias.json`.
 If Olla-DFT helps your work, please cite it (see [CITATION.cff](CITATION.cff)):
 
 > J. E. González Sevilla, *Olla-DFT: a command-line toolkit for Quantum
-> ESPRESSO*, version 1.0.1 (2026). Zenodo. https://doi.org/10.5281/zenodo.22263121
+> ESPRESSO*, version 1.1.0 (2026). Zenodo. https://doi.org/10.5281/zenodo.22263121
 
 and cite Quantum ESPRESSO, and the pseudopotential library you used, as their
 authors request.

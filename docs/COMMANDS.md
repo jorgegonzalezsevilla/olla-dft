@@ -154,7 +154,7 @@ check whether a newer Olla-DFT is published and, if so, install it after a confi
 
 generate pw.x inputs and post-processing
 
-**Usage:** `olla-dft gen [-h] [-p {scf,relax,vc-relax,nscf,bands,dos,all,md}] [-o OUTDIR] [-k {coarse,fine,gamma,medium,very-fine}] [--kspacing KSPACING] [--band-points BAND_POINTS] [--ecutwfc ECUTWFC] [--ecutrho ECUTRHO] [--insulator] [--primitive] [--pseudo-dir PSEUDO_DIR] [--pseudo EL=UPF] [--prefix PREFIX] [--nspin {1,2}] [--mag MAG] [--vdw {grimme-d2,grimme-d3,DFT-D,ts-vdw,xdm,mbd}] [--soc] [--hubbard EL=U] [--hubbard-style {legacy,card}] [--charge Q] [--dipole [EJE]] [--nosym] [--functional {b3lyp,gaupbe,hse,pbe0}] [--exx-grid NxNxN] [--exx-fraction EXX_FRACTION] [--dt FS] [--nstep NSTEP] [--thermostat {none,rescaling,berendsen,andersen,initial,reduce-history}] [-T TEMPERATURE] file`
+**Usage:** `olla-dft gen [-h] [-p {scf,relax,vc-relax,nscf,bands,dos,all,md}] [-o OUTDIR] [-k {coarse,fine,gamma,medium,very-fine}] [--kspacing KSPACING] [--kgrid N N N] [--band-points BAND_POINTS] [--ecutwfc ECUTWFC] [--ecutrho ECUTRHO] [--insulator] [--primitive] [--pseudo-dir PSEUDO_DIR] [--pseudo EL=UPF] [--prefix PREFIX] [--nspin {1,2}] [--mag MAG] [--vdw {grimme-d2,grimme-d3,DFT-D,ts-vdw,xdm,mbd}] [--soc] [--hubbard EL=U] [--hubbard-style {legacy,card}] [--charge Q] [--dipole [EJE]] [--nosym] [--functional {b3lyp,gaupbe,hse,pbe0}] [--exx-grid NxNxN] [--exx-fraction EXX_FRACTION] [--dt FS] [--nstep NSTEP] [--thermostat {none,rescaling,berendsen,andersen,initial,reduce-history}] [-T TEMPERATURE] file`
 
 **Arguments:**
 
@@ -168,6 +168,7 @@ generate pw.x inputs and post-processing
 | `-o, --outdir` | output folder (default: `.`) |
 | `-k, --klevel {coarse,fine,gamma,medium,very-fine}` | k-mesh density (gamma/coarse/medium/fine/very-fine) |
 | `--kspacing KSPACING` | k spacing in Å^-1 (overrides --klevel) |
+| `--kgrid N` | explicit k-grid for scf/relax (three integers; overrides --kspacing and --klevel) |
 | `--band-points BAND_POINTS` | points per segment of the k-path |
 | `--ecutwfc ECUTWFC` | wavefunction cutoff (Ry) |
 | `--ecutrho ECUTRHO` | density cutoff (Ry) |
@@ -2530,4 +2531,4 @@ view or change the configuration
 
 ---
 
-*Olla-DFT 1.0.1*
+*Olla-DFT 1.1.0*
