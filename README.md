@@ -9,6 +9,7 @@ behind every number written down.</b>
 <p align="center">
 <a href="https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml"><img src="https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="License: GPL v3"></a>
+<a href="https://doi.org/10.5281/zenodo.22263121"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22263121.svg" alt="DOI"></a>
 <img src="https://img.shields.io/badge/python-3.9%20–%203.13-blue" alt="Python 3.9 to 3.13">
 <img src="https://img.shields.io/badge/tests-977-brightgreen" alt="977 tests">
 <img src="https://img.shields.io/badge/commands-78-orange" alt="78 commands">
@@ -334,7 +335,7 @@ output of `olla-dft report --export incidencias.json`.
 If Olla-DFT helps your work, please cite it (see [CITATION.cff](CITATION.cff)):
 
 > J. E. González Sevilla, *Olla-DFT: a command-line toolkit for Quantum
-> ESPRESSO*, version 1.0.0 (2026). https://github.com/jorgegonzalezsevilla/olla-dft
+> ESPRESSO*, version 1.0.0 (2026). Zenodo. https://doi.org/10.5281/zenodo.22263122
 
 and cite Quantum ESPRESSO, and the pseudopotential library you used, as their
 authors request.
