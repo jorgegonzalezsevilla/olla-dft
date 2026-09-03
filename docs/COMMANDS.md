@@ -1,10 +1,10 @@
 # Olla-DFT command reference
 
-The 78 `olla-dft` subcommands, grouped by area, with their options. Generated from the code itself with `python tools/build_docs.py`; the same information is printed by `olla-dft COMMAND --help --language en` and, as a browsable page, by `olla-dft docs --language en`.
+The 79 `olla-dft` subcommands, grouped by area, with their options. Generated from the code itself with `python tools/build_docs.py`; the same information is printed by `olla-dft COMMAND --help --language en` and, as a browsable page, by `olla-dft docs --language en`.
 
 ## Index
 
-- **Getting started**: [`start`](#start), [`wizard`](#wizard), [`recetas`](#recetas), [`teoria`](#teoria), [`docs`](#docs), [`sistema`](#sistema), [`selftest`](#selftest)
+- **Getting started**: [`start`](#start), [`wizard`](#wizard), [`recetas`](#recetas), [`teoria`](#teoria), [`docs`](#docs), [`sistema`](#sistema), [`selftest`](#selftest), [`update`](#update)
 - **Structures and inputs**: [`gen`](#gen), [`info`](#info), [`kpath`](#kpath), [`prim`](#prim), [`conv`](#conv), [`supercell`](#supercell), [`convert`](#convert)
 - **Electronic structure**: [`bands`](#bands), [`dos`](#dos), [`plot`](#plot), [`gap`](#gap), [`fermi`](#fermi), [`effmass`](#effmass), [`wannier`](#wannier), [`unfold`](#unfold), [`topology`](#topology), [`hubbard`](#hubbard)
 - **Spectra and response**: [`optics`](#optics), [`tddft`](#tddft), [`xanes`](#xanes), [`xps`](#xps), [`corehole`](#corehole), [`charge`](#charge), [`charges`](#charges), [`wf`](#wf), [`berry`](#berry)
@@ -133,6 +133,20 @@ check Olla-DFT against published values, not against itself
 | `--keep CARPETA` | keep the calculations here instead of deleting them |
 
 **Physics:** [`olla-dft teoria selftest`](THEORY.md)
+
+### `update`
+
+check whether a newer Olla-DFT is published and, if so, install it after a confirmation; it never runs on its own
+
+**Usage:** `olla-dft update [-h] [--check] [--yes] [--version TAG]`
+
+**Options:**
+
+| Option | Description |
+|---|---|
+| `--check` | only check and report, install nothing |
+| `--yes` | do not ask; install directly if a newer version exists |
+| `--version TAG` | install a specific version (e.g. v1.0.1) instead of the latest |
 
 ## Structures and inputs
 
@@ -2516,4 +2530,4 @@ view or change the configuration
 
 ---
 
-*Olla-DFT 1.0.0*
+*Olla-DFT 1.0.1*

@@ -12,7 +12,7 @@ behind every number written down.</b>
 <a href="https://doi.org/10.5281/zenodo.22263121"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22263121.svg" alt="DOI"></a>
 <img src="https://img.shields.io/badge/python-3.9%20–%203.13-blue" alt="Python 3.9 to 3.13">
 <img src="https://img.shields.io/badge/tests-977-brightgreen" alt="977 tests">
-<img src="https://img.shields.io/badge/commands-78-orange" alt="78 commands">
+<img src="https://img.shields.io/badge/commands-79-orange" alt="79 commands">
 </p>
 
 <p align="center">
@@ -106,6 +106,10 @@ olla-dft config set pseudo_dir ~/pseudos/SSSP_efficiency
 olla-dft sistema        # what Olla-DFT sees on this machine: QE binaries, MPI, encoding
 ```
 
+To update an existing installation later, run `olla-dft update`: it shows the latest published
+version and what changed, and installs it only if you say yes (`--check` only looks; `--yes` skips
+the question). Olla-DFT never checks for updates by itself.
+
 Optional extras: `pip install "olla-dft[mlip]"` for machine-learned
 potentials (MACE, ~1.2 GB) and `pip install "olla-dft[kappa]"` for lattice
 thermal conductivity (phono3py).
@@ -171,12 +175,12 @@ language); every quantity in them is documented in English in
 
 ## What it does
 
-78 subcommands, grouped by task. `olla-dft --help` shows the catalogue and
+79 subcommands, grouped by task. `olla-dft --help` shows the catalogue and
 [docs/COMMANDS.md](docs/COMMANDS.md) lists every option.
 
 | Area | Commands |
 |---|---|
-| Getting started | `start`, `wizard`, `recetas`, `teoria`, `docs`, `sistema`, `selftest` |
+| Getting started | `start`, `wizard`, `recetas`, `teoria`, `docs`, `sistema`, `selftest`, `update` |
 | Structures and inputs | `gen`, `info`, `kpath`, `prim`, `conv`, `supercell`, `convert` |
 | Electronic structure | `bands`, `dos`, `plot`, `gap`, `fermi`, `effmass`, `wannier`, `unfold`, `topology`, `hubbard` |
 | Spectra and response | `optics`, `tddft`, `xanes`, `xps`, `corehole`, `charge`, `charges`, `wf`, `berry` |
@@ -344,7 +348,7 @@ output of `olla-dft report --export incidencias.json`.
 If Olla-DFT helps your work, please cite it (see [CITATION.cff](CITATION.cff)):
 
 > J. E. González Sevilla, *Olla-DFT: a command-line toolkit for Quantum
-> ESPRESSO*, version 1.0.0 (2026). Zenodo. https://doi.org/10.5281/zenodo.22263122
+> ESPRESSO*, version 1.0.1 (2026). Zenodo. https://doi.org/10.5281/zenodo.22263121
 
 and cite Quantum ESPRESSO, and the pseudopotential library you used, as their
 authors request.
