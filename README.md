@@ -5,7 +5,7 @@ Prepare calculations, analyze properties, and share figures and data.</p>
 
 <p align="center">
 <a href="https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml"><img src="https://github.com/jorgegonzalezsevilla/olla-dft/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-<a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue.svg" alt="GPL-3.0-or-later"></a>
+<a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="AGPL-3.0-or-later"></a>
 <a href="https://doi.org/10.5281/zenodo.22263121"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22263121.svg" alt="DOI"></a>
 </p>
 
@@ -80,6 +80,8 @@ Local SCF, `relax` and `vc-relax` pairs were checked with simulated process inte
 
 [Commands](docs/COMMANDS.md) · [Theory](docs/THEORY.md) · [Validation](docs/VALIDATION.md) · [Architecture](docs/ARCHITECTURE.md) · [Reproducible benchmark](https://github.com/jorgegonzalezsevilla/olla-dft-bench) · [Changes](CHANGELOG.md)
 
-A personal project by **Jorge Enrique González Sevilla**, developed in Guadalajara, Mexico; independent of Quantum ESPRESSO. Free software under **GPL-3.0-or-later**, with no automatic telemetry. [Bug reports and ideas](https://github.com/jorgegonzalezsevilla/olla-dft/issues) are welcome; code is maintained by the author ([contributing](CONTRIBUTING.md)).
+A personal project by **Jorge Enrique González Sevilla**, developed in Guadalajara, Mexico; independent of Quantum ESPRESSO. Free software under **AGPL-3.0-or-later**, with no automatic telemetry. [Bug reports and ideas](https://github.com/jorgegonzalezsevilla/olla-dft/issues) are welcome; code is maintained by the author ([contributing](CONTRIBUTING.md)).
 
 Cite the version you used through [CITATION.cff](CITATION.cff) and [Zenodo](https://doi.org/10.5281/zenodo.22263121). Also cite Quantum ESPRESSO and your pseudopotentials. [License](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md).
+
+[License and commercial use](LICENSING.md): AGPLv3 or later from 1.3.0; earlier releases retain GPL. Commercial use is allowed.

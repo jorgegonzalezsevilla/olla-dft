@@ -46,7 +46,7 @@ Clear use cases are what most often make it into a release.
 
 ## Running the test suite yourself
 
-You are free to clone, read, and run the code under the GPL. If you want to
+You are free to clone, read, and run the code under the AGPL. If you want to
 check that everything works on your machine:
 
 ```bash
@@ -63,8 +63,10 @@ tells you what your machine has. Requirements and per-OS notes are in
 
 ## Licence
 
-Olla-DFT is free software under the GNU General Public License, version 3
+Olla-DFT is free software under the GNU Affero General Public License, version 3 or later
 (see [LICENSE](LICENSE)). Third-party components and data are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 Copyright © 2026 Jorge Enrique González Sevilla.
+
+Version 1.3.0 and later use AGPL-3.0-or-later. See [LICENSING.md](LICENSING.md) for scope and commercial use. Feedback does not transfer copyright; incorporating external code requires a separate rights review.
