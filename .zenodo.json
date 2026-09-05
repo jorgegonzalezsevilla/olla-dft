@@ -1,6 +1,6 @@
 {
   "title": "Olla-DFT: a command-line toolkit for Quantum ESPRESSO",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "upload_type": "software",
   "license": "AGPL-3.0-or-later",
   "language": "eng",
@@ -9,7 +9,7 @@
       "name": "González Sevilla, Jorge Enrique"
     }
   ],
-  "description": "<p>Olla-DFT prepares Quantum ESPRESSO inputs, analyzes material properties and organizes results with provenance. It includes an offline interactive explorer with SVG, PNG, CSV, JSON and HTML export, and checkpoint-based recovery for supported pw.x jobs.</p><p>Version 1.3.0 adopts AGPL-3.0-or-later for the project-owned software and includes the full license and a versioned source link in interactive HTML exports. Commercial use is permitted under the license. Earlier releases retain their original GPL terms; third-party components and existing scientific examples retain their declared licenses. No scientific algorithms or numerical results changed.</p><p><a href=\"https://doi.org/10.5281/zenodo.22315940\">Visual gallery: bilingual PDFs, figures and source conditions</a>. <a href=\"https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html\">Explore the examples and the 1.2.0 demo</a>.</p><p>Recovery evidence remains three local matched pairs (SCF, relax, vc-relax), one pair per case, with simulated process interruptions. Physical power loss and disk loss recovery remain unmeasured. <a href=\"https://doi.org/10.5281/zenodo.22316032\">Benchmark and archived evidence</a>.</p><p>Author / Autor: Jorge Enrique González Sevilla. <a href=\"https://github.com/jorgegonzalezsevilla/olla-dft/blob/v1.3.0/LICENSING.md\">License scope / Alcance de la licencia</a>.</p>",
+  "description": "<p>Olla-DFT prepares Quantum ESPRESSO inputs, analyzes material properties and organizes results with provenance. It includes an offline interactive explorer with SVG, PNG, CSV, JSON and HTML export, and checkpoint-based recovery for supported pw.x jobs.</p><p>Version 1.3.1 reduces unnecessary startup work: plotting and font discovery load only when drawing; equation-of-state fitting no longer loads structure preparation. Scientific formulas, tolerances and generated calculation inputs are unchanged. Software remains AGPL-3.0-or-later with the documented per-path exceptions.</p><p><a href=\"https://doi.org/10.5281/zenodo.22315940\">Visual gallery: bilingual PDFs, figures and source conditions</a>. <a href=\"https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html\">Explore the examples and the 1.2.0 demo</a>.</p><p>Recovery evidence remains three local matched pairs (SCF, relax, vc-relax), one pair per case, with simulated process interruptions. Physical power loss and disk loss recovery remain unmeasured. <a href=\"https://doi.org/10.5281/zenodo.22316032\">Benchmark and archived evidence</a>.</p><p>Author / Autor: Jorge Enrique González Sevilla. <a href=\"https://github.com/jorgegonzalezsevilla/olla-dft/blob/v1.3.1/LICENSING.md\">License scope / Alcance de la licencia</a>.</p>",
   "keywords": [
     "Quantum ESPRESSO",
     "density functional theory",
