@@ -57,7 +57,7 @@ def manifest_path(path=".") -> Path:
     raw = Path(path).expanduser()
     if raw.is_file():
         if raw.name != MANIFEST_NAME:
-            raise ErrorDeUso(f"'{raw}' no es un manifiesto {MANIFEST_NAME}.")
+            raise ErrorDeUso(f"'{raw}' is not a {MANIFEST_NAME} manifest.")
         return raw.resolve()
     if raw.name == PROJECT_DIR and raw.is_dir():
         candidate = raw / MANIFEST_NAME
@@ -72,8 +72,8 @@ def manifest_path(path=".") -> Path:
             if candidate.is_file():
                 return candidate
     raise ErrorDeUso(
-        f"no encuentro un proyecto Olla-DFT desde '{raw}'. "
-        "Inicializa uno con 'olla-dft project init'.")
+        f"no Olla-DFT project found from '{raw}'. "
+        "Initialize one with 'olla-dft project init'.")
 
 
 def _migrate(data: dict) -> tuple:
@@ -83,7 +83,7 @@ def _migrate(data: dict) -> tuple:
         return data, False
     if version not in LEGACY_SCHEMA_VERSIONS:
         raise ErrorDeUso(
-            f"se esperaba esquema {SCHEMA_VERSION} (o legado "
+            f"expected schema {SCHEMA_VERSION} (or legacy "
             f"{', '.join(map(str, LEGACY_SCHEMA_VERSIONS))})")
     data.setdefault("metadata", {})
     data.setdefault("campaigns", [])
@@ -126,13 +126,13 @@ def load(path=".") -> tuple:
     try:
         data = json.loads(file.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ErrorDeUso(f"no se pudo leer el proyecto {file}: {exc}") from None
+        raise ErrorDeUso(f"could not read the project {file}: {exc}") from None
     if not isinstance(data, dict):
-        raise ErrorDeUso(f"manifiesto incompatible en {file}: no es un objeto JSON.")
+        raise ErrorDeUso(f"incompatible manifest in {file}: not a JSON object.")
     try:
         data, migrated = _migrate(data)
     except ErrorDeUso as exc:
-        raise ErrorDeUso(f"manifiesto incompatible en {file}: {exc}") from None
+        raise ErrorDeUso(f"incompatible manifest in {file}: {exc}") from None
     root = file.parent.parent.resolve()
     data.setdefault("sources", [])
     data.setdefault("tasks", [])
@@ -199,7 +199,7 @@ def init(directory=".", name=None) -> tuple:
     root.mkdir(parents=True, exist_ok=True)
     target = root / PROJECT_DIR / MANIFEST_NAME
     if target.exists():
-        raise ErrorDeUso(f"ya existe el proyecto {target}; no se sobrescribe.")
+        raise ErrorDeUso(f"the project {target} already exists; it will not be overwritten.")
     project_name = name or root.name or "olla-dft-project"
     data = {
         "schema_version": SCHEMA_VERSION,
@@ -245,7 +245,7 @@ def _relative(root: Path, path: Path) -> str:
 def add_source(root: Path, data: dict, source) -> dict:
     path = Path(source).expanduser().resolve()
     if not path.is_file():
-        raise ErrorDeUso(f"no existe el archivo de entrada '{source}'.")
+        raise ErrorDeUso(f"the input file '{source}' does not exist.")
     rel = _relative(root, path)
     existing = next((x for x in data["sources"] if x.get("path") == rel), None)
     record = {
@@ -276,8 +276,8 @@ def source_path(root: Path, data: dict) -> Path:
     candidates = structures or data["sources"]
     if not candidates:
         raise ErrorDeUso(
-            "el proyecto no tiene archivos. Añade una estructura con "
-            "'olla-dft project add estructura.cif'.")
+            "the project has no files. Add a structure with "
+            "'olla-dft project add structure.cif'.")
     path = Path(candidates[0]["path"])
     return path if path.is_absolute() else root / path
 
@@ -308,56 +308,56 @@ def plan(root: Path, data: dict, goal: str, commands=(), task_prefix=None) -> li
         prefix = _slug(task_prefix or "custom")
         for i, command in enumerate(explicit, 1):
             task_id = f"{prefix}-{i}"
-            tasks.append(_task(task_id, f"Tarea personalizada {i}", command,
+            tasks.append(_task(task_id, f"Custom task {i}", command,
                                previous[-1:] if previous else []))
             previous.append(task_id)
     else:
         source = _relative(root, source_path(root, data))
         if any(k in goal_text for k in ("dos", "densidad", "pdos")):
             tasks = [
-                _task("info", "Revisar estructura", f"olla-dft info {source}"),
-                _task("gen-dos", "Preparar SCF + NSCF + DOS",
+                _task("info", "Review structure", f"olla-dft info {source}"),
+                _task("gen-dos", "Prepare SCF + NSCF + DOS",
                       f"olla-dft gen {source} --preset dos --outdir artifacts/dos",
                       ["info"], ["artifacts/dos"]),
-                _task("dos", "Analizar DOS/PDOS",
+                _task("dos", "Analyze DOS/PDOS",
                       "olla-dft dos artifacts/dos --outdir reports/dos",
                       ["gen-dos"], ["reports/dos"]),
             ]
         elif any(k in goal_text for k in ("opt", "epsilon", "absorb", "tauc")):
             tasks = [
-                _task("info", "Revisar estructura", f"olla-dft info {source}"),
-                _task("gen-optics", "Preparar cálculo óptico",
+                _task("info", "Review structure", f"olla-dft info {source}"),
+                _task("gen-optics", "Prepare optical calculation",
                       f"olla-dft optics {source} --outdir artifacts/optics",
                       ["info"], ["artifacts/optics"]),
             ]
         elif any(k in goal_text for k in ("phonon", "fonon", "vibr", "raman")):
             tasks = [
-                _task("info", "Revisar estructura", f"olla-dft info {source}"),
-                _task("phonons", "Preparar fonones DFPT",
+                _task("info", "Review structure", f"olla-dft info {source}"),
+                _task("phonons", "Prepare DFPT phonons",
                       f"olla-dft phonons {source} --outdir artifacts/phonons",
                       ["info"], ["artifacts/phonons"]),
             ]
         elif any(k in goal_text for k in ("band", "topolog", "chern", "gap")):
             tasks = [
-                _task("info", "Revisar estructura", f"olla-dft info {source}"),
-                _task("gen-bands", "Preparar bandas",
+                _task("info", "Review structure", f"olla-dft info {source}"),
+                _task("gen-bands", "Prepare bands",
                       f"olla-dft gen {source} --preset bands --outdir artifacts/bands",
                       ["info"], ["artifacts/bands"]),
-                _task("bands", "Analizar bandas y gap",
+                _task("bands", "Analyze bands and gap",
                       "olla-dft bands artifacts/bands --outdir reports/bands",
                       ["gen-bands"], ["reports/bands"]),
             ]
         elif any(k in goal_text for k in ("relax", "relaj", "optim")):
             tasks = [
-                _task("info", "Revisar estructura", f"olla-dft info {source}"),
-                _task("gen-relax", "Preparar relajación de posiciones y celda",
+                _task("info", "Review structure", f"olla-dft info {source}"),
+                _task("gen-relax", "Prepare relaxation of positions and cell",
                       f"olla-dft gen {source} --preset relax --outdir artifacts/relax",
                       ["info"], ["artifacts/relax"]),
             ]
         else:
             tasks = [
-                _task("info", "Revisar estructura", f"olla-dft info {source}"),
-                _task("gen-scf", "Preparar SCF",
+                _task("info", "Review structure", f"olla-dft info {source}"),
+                _task("gen-scf", "Prepare SCF",
                       f"olla-dft gen {source} --preset scf --outdir artifacts/scf",
                       ["info"], ["artifacts/scf"]),
             ]
@@ -386,9 +386,9 @@ def _toposort(tasks: list) -> list:
         if task_id in permanent:
             return
         if task_id in temporary:
-            raise ErrorDeUso(f"dependencia circular en la tarea '{task_id}'.")
+            raise ErrorDeUso(f"circular dependency in task '{task_id}'.")
         if task_id not in by_id:
-            raise ErrorDeUso(f"la tarea depende de '{task_id}', que no existe.")
+            raise ErrorDeUso(f"the task depends on '{task_id}', which does not exist.")
         temporary.add(task_id)
         for dependency in by_id[task_id].get("depends_on", []):
             visit(dependency)
@@ -403,18 +403,18 @@ def _toposort(tasks: list) -> list:
 
 def _valid_command(command: str) -> list:
     if any(x in command for x in (";", "|", "&", ">", "<", "`", "$", "\n")):
-        raise ErrorDeUso(f"tarea no segura, contiene shell: {command}")
+        raise ErrorDeUso(f"unsafe task, contains shell syntax: {command}")
     try:
         tokens = shlex.split(command, posix=(os.name != "nt"))
     except ValueError as exc:
-        raise ErrorDeUso(f"tarea ilegible '{command}': {exc}") from None
+        raise ErrorDeUso(f"unreadable task '{command}': {exc}") from None
     if len(tokens) < 2 or tokens[0].lower() != __command_name__:
         raise ErrorDeUso(
-            f"cada tarea debe comenzar por '{__command_name__}'.")
+            f"every task must start with '{__command_name__}'.")
     if tokens[1] == "project":
         raise ErrorDeUso(
-            "una tarea no puede invocar 'project' recursivamente; "
-            "usa comandos científicos concretos.")
+            "a task cannot invoke 'project' recursively; "
+            "use concrete scientific commands.")
     return tokens
 
 
@@ -461,13 +461,13 @@ def _execute_task(root: Path, data: dict, task: dict,
         task["status"] = "cancelled"
         task["progress"] = 0
         task["cancelled_at"] = _now()
-        return task, None, "cancelada por solicitud del usuario"
+        return task, None, "cancelled at the user's request"
 
     for dependency in task.get("depends_on", []):
         dep = next(x for x in data["tasks"] if x["id"] == dependency)
         if dep.get("status") != "succeeded":
             task["status"] = "blocked"
-            return task, None, f"bloqueada por {dependency}"
+            return task, None, f"blocked by {dependency}"
 
     task["status"] = "running"
     task["progress"] = 0
@@ -492,7 +492,7 @@ def _execute_task(root: Path, data: dict, task: dict,
                                          if completed.stderr else "")
             code = completed.returncode
         except subprocess.TimeoutExpired as exc:
-            output = f"timeout después de {timeout:g} s"
+            output = f"timeout after {timeout:g} s"
             if exc.stdout:
                 output += "\n" + str(exc.stdout)
             if exc.stderr:
@@ -512,7 +512,7 @@ def _execute_task(root: Path, data: dict, task: dict,
     task["status"] = ("succeeded" if task["returncode"] == 0 else "failed")
     task["progress"] = 100
     log_path.write_text("\n\n".join(
-        f"=== intento {item['number']} · código {item['returncode']} ===\n"
+        f"=== attempt {item['number']} · code {item['returncode']} ===\n"
         f"{item['detail']}" for item in attempts), encoding="utf-8")
     task["log"] = log_rel.as_posix()
     task["output_hashes"] = _hash_outputs(root, task.get("outputs", []))
@@ -552,20 +552,20 @@ def run(root: Path, data: dict, execute=False, python_executable=None,
     try:
         parallel = max(1, int(parallel))
     except (TypeError, ValueError):
-        raise ErrorDeUso("parallel debe ser un entero positivo.") from None
+        raise ErrorDeUso("parallel must be a positive integer.") from None
     try:
         retries = int(retries)
     except (TypeError, ValueError):
-        raise ErrorDeUso("retries debe ser un entero no negativo.") from None
+        raise ErrorDeUso("retries must be a non-negative integer.") from None
     if retries < 0:
-        raise ErrorDeUso("retries debe ser un entero no negativo.")
+        raise ErrorDeUso("retries must be a non-negative integer.")
     if timeout is not None:
         try:
             timeout = float(timeout)
         except (TypeError, ValueError):
-            raise ErrorDeUso("timeout debe ser un número positivo.") from None
+            raise ErrorDeUso("timeout must be a positive number.") from None
         if timeout <= 0:
-            raise ErrorDeUso("timeout debe ser un número positivo.")
+            raise ErrorDeUso("timeout must be a positive number.")
     ordered = _toposort(data["tasks"])
     data.setdefault("metadata", {})["last_run"] = {
         "at": _now(), "execute": bool(execute), "parallel": parallel,
@@ -586,12 +586,12 @@ def run(root: Path, data: dict, execute=False, python_executable=None,
                                      _task_fingerprint(root, data, task)) and
                       _outputs_match(root, task))
             if cached:
-                results.append((task, 0, "omitida: caché válida"))
+                results.append((task, 0, "skipped: valid cache"))
                 continue
             task["status"] = "pending"
             task["cache_invalidated"] = True
         if not execute:
-            results.append((task, None, "pendiente; usa --execute para correrla"))
+            results.append((task, None, "pending; use --execute to run it"))
         else:
             runnable.append(task)
 
@@ -600,8 +600,8 @@ def run(root: Path, data: dict, execute=False, python_executable=None,
         return results
     if parallel > 1 and any(task.get("depends_on") for task in runnable):
         raise ErrorDeUso(
-            "--parallel solo puede usarse con tareas independientes; "
-            "ejecuta el DAG normal o usa una campaña.")
+            "--parallel can only be used with independent tasks; "
+            "run the normal DAG or use a campaign.")
 
     if parallel > 1 and len(runnable) > 1:
         with ThreadPoolExecutor(max_workers=parallel) as pool:
@@ -665,17 +665,17 @@ def status(root: Path, data: dict) -> dict:
 def report_status(root: Path, data: dict) -> str:
     state = status(root, data)
     c = state["counts"]
-    lines = [f"Proyecto: {state['name']}", f"Raíz: {state['root']}",
-             f"Fuentes: {state['sources']}",
-             f"Progreso: {state['progress']}%",
-             "Tareas: " + ", ".join(f"{k}={v}" for k, v in c.items())]
+    lines = [f"Project: {state['name']}", f"Root: {state['root']}",
+             f"Sources: {state['sources']}",
+             f"Progress: {state['progress']}%",
+             "Tasks: " + ", ".join(f"{k}={v}" for k, v in c.items())]
     if state["goal"]:
-        lines.append(f"Objetivo: {state['goal']}")
+        lines.append(f"Goal: {state['goal']}")
     if state["changed_sources"]:
-        lines += ["AVISO — cambiaron fuentes registradas:"]
+        lines += ["WARNING — registered sources have changed:"]
         lines.extend(f"  - {x}" for x in state["changed_sources"])
     if data["tasks"]:
-        lines.append("\nFlujo:")
+        lines.append("\nWorkflow:")
         for task in _toposort(data["tasks"]):
             lines.append(f"  [{task.get('status', 'pending'):9s}] "
                          f"{task['id']:16s} {task['label']}")
@@ -709,12 +709,12 @@ def diff(left, right) -> dict:
                 return data
             except ErrorDeUso:
                 raise ErrorDeUso(
-                    f"'{path}' no contiene un proyecto Olla-DFT; indica una "
-                    "carpeta con .qekit/project.json o un snapshot JSON.") from None
+                    f"'{path}' does not contain an Olla-DFT project; give a "
+                    "folder with .qekit/project.json or a JSON snapshot.") from None
         try:
             return json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            raise ErrorDeUso(f"no se pudo leer el snapshot '{path}': {exc}") from None
+            raise ErrorDeUso(f"could not read the snapshot '{path}': {exc}") from None
 
     a, b = as_data(left), as_data(right)
     def keyed(items, key):
@@ -754,15 +754,15 @@ def diff(left, right) -> dict:
 
 
 def diff_report(result: dict) -> str:
-    lines = ["--- Diferencia de snapshots ---",
-             f"Izquierda: {result['left']}", f"Derecha: {result['right']}"]
+    lines = ["--- Snapshot difference ---",
+             f"Left: {result['left']}", f"Right: {result['right']}"]
     sources, tasks = result["source_changes"], result["task_changes"]
-    lines.append(f"Fuentes cambiadas: {len(sources)}  | tareas cambiadas: {len(tasks)}")
+    lines.append(f"Changed sources: {len(sources)}  | changed tasks: {len(tasks)}")
     for item in sources:
-        lines.append(f"  fuente [{item['change']:12s}] {item['path']}")
+        lines.append(f"  source [{item['change']:12s}] {item['path']}")
     for item in tasks:
-        lines.append(f"  tarea  [{item['change']:12s}] {item['id']}"
+        lines.append(f"  task   [{item['change']:12s}] {item['id']}"
                      + (f" ({item.get('from')} -> {item.get('to')})"
                         if item["change"] == "modified" else ""))
-    lines.append(f"Campañas: {result['campaigns_left']} -> {result['campaigns_right']}")
+    lines.append(f"Campaigns: {result['campaigns_left']} -> {result['campaigns_right']}")
     return "\n".join(lines)

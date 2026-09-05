@@ -198,35 +198,35 @@ def report(atoms: Atoms, res: LayerAnalysis, wavelength: float = 1.5406,
     `radiation` es el nombre de la radiación ('Cu Kα', 'Mo Kα'...) que
     acompaña a λ en el rótulo; sin él solo se imprime el valor de λ.
     """
-    lines = ["--- Análisis de capas ---",
-             f"Fórmula: {atoms.get_chemical_formula()}  |  "
-             f"tolerancia de enlace: +{res.tol:g} Å sobre radios covalentes",
-             f"Componentes conexas: {res.n_components}  |  "
-             f"dimensionalidad: {res.dimensionality}"]
+    lines = ["--- Layer analysis ---",
+             f"Formula: {atoms.get_chemical_formula()}  |  "
+             f"bond tolerance: +{res.tol:g} Å over covalent radii",
+             f"Connected components: {res.n_components}  |  "
+             f"dimensionality: {res.dimensionality}"]
     if not res.layers:
         lines.append("")
-        lines.append("No se detectaron capas (ninguna componente es periódica "
-                     "en exactamente 2 direcciones).")
+        lines.append("No layers detected (no component is periodic "
+                     "in exactly 2 directions).")
         if 3 in res.components_dim:
-            lines.append("La estructura es un armazón 3D con esta tolerancia; "
-                         "puedes probar con --tol menor.")
+            lines.append("The structure is a 3D framework at this tolerance; "
+                         "you can try a smaller --tol.")
         return "\n".join(lines)
 
     axis_name = "abc"[res.stacking_axis]
     lines += [
         "",
-        f"Capas detectadas: {len(res.layers)}  "
-        f"(apiladas a lo largo del eje {axis_name})",
+        f"Layers detected: {len(res.layers)}  "
+        f"(stacked along the {axis_name} axis)",
     ]
     for k, L in enumerate(res.layers, start=1):
-        lines.append(f"  capa {k}: {L.formula:12s} grosor {L.thickness:6.3f} Å  "
-                     f"centro en {L.center:8.3f} Å")
+        lines.append(f"  layer {k}: {L.formula:12s} thickness {L.thickness:6.3f} Å  "
+                     f"centre at {L.center:8.3f} Å")
     lines += [
         "",
-        f"Espaciado basal d = {res.basal_spacing:.4f} Å",
-        f"Hueco interlaminar (entre superficies atómicas): {res.gap:.4f} Å",
-        f"Periodo de apilamiento: {res.period:.4f} Å "
-        f"({len(res.layers)} capa(s) por celda)",
+        f"Basal spacing d = {res.basal_spacing:.4f} Å",
+        f"Interlayer gap (between atomic surfaces): {res.gap:.4f} Å",
+        f"Stacking period: {res.period:.4f} Å "
+        f"({len(res.layers)} layer(s) per cell)",
     ]
     # posición del pico basal en un difractograma
     lam = wavelength
@@ -234,7 +234,7 @@ def report(atoms: Atoms, res: LayerAnalysis, wavelength: float = 1.5406,
     # el nombre de la radiación viene de fuera: aquí solo se conoce λ y no
     # hay que suponer que es Cu Kα si el usuario pidió otra
     rad = f", {radiation}" if radiation else ""
-    lines.append(f"Reflexiones basales esperadas (λ = {lam:.4f} Å{rad}):")
+    lines.append(f"Expected basal reflections (λ = {lam:.4f} Å{rad}):")
     for order in (1, 2, 3):
         d = res.basal_spacing / order
         s = lam / (2.0 * d)
@@ -243,9 +243,9 @@ def report(atoms: Atoms, res: LayerAnalysis, wavelength: float = 1.5406,
         tt = np.degrees(2.0 * np.arcsin(s))
         lines.append(f"  d = {d:7.4f} Å  ->  2θ = {tt:6.2f}°")
     lines.append("")
-    lines.append("El espaciado basal es la distancia entre capas equivalentes "
-                 "(centro a centro);\nel hueco interlaminar resta el grosor "
-                 "atómico de la capa, sin radios de van der Waals.")
+    lines.append("The basal spacing is the distance between equivalent layers "
+                 "(centre to centre);\nthe interlayer gap subtracts the atomic "
+                 "thickness of the layer, without van der Waals radii.")
     return "\n".join(lines)
 
 
@@ -257,7 +257,7 @@ def make_slab(atoms: Atoms, res: LayerAnalysis, layer_index: int = 0,
     una celda con `vacuum` Å de vacío total a lo largo de la normal.
     """
     if not res.layers:
-        raise FaltanDatos("no hay capas detectadas de las que construir la monocapa")
+        raise FaltanDatos("no layers detected from which to build the monolayer")
     L = res.layers[layer_index]
     slab = atoms[L.indices]
     axis = res.stacking_axis

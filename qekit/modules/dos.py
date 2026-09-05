@@ -230,16 +230,16 @@ def load(
 
         result.projected = OrderedDict(sorted(accum.items(), key=sort_key))
         if saltados:
-            lista = "\n".join(f"    {nombre}  ({n} puntos)"
+            lista = "\n".join(f"    {nombre}  ({n} points)"
                               for nombre, n in saltados)
             result.avisos.append(
-                f"se han SALTADO {len(saltados)} archivo(s) de projwfc.x "
-                f"cuya malla de energía no coincide\n  con la del primero "
-                f"({len(energies_p)} puntos), así que la PDOS está "
-                f"incompleta:\n{lista}\n  Casi siempre es que hay archivos "
-                f"de dos corridas de projwfc.x mezclados en la\n  misma "
-                f"carpeta (distinto Emin/Emax/DeltaE). Aparta los viejos o "
-                f"vuelve a correr projwfc.x.")
+                f"{len(saltados)} projwfc.x file(s) were SKIPPED "
+                f"because their energy grid does not match\n  that of the first one "
+                f"({len(energies_p)} points), so the PDOS is "
+                f"incomplete:\n{lista}\n  Almost always this means files "
+                f"from two projwfc.x runs are mixed in the\n  same "
+                f"folder (different Emin/Emax/DeltaE). Move the old ones aside or "
+                f"rerun projwfc.x.")
         if result.energies is None:
             result.energies = energies_p
             result.nspin = nspin_p
@@ -258,9 +258,9 @@ def load(
 
     if result.energies is None:
         raise FileNotFoundError(
-            f"no se encontraron archivos de DOS ni PDOS en '{base}'.\n"
-            "Ejecuta primero dos.x (genera <prefix>.dos) y/o projwfc.x "
-            "(genera <prefix>.pdos.pdos_atm#...)."
+            f"no DOS or PDOS files were found in '{base}'.\n"
+            "Run dos.x first (it generates <prefix>.dos) and/or projwfc.x "
+            "(it generates <prefix>.pdos.pdos_atm#...)."
         )
     return result
 
@@ -272,9 +272,9 @@ def reference_energy(data: DOSData, ref: str = "auto") -> tuple:
     """Cero de energías: 'auto'/'fermi' -> Fermi, 'none' -> absolutas."""
     if ref == "none" or data.fermi is None:
         if ref != "none" and data.fermi is None:
-            return 0.0, "sin desplazar (no se encontró la energía de Fermi)"
-        return 0.0, "sin desplazar (energías absolutas)"
-    return data.fermi, "energía de Fermi"
+            return 0.0, "not shifted (Fermi energy not found)"
+        return 0.0, "not shifted (absolute energies)"
+    return data.fermi, "Fermi energy"
 
 
 def export(data: DOSData, outdir: str = ".", ref: str = "auto") -> list:
@@ -295,10 +295,10 @@ def export(data: DOSData, outdir: str = ".", ref: str = "auto") -> list:
             names.append("DOS" if data.total.shape[0] == 1 else f"DOS_{spin_tag[s]}")
         if data.integrated is not None:
             cols.append(data.integrated)
-            names.append("DOS_integrada")
+            names.append("DOS_integrated")
         fname = out / "DOS.dat"
         header = (
-            provenance.header("DOS total",
+            provenance.header("total DOS",
                               {"origen_energias": ref_desc}) + "\n"
             "# " + "  ".join(f"{n:>14s}" for n in names)
         )
@@ -328,8 +328,8 @@ def export(data: DOSData, outdir: str = ".", ref: str = "auto") -> list:
 
         fname = out / "PDOS.dat"
         header = (
-            "# Densidad de estados proyectada — Olla-DFT\n"
-            f"# Origen de energías: {ref_desc} (E = 0)\n"
+            "# Projected density of states — Olla-DFT\n"
+            f"# Energy origin: {ref_desc} (E = 0)\n"
             "# " + "  ".join(f"{n:>14s}" for n in names)
         )
         np.savetxt(fname, np.column_stack(cols), fmt="%16.8f",
@@ -342,35 +342,35 @@ def report(data: DOSData, ref: str = "auto") -> str:
     """Resumen legible de lo que se cargó."""
     shift, ref_desc = reference_energy(data, ref)
     lines = ["--- DOS / PDOS ---"]
-    lines.append(f"Puntos de energía: {len(data.energies)}  "
-                 f"({data.energies.min():.2f} a {data.energies.max():.2f} eV)")
+    lines.append(f"Energy points: {len(data.energies)}  "
+                 f"({data.energies.min():.2f} to {data.energies.max():.2f} eV)")
     if data.fermi is not None:
-        lines.append(f"Energía de Fermi: {data.fermi:.4f} eV")
-    lines.append(f"Origen de energías para exportar/graficar: {ref_desc}")
-    lines.append(f"Canales de espín: {data.nspin}")
+        lines.append(f"Fermi energy: {data.fermi:.4f} eV")
+    lines.append(f"Energy origin for export/plot: {ref_desc}")
+    lines.append(f"Spin channels: {data.nspin}")
     if data.projected:
         lines.append("")
-        lines.append("Proyecciones encontradas:")
+        lines.append("Projections found:")
         for el in data.elements:
             orbs = [o for (e, o) in data.projected if e == el]
             lines.append(f"  {el:3s} -> {', '.join(orbs)}")
     else:
         lines.append("")
-        lines.append("Sin PDOS (no se encontraron archivos de projwfc.x).")
+        lines.append("No PDOS (no projwfc.x files were found).")
 
     # DOS en el nivel de Fermi: útil para distinguir metal de semiconductor
     if data.fermi is not None and data.total is not None:
         idx = int(np.argmin(np.abs(data.energies - data.fermi)))
         dos_ef = float(np.sum(data.total[:, idx]))
         lines.append("")
-        lines.append(f"DOS en E_F: {dos_ef:.4f} estados/eV")
+        lines.append(f"DOS at E_F: {dos_ef:.4f} states/eV")
         if dos_ef < 1e-3:
-            lines.append("  -> compatible con un sistema con gap "
-                         "(semiconductor o aislante).")
+            lines.append("  -> consistent with a gapped system "
+                         "(semiconductor or insulator).")
         else:
-            lines.append("  -> compatible con un sistema metálico.")
+            lines.append("  -> consistent with a metallic system.")
     for aviso in data.avisos:
-        lines += ["", f"AVISO: {aviso}"]
+        lines += ["", f"WARNING: {aviso}"]
     return "\n".join(lines)
 
 
@@ -421,7 +421,7 @@ def plot(
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError(
-            "matplotlib no está instalado. Instálalo con:\n"
+            "matplotlib is not installed. Install it with:\n"
             "  pip install matplotlib --break-system-packages"
         ) from exc
 
@@ -433,9 +433,9 @@ def plot(
     draw(ax, data, shift, st, mode=mode, mono=mono, dash_mode=dash_mode,
          vertical=vertical, emin=emin, emax=emax)
 
-    elabel = (r"$E - E_\mathrm{F}$ (eV)" if _desc.startswith("energía")
+    elabel = (r"$E - E_\mathrm{F}$ (eV)" if _desc.startswith("Fermi")
               else r"$E$ (eV)")
-    dlabel = "DOS (estados eV$^{-1}$)"
+    dlabel = "DOS (states eV$^{-1}$)"
     if vertical:
         ax.set_ylabel(elabel)
         ax.set_xlabel(dlabel)
@@ -562,19 +562,19 @@ def momentos(data: DOSData, elemento: str, orbital: str = "d",
     orb = str(orbital).lower()
     if orb not in L_OF_LETTER:
         raise ErrorDeUso(
-            f"orbital '{orbital}' desconocido; son "
+            f"unknown orbital '{orbital}'; options are "
             f"{', '.join(ORBITAL_ORDER)}.")
     clave = (elemento, orb)
     if clave not in data.projected:
         disp = sorted({f"{el}-{o}" for el, o in data.projected})
         raise ErrorDeUso(
-            f"no hay PDOS de {elemento}-{orb} en este cálculo. "
-            f"Lo que hay: {', '.join(disp) if disp else 'nada'}. "
-            f"Hace falta projwfc.x con la proyección por orbital.")
+            f"there is no {elemento}-{orb} PDOS in this calculation. "
+            f"Available: {', '.join(disp) if disp else 'none'}. "
+            f"projwfc.x with per-orbital projection is required.")
     if data.fermi is None:
         raise ErrorDeUso(
-            "no se encontró la energía de Fermi, y el centro de banda se mide "
-            "respecto a ella. Revisa la salida de projwfc.x.")
+            "the Fermi energy was not found, and the band centre is measured "
+            "relative to it. Check the projwfc.x output.")
 
     e = np.asarray(data.energies, dtype=float) - data.fermi
     rho = np.asarray(data.projected[clave], dtype=float)   # (nspin, ne)
@@ -617,37 +617,37 @@ def momentos(data: DOSData, elemento: str, orbital: str = "d",
 def report_momentos(m: dict) -> str:
     el, orb = m["elemento"], m["orbital"]
     if "centro" not in m:
-        return f"No hay peso de {el}-{orb} que integrar."
-    L = [f"--- Banda {orb} de {el} ---",
-         f"Rango integrado: {m['rango'][0]:+.2f} a {m['rango'][1]:+.2f} eV "
-         f"respecto al Fermi",
+        return f"There is no {el}-{orb} weight to integrate."
+    L = [f"--- {el} {orb} band ---",
+         f"Integrated range: {m['rango'][0]:+.2f} to {m['rango'][1]:+.2f} eV "
+         f"relative to the Fermi level",
          "",
-         f"  centro   ε_{orb} = {m['centro']:+.4f} eV",
-         f"  anchura  W    = {m['ancho']:.4f} eV",
-         f"  llenado       = {m['llenado'] * 100:.1f} %  "
-         f"({m['estados']:.2f} estados en total)"]
+         f"  centre   ε_{orb} = {m['centro']:+.4f} eV",
+         f"  width    W    = {m['ancho']:.4f} eV",
+         f"  filling       = {m['llenado'] * 100:.1f} %  "
+         f"({m['estados']:.2f} states in total)"]
     canales = [c for c in m["canales"] if c]
     if len(canales) == 2:
-        L += ["", "  Por canal de espín:",
+        L += ["", "  Per spin channel:",
               f"    up  ε = {canales[0]['centro']:+.4f} eV   "
               f"W = {canales[0]['ancho']:.4f}   "
-              f"llenado {canales[0]['llenado'] * 100:.1f} %",
+              f"filling {canales[0]['llenado'] * 100:.1f} %",
               f"    down ε = {canales[1]['centro']:+.4f} eV   "
               f"W = {canales[1]['ancho']:.4f}   "
-              f"llenado {canales[1]['llenado'] * 100:.1f} %",
-              f"    desdoblamiento de intercambio = "
+              f"filling {canales[1]['llenado'] * 100:.1f} %",
+              f"    exchange splitting = "
               f"{canales[0]['centro'] - canales[1]['centro']:+.4f} eV"]
     if m.get("cola_relativa", 0) > 0.05:
         L += ["",
-              f"AVISO: al final del rango todavía queda un "
-              f"{m['cola_relativa'] * 100:.0f} % del pico de PDOS. La banda "
-              f"está\n  CORTADA por arriba, así que el centro sale más bajo de "
-              f"lo que debería.\n  Vuelve a correr projwfc.x con un Emax mayor "
-              f"(o nscf con más bandas)."]
+              f"WARNING: at the end of the range there is still "
+              f"{m['cola_relativa'] * 100:.0f} % of the PDOS peak. The band "
+              f"is\n  CUT at the top, so the centre comes out lower than "
+              f"it should.\n  Rerun projwfc.x with a larger Emax "
+              f"(or nscf with more bands)."]
     if orb == "d":
         L += ["",
-              "  El centro de banda d se compara con la energía de adsorción: "
-              "cuanto más\n  arriba (menos negativo), más fuerte adsorbe la "
-              "superficie. Es una\n  correlación empírica dentro de una misma "
-              "familia de metales, no una ley."]
+              "  The d-band centre is compared with the adsorption energy: "
+              "the higher\n  (less negative), the more strongly the "
+              "surface adsorbs. It is an\n  empirical correlation within a "
+              "family of metals, not a law."]
     return "\n".join(L)

@@ -358,7 +358,7 @@ def test_superficie_avisa_si_el_vacio_es_insuficiente():
     from qekit.modules import builder
     info = builder.surface(bulk("Si", "diamond", a=5.43), miller=(1, 0, 0),
                            layers=4, vacuum=6.0)
-    assert any("vacío REAL" in w for w in info.warnings)
+    assert any('REAL vacuum' in w for w in info.warnings)
 
 
 def test_superficie_detecta_polaridad_en_un_compuesto():
@@ -397,7 +397,7 @@ def test_intersticial_avisa_si_cae_encima_de_un_atomo():
     ocupada = perf.get_scaled_positions()[0]
     _p, info = builder.defect(at, kind="interstitial", new_element="H",
                               supercell=(2, 2, 2), position=tuple(ocupada))
-    assert any("vecino más cercano" in w for w in info.warnings)
+    assert any('nearest neighbour' in w for w in info.warnings)
 
 
 def test_intersticial_acepta_un_hueco_valido():
@@ -405,7 +405,7 @@ def test_intersticial_acepta_un_hueco_valido():
     at = bulk("Si", "diamond", a=5.43)
     _p, info = builder.defect(at, kind="interstitial", new_element="H",
                               supercell=(2, 2, 2), position=(0.0, 0.0, 0.0))
-    assert not any("vecino más cercano" in w for w in info.warnings)
+    assert not any('nearest neighbour' in w for w in info.warnings)
     assert info.atoms.get_chemical_symbols().count("H") == 1
 
 
@@ -453,7 +453,7 @@ def test_bader_reparte_dos_gaussianas_conocidas():
     assert res.volumes[0] == pytest.approx(res.volumes[1], rel=1e-6)
     assert res.volumes.sum() == pytest.approx(L ** 3, rel=1e-9)
     rep = charges.report_bader(res)
-    assert "n/d" not in rep and "no coincide" not in rep
+    assert 'n/a' not in rep and 'does not match' not in rep
 
     # la misma densidad declarada en e/Å³ debe dar lo mismo
     cube_A = fields.CubeData(origin=np.zeros(3), axes=np.eye(3) * (L / n),
@@ -470,7 +470,7 @@ def test_diferencia_de_carga_exige_la_misma_rejilla():
                         data=np.ones((4, 4, 4)), natoms=1)
     b = fields.CubeData(origin=np.zeros(3), axes=np.eye(3), shape=(4, 4, 5),
                         data=np.ones((4, 4, 5)), natoms=1)
-    with pytest.raises(ValueError, match="rejillas no coinciden"):
+    with pytest.raises(ValueError, match='grids do not match'):
         charges.difference(a, [b])
 
 
@@ -505,9 +505,9 @@ def test_espectro_raman_ignora_los_acusticos():
 def test_xps_rechaza_el_excite_que_da_ceros():
     """excite(n)=n produce delta_zv=0 y una tabla de ceros sin error."""
     from qekit.modules import xps
-    with pytest.raises(ValueError, match="propia contraparte"):
+    with pytest.raises(ValueError, match="own excited counterpart"):
         xps.build_input("X", {1: 1})
-    with pytest.raises(ValueError, match="al menos un par"):
+    with pytest.raises(ValueError, match="at least one pair"):
         xps.build_input("X", {})
     assert "excite(1) = 2" in xps.build_input("X", {1: 2})
 
@@ -520,7 +520,7 @@ def test_soc_se_niega_con_pseudos_no_relativistas():
     from qekit.modules import sweep
     common = {"pseudos": {"Si": {"found": True, "filename": "Si.pz-vbc.UPF",
                                  "relativistic": "scalar"}}}
-    with pytest.raises(ValueError, match="TOTALMENTE RELATIVISTAS"):
+    with pytest.raises(ValueError, match="FULLY RELATIVISTIC"):
         sweep.check_soc_pseudos(common)
     common["pseudos"]["Si"]["relativistic"] = "full"
     sweep.check_soc_pseudos(common)          # ahora pasa
@@ -598,7 +598,7 @@ def test_bxsf_se_niega_sin_bandas_que_crucen():
     from qekit.modules import transport as tr
     run = tr.TransportRun(grid=(2, 2, 2), fermi=-50.0)
     run.energies = np.zeros((8, 2))
-    with pytest.raises(ValueError, match="ninguna banda cruza"):
+    with pytest.raises(ValueError, match="no band crosses"):
         tr.export_bxsf(run, np.eye(3), "x.bxsf")
 
 

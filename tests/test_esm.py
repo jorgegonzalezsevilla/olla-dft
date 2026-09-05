@@ -40,7 +40,7 @@ def test_centrar_no_toca_la_celda_ni_las_otras_coordenadas():
 
 def test_avisa_de_que_habia_que_centrar():
     avisos = E.comprobar(_losa(), "bc1", [0.0])
-    assert any("centrado" in a or "centrada" in a for a in avisos)
+    assert any('centred' in a or 'centred' in a for a in avisos)
 
 
 def test_una_losa_ya_centrada_no_dispara_el_aviso():
@@ -70,7 +70,7 @@ def test_bc1_neutra_es_valida():
 @pytest.mark.parametrize("bc", ["bc2", "bc3"])
 def test_bc2_y_bc3_admiten_carga(bc):
     avisos = E.comprobar(_losa(centrada=True), bc, [0.1])
-    assert any("contraelectrodo" in a for a in avisos)
+    assert any('counter-electrode' in a for a in avisos)
 
 
 def test_condicion_de_contorno_inventada():
@@ -85,12 +85,12 @@ def test_se_niega_con_una_celda_no_ortogonal_en_z():
     a.set_cell(c, scale_atoms=False)
     with pytest.raises(ErrorDeUso) as e:
         E.comprobar(a, "bc1", [0.0])
-    assert "ortogonal" in str(e.value)
+    assert 'orthogonal' in str(e.value)
 
 
 def test_avisa_si_apenas_hay_vacio():
     avisos = E.comprobar(_losa(vac=1.0, centrada=True), "bc1", [0.0])
-    assert any("vacío" in a for a in avisos)
+    assert any('vacuum' in a for a in avisos)
 
 
 # ----------------------------------------------------------------------

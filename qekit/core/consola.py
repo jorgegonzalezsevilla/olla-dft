@@ -51,16 +51,16 @@ TRANSLITERACION = {
     "Ψ": "Psi", "ψ": "psi", "Σ": "Sum", "Π": "Prod", "∫": "int",
     "∂": "d", "∇": "grad", "∞": "inf", "√": "sqrt", "≈": "~=",
     "≠": "!=", "≤": "<=", "≥": ">=", "±": "+/-", "×": "x", "·": ".",
-    "°": "deg", "‰": "por mil",
+    "°": "deg", "‰": "per mil",
     # superíndices y subíndices
     "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6",
     "⁷": "7", "⁸": "8", "⁹": "9", "⁻": "-", "⁺": "+",
     "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4", "₅": "5", "₆": "6",
     "₇": "7", "₈": "8", "₉": "9", "ₑ": "e", "ₐ": "a",
     "Λ": "Lambda", "Ξ": "Xi", "ξ": "xi", "ζ": "zeta", "η": "eta",
-    "⇌": "<=>", "⇄": "<=>", "∝": "prop a", "≡": "==", "∼": "~",
-    "⟨": "<", "⟩": ">", "⊗": "(x)", "⊕": "(+)", "∈": "en", "∀": "para todo",
-    "≫": ">>", "≪": "<<", "∅": "vacio", "⌀": "vacio",
+    "⇌": "<=>", "⇄": "<=>", "∝": "prop to", "≡": "==", "∼": "~",
+    "⟨": "<", "⟩": ">", "⊗": "(x)", "⊕": "(+)", "∈": "in", "∀": "for all",
+    "≫": ">>", "≪": "<<", "∅": "empty", "⌀": "empty",
     # el menos tipográfico (U+2212) NO es el guion ASCII, y es el que más se
     # cuela al copiar de un PDF o al escribir −0.5 en un editor decente
     "−": "-", "‐": "-", "‑": "-", "‒": "-", "\u00a0": " ", "\u2009": " ",
@@ -143,7 +143,7 @@ def preparar(forzar_ascii: bool = False) -> dict:
     if forzar_ascii:
         sys.stdout = _Transliterando(_SoloAscii(sys.stdout))
         sys.stderr = _Transliterando(_SoloAscii(sys.stderr))
-        ESTADO.update(codificacion="ascii (forzado)", translitera=True)
+        ESTADO.update(codificacion="ascii (forced)", translitera=True)
         return dict(ESTADO)
 
     for nombre in ("stdout", "stderr"):

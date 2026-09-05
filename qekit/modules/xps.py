@@ -95,16 +95,16 @@ def build_input(prefix: str, pares: dict) -> str:
     """
     if not pares:
         raise ErrorDeUso(
-            "initial_state.x necesita al menos un par "
-            "{tipo_fundamental: tipo_excitado}. Sin él, delta_zv vale cero "
-            "y el programa devuelve una tabla de ceros sin avisar.")
+            "initial_state.x needs at least one pair "
+            "{ground_state_type: excited_type}. Without it, delta_zv is zero "
+            "and the program returns a table of zeros without warning.")
     for gs, ex in pares.items():
         if int(gs) == int(ex):
             raise ErrorDeUso(
-                f"excite({gs}) = {ex}: un tipo no puede ser su propia "
-                "contraparte excitada. El tipo excitado es OTRA especie, "
-                "la del mismo elemento con pseudopotencial de hueco de "
-                "core.")
+                f"excite({gs}) = {ex}: a type cannot be its own "
+                "excited counterpart. The excited type is ANOTHER species, "
+                "that of the same element with a core-hole "
+                "pseudopotential.")
     lines = ["&inputpp", f"  prefix = '{prefix}'", "  outdir = './out'"]
     for gs, ex in sorted(pares.items()):
         lines.append(f"  excite({int(gs)}) = {int(ex)}")
@@ -128,10 +128,10 @@ def _verificar_par(elem: str, common: dict, upf_hueco, pseudo_dir) -> None:
     hueco = Path(upf_hueco)
     if base_nombre == hueco.name:
         raise ErrorDeUso(
-            f"el pseudopotencial normal de {elem} y el de hueco de core son "
-            f"el MISMO archivo ({hueco.name}). Los dos tipos quedarían "
-            "idénticos y initial_state.x devolvería ceros. Usa --pseudo-dir "
-            "con el pseudo normal, o genera el par con:\n"
+            f"the normal pseudopotential of {elem} and the core-hole one are "
+            f"the SAME file ({hueco.name}). The two types would be "
+            "identical and initial_state.x would return zeros. Use --pseudo-dir "
+            "with the normal pseudopotential, or generate the pair with:\n"
             f"  olla-dft corehole {elem} --edge K")
 
     base_ruta = Path(pseudo_dir) / (base_nombre or "")
@@ -141,13 +141,13 @@ def _verificar_par(elem: str, common: dict, upf_hueco, pseudo_dir) -> None:
         return
     if abs((zh - zb) - 1.0) > 1e-6:
         raise ErrorDeUso(
-            f"z_valence de {elem}: {zb:g} (normal) y {zh:g} (hueco); la "
-            f"diferencia es {zh - zb:+g} y tiene que ser exactamente +1.\n"
-            "Un hueco de core es UN electrón menos en el core, así que el "
-            "pseudo excitado lleva una carga de valencia más. Con otra "
-            "diferencia el corrimiento que salga no es un corrimiento de "
-            "nivel de core.\n"
-            f"Genera el par consistente con:  olla-dft corehole {elem} --edge K")
+            f"z_valence of {elem}: {zb:g} (normal) and {zh:g} (core hole); the "
+            f"difference is {zh - zb:+g} and it must be exactly +1.\n"
+            "A core hole is ONE electron fewer in the core, so the "
+            "excited pseudopotential carries one more valence charge. With another "
+            "difference the resulting shift is not a core-level "
+            "shift.\n"
+            f"Generate the consistent pair with:  olla-dft corehole {elem} --edge K")
 
 def _copiar_pseudos(core_hole: dict, pseudo_dir) -> None:
     """Deja los UPF con hueco donde pw.x los va a buscar.
@@ -198,9 +198,9 @@ def prepare(atoms, outdir: str = "xps", pseudo_dir: str = None,
     for elem, upf in (core_hole or {}).items():
         if elem not in especies:
             raise ErrorDeUso(
-                f"'{elem}' no está en la estructura ({', '.join(especies)}); "
-                "el pseudo con hueco de core tiene que ser del mismo "
-                "elemento que quieres excitar.")
+                f"'{elem}' is not in the structure ({', '.join(especies)}); "
+                "the core-hole pseudopotential must be of the same "
+                "element you want to excite.")
         from qekit.modules.xanes import etiqueta_excitada
         etiqueta = etiqueta_excitada(elem)
         extra.append((etiqueta, elem, Path(upf).name))
@@ -228,36 +228,36 @@ def prepare(atoms, outdir: str = "xps", pseudo_dir: str = None,
     except Exception:
         n_orbitas = len(atoms)
 
-    rep = ["--- Corrimientos de nivel de core (XPS) ---",
-           f"Estructura: {atoms.get_chemical_formula()} "
-           f"({len(atoms)} átomos)",
-           f"Sitios inequivalentes por simetría: {n_orbitas}",
+    rep = ["--- Core-level shifts (XPS) ---",
+           f"Structure: {atoms.get_chemical_formula()} "
+           f"({len(atoms)} atoms)",
+           f"Symmetry-inequivalent sites: {n_orbitas}",
            "",
-           f"Archivos en '{out.resolve()}': scf.in, initial_state.in",
-           "Orden: pw.x -in scf.in  ->  initial_state.x -in "
+           f"Files in '{out.resolve()}': scf.in, initial_state.in",
+           "Order: pw.x -in scf.in  ->  initial_state.x -in "
            "initial_state.in"]
     if not core_hole:
         rep += ["",
-                "NO se escribió initial_state.in: falta el pseudopotencial "
-                "de HUECO DE CORE.",
-                "initial_state.x compara la especie normal contra otra del "
-                "mismo elemento con",
-                "un electrón menos en el core; sin esa segunda especie "
-                "devuelve una tabla de",
-                "ceros sin dar error. Pásalo con --core-hole "
-                "Si=Si.star1s.UPF (se genera con",
-                "ld1.x, no viene en las tablas estándar)."]
+                "initial_state.in was NOT written: the CORE-HOLE "
+                "pseudopotential is missing.",
+                "initial_state.x compares the normal species against another of "
+                "the same element with",
+                "one electron fewer in the core; without that second species "
+                "it returns a table of",
+                "zeros without giving an error. Pass it with --core-hole "
+                "Si=Si.star1s.UPF (it is generated with",
+                "ld1.x, it is not in the standard tables)."]
     if n_orbitas <= 1:
         rep += ["",
-                "AVISO: todos los átomos son equivalentes por simetría, así "
-                "que todos los\ncorrimientos van a salir exactamente cero. "
-                "Para un corrimiento químico\nhacen falta átomos de la misma "
-                "especie en entornos distintos: una\nsuperficie, un defecto, "
-                "un dopante o un compuesto con varios sitios."]
+                "WARNING: all atoms are equivalent by symmetry, so "
+                "all the\nshifts will come out exactly zero. "
+                "For a chemical shift\natoms of the same "
+                "species in different environments are needed: a\nsurface, a defect, "
+                "a dopant or a compound with several sites."]
     rep += ["",
-            "Recuerda: esto es la aproximación de ESTADO INICIAL. Sirve para "
-            "los\ncorrimientos relativos, no para energías de enlace "
-            "absolutas."]
+            "Remember: this is the INITIAL-STATE approximation. It is valid for "
+            "the\nrelative shifts, not for absolute binding "
+            "energies."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -282,7 +282,7 @@ def collect(path, symbols=None, tol: float = 1e-6) -> XPSResult:
             acumulado.setdefault(seccion, {})[iat] = (ityp, ev)
     if not acumulado:
         raise FaltanDatos(
-            f"no hay corrimientos en '{path}'; ¿corrió initial_state.x?")
+            f"there are no shifts in '{path}'; did initial_state.x run?")
 
     for nombre, datos in acumulado.items():
         idx = sorted(datos)
@@ -298,36 +298,36 @@ def collect(path, symbols=None, tol: float = 1e-6) -> XPSResult:
 
 
 def report(res: XPSResult) -> str:
-    lines = ["--- Corrimientos de nivel de core (estado inicial) ---"]
+    lines = ["--- Core-level shifts (initial state) ---"]
     if res.equivalentes:
         lines += ["",
-                  "Todos los corrimientos son cero: los átomos son "
-                  "equivalentes por simetría.",
-                  "No es un fallo del cálculo, es lo que la simetría exige. "
-                  "Para ver un\ncorrimiento químico hace falta una "
-                  "estructura con sitios inequivalentes\n(superficie, "
-                  "defecto, dopante, o un compuesto con varios entornos)."]
+                  "All shifts are zero: the atoms are "
+                  "equivalent by symmetry.",
+                  "This is not a failure of the calculation, it is what symmetry demands. "
+                  "To see a\nchemical shift a "
+                  "structure with inequivalent sites is needed\n(surface, "
+                  "defect, dopant, or a compound with several environments)."]
         return "\n".join(lines)
 
     ref = float(np.min(res.shifts))
-    lines += ["", f"{'átomo':>7s} {'especie':>8s} {'shift(eV)':>11s} "
-                  f"{'rel. al mín.':>13s}"]
+    lines += ["", f"{'atom':>7s} {'species':>8s} {'shift(eV)':>11s} "
+                  f"{'rel. to min.':>13s}"]
     for i, sh in enumerate(res.shifts):
         sym = res.symbols[i] if i < len(res.symbols) else \
-            (f"tipo {res.types[i]}" if res.types is not None else "?")
+            (f"type {res.types[i]}" if res.types is not None else "?")
         lines.append(f"{i+1:7d} {sym:>8s} {sh:11.4f} {sh - ref:+13.4f}")
 
     rango = float(np.ptp(res.shifts))
     lines += ["",
-              f"Dispersión total: {rango:.3f} eV"]
+              f"Total spread: {rango:.3f} eV"]
     if rango < 0.1:
         lines.append(
-            "  Por debajo de ~0.1 eV el corrimiento no es concluyente: la "
-            "relajación de\n  estado final, que esta aproximación no "
-            "incluye, es del mismo orden.")
+            "  Below ~0.1 eV the shift is not conclusive: the "
+            "final-state\n  relaxation, which this approximation does not "
+            "include, is of the same order.")
     mayor = 0.0
     if len(res.contributions) > 1:
-        lines += ["", "Descomposición (rango en eV por contribución):"]
+        lines += ["", "Decomposition (range in eV per contribution):"]
         for nombre, v in res.contributions.items():
             if nombre == "TOTAL":
                 continue
@@ -341,25 +341,25 @@ def report(res: XPSResult) -> str:
     # mucho más de lo que sugiere el número final.
     if rango > 0 and mayor / rango > 20:
         lines += ["",
-                  f"CUIDADO con la cancelacion: la contribucion mayor abarca "
-                  f"{mayor:.1f} eV y el corrimiento final es de {rango:.2f} eV "
-                  f"-- una cancelacion de 1 en {mayor / rango:.0f}.",
-                  "El resultado hereda el error del scf amplificado por ese "
-                  "factor: baja conv_thr (1e-10 o menos) y sube la malla k "
-                  "antes de creerte la tercera cifra."]
+                  f"CAUTION with the cancellation: the largest contribution spans "
+                  f"{mayor:.1f} eV and the final shift is {rango:.2f} eV "
+                  f"-- a cancellation of 1 in {mayor / rango:.0f}.",
+                  "The result inherits the scf error amplified by that "
+                  "factor: lower conv_thr (1e-10 or less) and increase the k-grid "
+                  "before trusting the third digit."]
     lines += ["",
-              "Aproximación de estado inicial: los corrimientos RELATIVOS "
-              "son lo comparable\ncon un XPS; las energías de enlace "
-              "absolutas necesitan un ΔSCF con hueco\nde core."]
+              "Initial-state approximation: the RELATIVE shifts "
+              "are what is comparable\nwith an XPS; absolute binding "
+              "energies need a ΔSCF with a core\nhole."]
     return "\n".join(lines)
 
 
 def export(res: XPSResult, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "XPS_CORE.dat"
-    lines = [provenance.header("corrimientos de core (XPS)",
-                               titulo="Corrimientos de nivel de core"),
-             f"# {'atomo':>6s} {'especie':>8s} " +
+    lines = [provenance.header("core-level shifts (XPS)",
+                               titulo="Core-level shifts"),
+             f"# {'atom':>6s} {'species':>8s} " +
              " ".join(f"{k.lower():>14s}" for k in res.contributions)]
     for i in range(len(res.shifts)):
         sym = res.symbols[i] if i < len(res.symbols) else "?"

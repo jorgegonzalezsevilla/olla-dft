@@ -118,7 +118,7 @@ def malla_completa(n):
     """
     n1, n2, n3 = (int(x) for x in n)
     if min(n1, n2, n3) < 1:
-        raise ErrorDeUso("la malla tiene que ser de al menos 1×1×1.")
+        raise ErrorDeUso("the grid must be at least 1×1×1.")
     return np.array([[i / n1, j / n2, k / n3]
                      for i in range(n1) for j in range(n2) for k in range(n3)])
 
@@ -176,10 +176,10 @@ def capas_b(bg, n, nmax=5, max_capas=12):
                 w, *_ = np.linalg.lstsq(np.array(cols).T, q, rcond=None)
             return elegidas, w
     raise FaltanDatos(
-        "no encuentro un conjunto de capas de vecinos que cumpla la condición "
-        "de completitud\ncon esta malla. Suele pasar con mallas muy "
-        "anisótropas (por ejemplo 8×8×1 en\nuna celda con mucho vacío): usa "
-        "una malla más parecida en las tres direcciones,\no aumenta max_capas.")
+        "cannot find a set of neighbour shells that satisfies the completeness "
+        "condition\nwith this grid. This usually happens with very "
+        "anisotropic grids (for example 8×8×1 in\na cell with a lot of vacuum): use "
+        "a grid more similar in the three directions,\nor increase max_capas.")
 
 
 def residuo_completitud(capas, pesos):
@@ -242,7 +242,7 @@ def _orbitales(nombre):
     if n in ORBITALES:
         return n, ORBITALES[n]
     raise ErrorDeUso(
-        f"no conozco el orbital de prueba '{nombre}'. Los que hay son: "
+        f"unknown trial orbital '{nombre}'. The available ones are: "
         f"{', '.join(sorted(ORBITALES))}.")
 
 
@@ -266,8 +266,8 @@ def proyecciones(spec, atoms, zona=1.0):
             continue
         if ":" not in trozo:
             raise ErrorDeUso(
-                f"la proyección '{trozo}' no tiene la forma sitio:orbital. "
-                f"Ejemplos: Si:sp3, O:p, f=0.5,0.5,0.5:s.")
+                f"the projection '{trozo}' does not have the form site:orbital. "
+                f"Examples: Si:sp3, O:p, f=0.5,0.5,0.5:s.")
         sitio, orb = trozo.split(":", 1)
         nom, pares = _orbitales(orb)
         sitio = sitio.strip()
@@ -276,17 +276,17 @@ def proyecciones(spec, atoms, zona=1.0):
                 c = tuple(float(x) for x in sitio[2:].split(","))
             except ValueError:
                 raise ErrorDeUso(
-                    f"no entiendo las coordenadas de '{sitio}'; se escriben "
-                    f"f=x,y,z en fraccionarias.") from None
+                    f"cannot parse the coordinates of '{sitio}'; they are written "
+                    f"as f=x,y,z in fractional coordinates.") from None
             if len(c) != 3:
-                raise ErrorDeUso(f"'{sitio}' necesita tres coordenadas.")
+                raise ErrorDeUso(f"'{sitio}' needs three coordinates.")
             centros = [(c, f"f={c[0]:g},{c[1]:g},{c[2]:g}")]
         else:
             centros = [(tuple(frac[i]), f"{sitio}{i + 1}")
                        for i, s in enumerate(simb) if s == sitio]
             if not centros:
                 raise ErrorDeUso(
-                    f"no hay ningún átomo de {sitio} en la estructura; hay "
+                    f"there is no {sitio} atom in the structure; there are "
                     f"{', '.join(sorted(set(simb)))}.")
         for c, et in centros:
             for l, mr in pares:
@@ -334,7 +334,7 @@ def escribir_nnkp(ruta, atoms, n, proys, excluir=(), nmax=5):
     idx, G, bvec = vecinos(kpts, capas)
     res = residuo_completitud(capas, pesos)
 
-    L = ["File written by Olla-DFT: entrada para pw2wannier90.x", "",
+    L = ["File written by Olla-DFT: input for pw2wannier90.x", "",
          "calc_only_A  :  F", "", "begin real_lattice"]
     L += [f"  {v[0]:14.8f}{v[1]:14.8f}{v[2]:14.8f}" for v in cell]
     L += ["end real_lattice", "", "begin recip_lattice"]
@@ -485,8 +485,8 @@ def ventana(E, rango):
     lo, hi = (float(rango[0]), float(rango[1]))
     if hi <= lo:
         raise ErrorDeUso(
-            f"la ventana [{lo}, {hi}] está al revés o es vacía: el segundo "
-            f"número tiene que ser mayor.")
+            f"the window [{lo}, {hi}] is reversed or empty: the second "
+            f"number must be larger.")
     E = np.asarray(E, float)
     return (E >= lo) & (E <= hi)
 
@@ -546,24 +546,24 @@ def gauge_desenredo(M, A, idx, wb, E=None, exterior=None, congelada=None,
         mask = ventana(E, exterior)
     if mask.shape != (nk, nb):
         raise ErrorDeUso(
-            f"las energías no encajan con los solapes: {mask.shape} contra "
+            f"the energies do not match the overlaps: {mask.shape} versus "
             f"({nk}, {nb}).")
     n_win = mask.sum(axis=1)
     if (n_win < J).any():
         k_malo = int(np.argmin(n_win))
         raise ErrorDeUso(
-            f"la ventana exterior deja solo {int(n_win[k_malo])} bandas en "
-            f"el punto k {k_malo + 1}, y hacen falta al menos {J}.\n"
-            f"Ensánchala, o pide menos funciones de Wannier.")
+            f"the outer window leaves only {int(n_win[k_malo])} bands at "
+            f"k-point {k_malo + 1}, and at least {J} are needed.\n"
+            f"Widen it, or request fewer Wannier functions.")
     frozen = (ventana(E, congelada) & mask if congelada is not None
               else np.zeros((nk, nb), bool))
     n_fro = frozen.sum(axis=1)
     if (n_fro > J).any():
         k_malo = int(np.argmax(n_fro))
         raise ErrorDeUso(
-            f"la ventana congelada mete {int(n_fro[k_malo])} bandas en el "
-            f"punto k {k_malo + 1}, más que las {J} funciones de Wannier "
-            f"que pides.\nEstrecha la ventana congelada.")
+            f"the frozen window puts {int(n_fro[k_malo])} bands at "
+            f"k-point {k_malo + 1}, more than the {J} Wannier functions "
+            f"you request.\nNarrow the frozen window.")
 
     # punto de partida: la proyección, restringida a la ventana
     U = []
@@ -635,7 +635,7 @@ def gauge_desenredo(M, A, idx, wb, E=None, exterior=None, congelada=None,
 
     if traza:
         np.savetxt(traza, np.column_stack([np.arange(len(hist)), hist]),
-                   header="iteracion  Omega_I(A^2)")
+                   header="iteration  Omega_I(A^2)")
     return U, np.array(hist), mask, frozen
 
 
@@ -840,7 +840,7 @@ def minimizar(M, U, idx, b, wb, pasos=500, alfa=2.0, tol=1e-10,
             break
     if traza:
         np.savetxt(traza, np.column_stack([np.arange(len(hist)), hist]),
-                   header="iteracion  Omega(A^2)")
+                   header="iteration  Omega(A^2)")
     d.deriva_I = abs(d.omega_I - omI0)
     return U, d, np.array(hist)
 
@@ -907,7 +907,7 @@ class WannierRun:
     nwann: int = 0
     excluir: tuple = ()
     proyecciones: list = field(default_factory=list)
-    fuente: str = "proyección"          # o "wannier90 (_hr.dat)"
+    fuente: str = "projection"          # o "wannier90 (_hr.dat)"
     sv_min: float = float("nan")
     exterior: tuple = None              # ventana de desenredado
     congelada: tuple = None
@@ -955,9 +955,9 @@ def prepare(atoms, outdir: str = "wannier", malla=(4, 4, 4), proy="auto",
     nb_total = int(nbnd) if nbnd else nw + len(excluir)
     if nb_total - len(excluir) < nw:
         raise ErrorDeUso(
-            f"pides {nw} funciones de Wannier pero solo quedan "
-            f"{nb_total - len(excluir)} bandas después de excluir "
-            f"{len(excluir)}. Sube --bands o quita proyecciones.")
+            f"you request {nw} Wannier functions but only "
+            f"{nb_total - len(excluir)} bands remain after excluding "
+            f"{len(excluir)}. Raise --bands or remove projections.")
 
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho,
                                   insulator)
@@ -1027,37 +1027,37 @@ def prepare(atoms, outdir: str = "wannier", malla=(4, 4, 4), proy="auto",
                      cell=np.array(atoms.cell.array, float))
     if str(proy).strip().lower() in ("", "auto"):
         run.avisos.append(
-            "Proyecciones automáticas (s y p en cada átomo). Es una apuesta "
-            "razonable en\n  sólidos sp y una mala idea en metales de "
-            "transición (faltan las d) y en enlaces\n  muy covalentes, donde "
-            "la función de Wannier vive en el enlace y no en el átomo.\n"
-            "  Si la dispersión sale grande o la interpolación mala, empieza "
-            "por aquí.")
-    rep = [f"--- Funciones de Wannier: {run.formula} ---",
-           f"Malla completa: {malla[0]}×{malla[1]}×{malla[2]} = {info['nk']} "
-           f"puntos k (sin reducir por simetría)",
-           f"Vecinos por punto k: {info['nnb']} en {info['capas']} capa(s); "
-           f"residuo de completitud {info['residuo']:.1e}",
-           f"Bandas: {nb_total}   Funciones de Wannier: {nw}"
-           + (f"   Excluidas: {','.join(map(str, excluir))}" if excluir else ""),
+            "Automatic projections (s and p on each atom). This is a reasonable "
+            "bet in\n  sp solids and a bad idea in transition "
+            "metals (the d are missing) and in very\n  covalent bonds, where "
+            "the Wannier function lives on the bond and not on the atom.\n"
+            "  If the spread comes out large or the interpolation bad, start "
+            "here.")
+    rep = [f"--- Wannier functions: {run.formula} ---",
+           f"Full grid: {malla[0]}×{malla[1]}×{malla[2]} = {info['nk']} "
+           f"k-points (not reduced by symmetry)",
+           f"Neighbours per k-point: {info['nnb']} in {info['capas']} shell(s); "
+           f"completeness residual {info['residuo']:.1e}",
+           f"Bands: {nb_total}   Wannier functions: {nw}"
+           + (f"   Excluded: {','.join(map(str, excluir))}" if excluir else ""),
            "",
-           f"Archivos en '{out.resolve()}':",
-           "  1_scf.in      scf normal",
-           "  2_nscf.in     malla COMPLETA, con nosym y noinv",
-           f"  {seed}.nnkp   vecinos y orbitales de prueba (lo que "
-           "normalmente escribe wannier90.x -pp)",
-           "  3_pw2wan.in   pw2wannier90.x: escribe .amn, .mmn y .eig",
-           "  4_bands.in    bandas de DFT sobre el camino, para comparar",
-           f"  {seed}.win    por si prefieres correr wannier90 tú mismo",
+           f"Files in '{out.resolve()}':",
+           "  1_scf.in      normal scf",
+           "  2_nscf.in     FULL grid, with nosym and noinv",
+           f"  {seed}.nnkp   neighbours and trial orbitals (what "
+           "wannier90.x -pp normally writes)",
+           "  3_pw2wan.in   pw2wannier90.x: writes .amn, .mmn and .eig",
+           "  4_bands.in    DFT bands along the path, for comparison",
+           f"  {seed}.win    in case you prefer to run wannier90 yourself",
            "",
-           "  bash correr.sh    (o los tres a mano, en ese orden)",
+           "  bash correr.sh    (or the three by hand, in that order)",
            "",
-           "Luego:  olla-dft wannier <estructura> --collect -o "
+           "Then:  olla-dft wannier <structure> --collect -o "
            f"{out}",
            "",
-           "No hace falta tener wannier90 instalado: el .nnkp lo escribe "
-           "Olla-DFT y la\nlocalización se hace aquí. Si lo tienes y prefieres "
-           "su minimización, corre\nwannier90.x y Olla-DFT leerá su "
+           "wannier90 does not need to be installed: the .nnkp is written by "
+           "Olla-DFT and the\nlocalization is done here. If you have it and prefer "
+           "its minimization, run\nwannier90.x and Olla-DFT will read its "
            "seedname_hr.dat."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
@@ -1139,8 +1139,8 @@ def collect(outdir: str = "wannier", minimizar_=True, pasos: int = 500,
           if "Olla-DFT" not in f.read_text(errors="replace").split("\n")[0]]
     if not nnkp and not hr:
         raise FaltanDatos(
-            f"en {out} no hay ni un .nnkp ni un seedname_hr.dat. Corre antes "
-            f"`olla-dft wannier ... -o {out}` y luego los tres pasos de "
+            f"in {out} there is neither a .nnkp nor a seedname_hr.dat. First run "
+            f"`olla-dft wannier ... -o {out}` and then the three steps of "
             f"correr.sh.")
     run = WannierRun()
 
@@ -1160,8 +1160,8 @@ def collect(outdir: str = "wannier", minimizar_=True, pasos: int = 500,
         run.nwann = run.HR.shape[1]
         if cell is None:
             raise FaltanDatos(
-                "para usar un _hr.dat hace falta la estructura: pásala como "
-                "primer argumento.")
+                "using an _hr.dat requires the structure: pass it as the "
+                "first argument.")
         run.cell = cell
         if n is None:
             n = tuple(int(abs(run.R[:, i]).max()) + 1 for i in range(3))
@@ -1170,9 +1170,9 @@ def collect(outdir: str = "wannier", minimizar_=True, pasos: int = 500,
         for suf in (".amn", ".mmn", ".eig"):
             if not (out / (seed + suf)).exists():
                 raise FaltanDatos(
-                    f"falta {seed}{suf}. Es lo que escribe pw2wannier90.x: "
-                    f"corre el paso 3 (`pw2wannier90.x -in 3_pw2wan.in`) "
-                    f"dentro de {out}.")
+                    f"{seed}{suf} is missing. It is what pw2wannier90.x writes: "
+                    f"run step 3 (`pw2wannier90.x -in 3_pw2wan.in`) "
+                    f"inside {out}.")
         E = leer_eig(out / (seed + ".eig"))
         A = leer_amn(out / (seed + ".amn"))
         M, _ = leer_mmn(out / (seed + ".mmn"))
@@ -1202,10 +1202,10 @@ def collect(outdir: str = "wannier", minimizar_=True, pasos: int = 500,
         if minimizar_:
             U, run.disp, run.hist = minimizar(M, U, idx, bvec, wb, pasos=pasos,
                                               traza=str(out / "omega.dat"))
-            run.fuente = "proyección + minimización (Olla-DFT)"
+            run.fuente = "projection + minimization (Olla-DFT)"
         else:
             run.disp, run.hist = run.disp0, np.array([run.disp0.omega])
-            run.fuente = "proyección (sin minimizar)"
+            run.fuente = "projection (not minimized)"
         run.R, run.deg = celda_wigner_seitz(cell, n)
         run.HR = a_reales(hamiltoniano_k(E, U), kpts, run.R)
         Ei = np.sort(interpolar(run.HR, run.R, run.deg, kpts), axis=1)
@@ -1224,10 +1224,10 @@ def collect(outdir: str = "wannier", minimizar_=True, pasos: int = 500,
             # sin ventana congelada no hay nada que tenga que salir exacto
             run.error_malla = float("nan")
             run.avisos.append(
-                "Sin ventana congelada no hay ninguna banda que la "
-                "interpolación tenga que\n  reproducir exactamente: el "
-                "subespacio se eligió por suavidad, no por bandas. Si "
-                "quieres\n  que la valencia salga exacta, pásala en "
+                "Without a frozen window there is no band that the "
+                "interpolation has to\n  reproduce exactly: the "
+                "subspace was chosen for smoothness, not by bands. If "
+                "you want\n  the valence to come out exact, pass it in "
                 "--frozen.")
         # control negativo: lo mismo sin gauge, para poder enseñar la diferencia
         if run.omega_I_hist is None:
@@ -1240,10 +1240,10 @@ def collect(outdir: str = "wannier", minimizar_=True, pasos: int = 500,
         ks, x, et, kpath = camino_denso(atoms, puntos_por_tramo)
         if kpath.cell_changed:
             run.avisos.append(
-                "La celda que usaste no es la primitiva estándar de seekpath, "
-                "así que las\n  etiquetas del camino pueden no corresponder a "
-                "los puntos que nombran. Pasa la\n  celda primitiva "
-                "(`olla-dft prim`) si quieres el camino canónico.")
+                "The cell you used is not the standard seekpath primitive cell, "
+                "so the\n  path labels may not correspond to "
+                "the points they name. Pass the\n  primitive cell "
+                "(`olla-dft prim`) if you want the canonical path.")
         run.k_camino, run.camino = ks, et
         run._x = x
         run.E_wann = np.sort(interpolar(run.HR, run.R, run.deg, ks), axis=1)
@@ -1314,8 +1314,8 @@ def asignar(centros, atoms, d_enlace=(0.5, 3.2)):
 
 # Unidades de la DOS interpolada, tal como van a la cabecera del archivo.
 # Sin factor de espín: una función de Wannier = un estado, integra a num_wann.
-DOS_UNIDADES = ("estados/eV/celda, sin factor de espín: integra a num_wann "
-                "(x2 para comparar con dos.x sin espín)")
+DOS_UNIDADES = ("states/eV/cell, without spin factor: integrates to num_wann "
+                "(x2 to compare with spin-unpolarized dos.x)")
 
 
 def dos_interpolada(run, malla=24, sigma: float = 0.05, npuntos: int = 601,
@@ -1348,107 +1348,107 @@ def dos_interpolada(run, malla=24, sigma: float = 0.05, npuntos: int = 601,
 
 
 def report(run, atoms=None) -> str:
-    L = [f"--- Funciones de Wannier: {run.formula or ''} ---".strip(),
-         f"Fuente: {run.fuente}",
-         f"Malla {run.malla[0]}×{run.malla[1]}×{run.malla[2]} = {run.nk} "
-         f"puntos k   |   {run.nwann} funciones de Wannier"
-         + (f" de {run.nbnd} bandas" if run.nbnd else "")]
+    L = [f"--- Wannier functions: {run.formula or ''} ---".strip(),
+         f"Source: {run.fuente}",
+         f"Grid {run.malla[0]}×{run.malla[1]}×{run.malla[2]} = {run.nk} "
+         f"k-points   |   {run.nwann} Wannier functions"
+         + (f" from {run.nbnd} bands" if run.nbnd else "")]
     if run.excluir:
-        L.append(f"Bandas excluidas: {','.join(map(str, run.excluir))}")
+        L.append(f"Excluded bands: {','.join(map(str, run.excluir))}")
     if run.nnb:
-        L.append(f"Vecinos: {run.nnb} en {run.capas} capa(s)   "
+        L.append(f"Neighbours: {run.nnb} in {run.capas} shell(s)   "
                  f"|   Σ w_b b⊗b − 1 = {run.residuo:.1e}"
-                 + ("  ✓" if run.residuo < TOL_COMPLETITUD else "  ← MAL"))
+                 + ("  ✓" if run.residuo < TOL_COMPLETITUD else "  ← BAD"))
     if run.omega_I_hist is not None:
-        L += ["", "Desenredado (Souza-Marzari-Vanderbilt):",
-              "  ventana exterior: "
+        L += ["", "Disentanglement (Souza-Marzari-Vanderbilt):",
+              "  outer window: "
               + (f"[{run.exterior[0]:g}, {run.exterior[1]:g}] eV"
-                 if run.exterior else "todas las bandas del cálculo"),
-              "  ventana congelada: "
+                 if run.exterior else "all bands of the calculation"),
+              "  frozen window: "
               + (f"[{run.congelada[0]:g}, {run.congelada[1]:g}] eV — "
-                 f"{run.n_congeladas[0]}–{run.n_congeladas[1]} bandas por "
-                 f"punto k, reproducidas exactas"
-                 if run.congelada else "ninguna"),
+                 f"{run.n_congeladas[0]}–{run.n_congeladas[1]} bands per "
+                 f"k-point, reproduced exactly"
+                 if run.congelada else "none"),
               f"  Ω_I: {run.omega_I_hist[0]:.4f} → "
-              f"{run.omega_I_hist[-1]:.4f} Å² en "
-              f"{len(run.omega_I_hist) - 1} pasos",
-              "  Ω_I mide cuánto se parece el subespacio elegido al de sus "
-              "vecinos en k. Es lo",
-              "  único que el desenredado puede bajar, y a partir de aquí ya "
-              "no se mueve."]
+              f"{run.omega_I_hist[-1]:.4f} Å² in "
+              f"{len(run.omega_I_hist) - 1} steps",
+              "  Ω_I measures how similar the chosen subspace is to that of its "
+              "neighbours in k. It is the",
+              "  only thing disentanglement can lower, and from here on it "
+              "no longer moves."]
     if run.disp is not None:
         d, d0 = run.disp, run.disp0
-        L += ["", "Dispersión (Å²):",
+        L += ["", "Spread (Å²):",
               f"  Ω total      {d.omega:10.4f}   ({d.omega / run.nwann:.4f} "
-              f"por función)",
-              f"  Ω_I          {d.omega_I:10.4f}   invariante de gauge: no "
-              f"baja al minimizar",
+              f"per function)",
+              f"  Ω_I          {d.omega_I:10.4f}   gauge invariant: does not "
+              f"decrease when minimizing",
               f"  Ω_D          {d.omega_D:10.4f}",
               f"  Ω_OD         {d.omega_OD:10.4f}",
-              f"  suma         {d.omega_I + d.omega_D + d.omega_OD:10.4f}   "
-              f"(tiene que ser Ω)"]
+              f"  sum          {d.omega_I + d.omega_D + d.omega_OD:10.4f}   "
+              f"(must equal Ω)"]
         if d0 is not None and run.hist is not None and len(run.hist) > 1:
-            L.append(f"  minimización: {d0.omega:.4f} → {d.omega:.4f} Å² en "
-                     f"{len(run.hist) - 1} pasos; Ω_I se movió "
+            L.append(f"  minimization: {d0.omega:.4f} → {d.omega:.4f} Å² in "
+                     f"{len(run.hist) - 1} steps; Ω_I moved by "
                      f"{getattr(d, 'deriva_I', 0.0):.1e} Å²")
     if run.disp is not None:
-        L += ["", "Centros y dispersión de cada función:"]
+        L += ["", "Centre and spread of each function:"]
         asign = asignar(run.disp.centros, atoms) if atoms is not None else None
         for i, (c, s) in enumerate(zip(run.disp.centros, run.disp.spreads)):
             extra = ""
             if asign:
                 sitio, dd = asign[i]
-                extra = f"   ← {sitio} (a {dd:.3f} Å)"
+                extra = f"   ← {sitio} (at {dd:.3f} Å)"
             L.append(f"  {i + 1:2d}  ({c[0]:8.4f},{c[1]:8.4f},{c[2]:8.4f}) Å"
                      f"   Ω_n = {s:7.4f} Å²{extra}")
     if run.HR is not None and run.cell is not None:
         d, a = decaimiento(run.HR, run.R, run.cell)
-        L += ["", "Decaimiento de H(R):",
+        L += ["", "Decay of H(R):",
               f"  |R| = 0            max|H| = {a[0]:9.3e} eV",
               f"  |R| = {d[-1]:6.2f} Å      max|H| = {a[-1]:9.3e} eV"
-              f"   (razón {a[-1] / max(a[0], 1e-30):.1e})"]
+              f"   (ratio {a[-1] / max(a[0], 1e-30):.1e})"]
         if a[-1] > 0.05 * a[0]:
             run.avisos.append(
-                "H(R) apenas ha decaído al borde de la superred: la base no "
-                "está localizada.\n  Interpolar con esto INVENTA estructura "
-                "entre los puntos de la malla. Prueba otras\n  proyecciones, "
-                "o una malla más densa.")
+                "H(R) has barely decayed at the edge of the superlattice: the basis is not "
+                "localized.\n  Interpolating with this INVENTS structure "
+                "between the grid points. Try other\n  projections, "
+                "or a denser grid.")
     if np.isfinite(run.error_malla):
         ok = run.error_malla < TOL_EXACTA
-        etiqueta = ("Reproduce las bandas CONGELADAS en la malla"
+        etiqueta = ("Reproduces the FROZEN bands on the grid"
                     if run.omega_I_hist is not None
-                    else "Reproduce la malla de partida")
+                    else "Reproduces the starting grid")
         L += ["", f"{etiqueta}: "
                   f"max|ΔE| = {run.error_malla:.1e} eV"
-                  + ("  ✓ (es interpolación, tiene que ser exacto)"
-                     if ok else "  ← MAL: hay un error de índices")]
+                  + ("  ✓ (it is interpolation, it must be exact)"
+                     if ok else "  ← BAD: there is an indexing error")]
     if run.E_dft is not None and run.E_wann is not None:
         d = run.E_wann - run.E_dft
-        L += ["", "Contra las bandas de DFT en puntos que NO estaban en la "
-                  "malla:",
-              f"  máximo {np.abs(d).max() * 1000:8.1f} meV      "
+        L += ["", "Against the DFT bands at points that were NOT on the "
+                  "grid:",
+              f"  maximum {np.abs(d).max() * 1000:8.1f} meV      "
               f"rms {np.sqrt((d ** 2).mean()) * 1000:6.1f} meV"]
         if run.E_sin_gauge is not None:
             d0 = run.E_sin_gauge - run.E_dft
-            L.append("  sin gauge (transformando las energías propias "
-                     "directamente):")
-            L.append(f"  máximo {np.abs(d0).max() * 1000:8.1f} meV      "
+            L.append("  without gauge (transforming the eigenvalues "
+                     "directly):")
+            L.append(f"  maximum {np.abs(d0).max() * 1000:8.1f} meV      "
                      f"rms {np.sqrt((d0 ** 2).mean()) * 1000:6.1f} meV"
-                     f"   ← el gauge es {np.abs(d0).max() / max(np.abs(d).max(), 1e-12):.1f}× mejor")
+                     f"   ← the gauge is {np.abs(d0).max() / max(np.abs(d).max(), 1e-12):.1f}× better")
     else:
         run.avisos.append(
-            "No has comparado con bandas de DFT. Que la interpolación "
-            "reproduzca la malla es\n  trivial —es interpolación—; lo único "
-            "que dice si el modelo sirve es compararla en\n  puntos que no "
-            "estaban. Corre 4_bands.in y vuelve con --dft-bands.")
+            "You have not compared with DFT bands. That the interpolation "
+            "reproduces the grid is\n  trivial —it is interpolation—; the only "
+            "thing that tells whether the model works is comparing it at\n  points that were "
+            "not there. Run 4_bands.in and come back with --dft-bands.")
     if run.sv_min == run.sv_min and run.sv_min < 0.2:
         run.avisos.append(
-            f"El valor singular más pequeño de A es {run.sv_min:.3f}: alguno "
-            f"de los orbitales de\n  prueba casi no solapa con ninguna banda, "
-            f"y la ortonormalización lo va a\n  amplificar hasta convertirlo "
-            f"en ruido. Cambia esa proyección.")
+            f"The smallest singular value of A is {run.sv_min:.3f}: one "
+            f"of the trial\n  orbitals barely overlaps with any band, "
+            f"and the orthonormalization will\n  amplify it until it becomes "
+            f"noise. Change that projection.")
     for a in run.avisos:
-        L += ["", f"AVISO: {a}"]
+        L += ["", f"WARNING: {a}"]
     return "\n".join(L)
 
 
@@ -1460,7 +1460,7 @@ def export(run, outdir: str = "wannier") -> list:
     if run.HR is not None:
         f = out / "WANNIER_hr.dat"
         nw, nr = run.HR.shape[1], len(run.R)
-        L = [f"# H(R) escrito por Olla-DFT  ({run.fuente})", f"{nw:12d}",
+        L = [f"# H(R) written by Olla-DFT  ({run.fuente})", f"{nw:12d}",
              f"{nr:12d}"]
         for i in range(0, nr, 15):
             L.append("".join(f"{int(d):5d}" for d in run.deg[i:i + 15]))
@@ -1516,9 +1516,9 @@ def plot(run, outfile: str = "wannier", formats="pdf,png", theme: str = None,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     if run.E_wann is None:
-        raise FaltanDatos("no hay bandas interpoladas que dibujar.")
+        raise FaltanDatos("there are no interpolated bands to plot.")
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -1556,9 +1556,9 @@ def plot(run, outfile: str = "wannier", formats="pdf,png", theme: str = None,
             ax2.axhline(run.disp.omega_I, color=cols[1], lw=st["line"],
                         dashes=[4.0, 2.0],
                         label=f"$\\Omega_I$ = {run.disp.omega_I:.3f} "
-                              f"{qstyle.angstrom()}$^2$ (invariante)")
+                              f"{qstyle.angstrom()}$^2$ (invariant)")
             ax2.legend(frameon=False, fontsize=st["legend"])
-        ax2.set_xlabel("iteración")
+        ax2.set_xlabel("iteration")
         ax2.set_ylabel(f"$\\Omega$ ({qstyle.angstrom()}$^2$)")
         escritos += qstyle.save(fig2, str(outfile) + "_omega", formats,
                                 dpi=dpi, modulo="wannier")
@@ -1590,9 +1590,9 @@ def correr(outdir: str = "wannier", pw_cmd: str = None, nproc: int = None,
         p2w = base[:-1] + [str(Path(base[-1]).with_name("pw2wannier90.x"))]
     if not shutil.which(p2w[-1]) and not Path(p2w[-1]).exists():
         raise FaltanDatos(
-            f"no encuentro pw2wannier90.x en {p2w[-1]}. Viene con Quantum "
-            f"ESPRESSO (make pp).\nSi está en otro sitio, pásalo con "
-            f"--pw2wan-cmd /ruta/a/pw2wannier90.x.")
+            f"cannot find pw2wannier90.x at {p2w[-1]}. It comes with Quantum "
+            f"ESPRESSO (make pp).\nIf it is elsewhere, pass it with "
+            f"--pw2wan-cmd /path/to/pw2wannier90.x.")
 
     pasos = [("1_scf", base), ("2_nscf", base), ("3_pw2wan", p2w)]
     if con_bandas and (out / "4_bands.in").exists():
@@ -1613,11 +1613,11 @@ def correr(outdir: str = "wannier", pw_cmd: str = None, nproc: int = None,
         txt = salida.read_text(errors="replace")
         ok = r.returncode == 0 and "JOB DONE" in txt
         if verbose:
-            print("  ok" if ok else "  FALLÓ")
+            print("  ok" if ok else "  FAILED")
         hechos.append((nombre, ok))
         if not ok:
             cola = "\n".join(txt.strip().split("\n")[-15:])
             raise FaltanDatos(
-                f"{nombre} falló (código {r.returncode}). Últimas líneas de "
+                f"{nombre} failed (code {r.returncode}). Last lines of "
                 f"{salida.name}:\n\n{cola}")
     return hechos

@@ -117,10 +117,10 @@ def save(values: dict) -> None:
 def set_value(key: str, value: str) -> None:
     if key not in DEFAULTS:
         raise KeyError(
-            f"clave desconocida '{key}'. Claves válidas: {', '.join(VALID_KEYS)}"
+            f"unknown key '{key}'. Valid keys: {', '.join(VALID_KEYS)}"
         )
-    if key == "language" and value not in ("es", "en"):
-        raise KeyError("language admite 'es' o 'en'")
+    if key == "language" and value not in ("es", "en", "de"):
+        raise KeyError("language must be 'en', 'es' or 'de'")
     values = load()
     values[key] = value
     save(values)
@@ -128,9 +128,9 @@ def set_value(key: str, value: str) -> None:
 
 def show() -> str:
     values = load()
-    lines = [f"Archivo de configuración: {CONFIG_FILE}"]
+    lines = [f"Configuration file: {CONFIG_FILE}"]
     if not CONFIG_FILE.exists():
-        lines.append("(aún no existe — se muestran los valores por defecto)")
+        lines.append("(does not exist yet — default values are shown)")
     for key in VALID_KEYS:
         lines.append(f"  {key:14s} = {values[key]}")
     return "\n".join(lines)

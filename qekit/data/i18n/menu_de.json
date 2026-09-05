@@ -1,0 +1,186 @@
+{
+  "title": "Olla-DFT v{version} — Toolkit für Quantum ESPRESSO",
+  "subtitle": "(im Stil von VASPKIT, für pw.x und Begleitwerkzeuge)",
+  "items": [
+    "r) Neu hier? Rezepte: vollständige Sitzungen von Anfang bis Ende",
+    "p) Ein Projekt Schritt für Schritt anlegen oder öffnen (keine Befehle nötig)",
+    "a) Deterministischer Assistent: sag mir, was du berechnen willst",
+    "t) Theorie: die Physik hinter jedem Befehl, ohne Fachjargon erklärt",
+    "c) Vollständiger Katalog nach Bereich, mit allen Befehlsoptionen",
+    "",
+    "1) pw.x-Eingaben erzeugen (scf, relax, bands, DOS...)",
+    "2) Post-Processing: Bänder, DOS/PDOS und Bandlücke",
+    "3) Rechenmodule: Konvergenz, EOS und elastische Eigenschaften",
+    "4) Eigenschaften: Optik, Phononen, Ladung und Austrittsarbeit",
+    "5) Schichtmaterialien: Lagen, XRD und Exfoliation",
+    "6) Struktur- und Symmetrieinformationen",
+    "7) Hochsymmetrie-k-Pfad",
+    "8) Strukturwerkzeuge",
+    "9) Konfiguration",
+    "l) Sprache / Language / Idioma",
+    "0) Beenden"
+  ],
+  "choice": "Auswahl",
+  "goodbye": "Auf Wiedersehen!",
+  "invalid": "  Ungültige Auswahl.",
+  "equivalent": "Entsprechender Kommandozeilenbefehl",
+  "error": "  Fehler",
+  "catalog_title": "Befehle nach Bereich:",
+  "catalog_instruction": "Verwende olla-dft BEFEHL --help, um alle Optionen zu sehen.",
+  "catalog_example": "Beispiel: olla-dft topology --help",
+  "catalog_groups": {
+    "Primeros pasos": "Erste Schritte",
+    "Estructuras e inputs": "Strukturen und Eingaben",
+    "Estructura electrónica": "Elektronische Struktur",
+    "Espectros y respuesta": "Spektren und Antwort",
+    "Fonones, transporte y temperatura": "Phononen, Transport und Temperatur",
+    "Mecánica y estabilidad": "Mechanik und Stabilität",
+    "Superficies, defectos y química": "Oberflächen, Defekte und Chemie",
+    "Automatización y calidad": "Automatisierung und Qualität",
+    "Apariencia y configuración": "Erscheinungsbild und Konfiguration",
+    "Proyecto": "Projekt"
+  },
+  "submenus": {
+    "recipes": {
+      "intro": "Gib einen Schlüssel ein oder beschreibe mit eigenen Worten, was du tun willst.",
+      "prompt": "Rezept oder Frage",
+      "not_found": "Ich konnte kein passendes Rezept finden. Versuche den Assistenten (Option a).",
+      "also": "Weitere Treffer",
+      "show": "Zeige",
+      "also_lower": "weitere Treffer"
+    },
+    "wizard": {
+      "intro": "Sag mir mit eigenen Worten, was du über dein Material WISSEN willst.",
+      "examples": "Zum Beispiel: „ob es Licht absorbiert“, „ob es hart ist“, „welche Farbe es hat“.",
+      "prompt": "Was möchtest du wissen",
+      "not_found": "Ich konnte keinen Treffer finden. Versuche die Rezepte (Option r).",
+      "show": "Erkläre",
+      "also_lower": "weitere Treffer"
+    },
+    "generate": {
+      "items": [
+        "Rechnungstyp:",
+        "  101) scf          — selbstkonsistente Energie",
+        "  102) relax        — Relaxation der Positionen",
+        "  103) vc-relax     — Relaxation von Positionen und Zelle",
+        "  104) nscf         — nicht-selbstkonsistentes dichtes Gitter",
+        "  105) bands        — Bandstruktur (scf + bands + bands.x)",
+        "  106) dos          — DOS/PDOS (scf + nscf + dos.x + projwfc.x)",
+        "  107) all          — vollständiger Ablauf (scf + nscf + bands + DOS)"
+      ],
+      "choice": "Auswahl",
+      "output": "Ausgabeordner",
+      "insulator": "Ist es ein Isolator/Halbleiter? (j/n)",
+      "magnetization": "Anfangsmagnetisierung (Enter = kein Spin; z. B. 0.5 oder Fe=0.7)",
+      "invalid": "  Ungültige Auswahl.",
+      "error": "  Fehler:"
+    },
+    "structure": {
+      "items": [
+        "401) Struktur- und Symmetrieinformationen",
+        "402) Standardisierte primitive Zelle",
+        "403) Standardisierte konventionelle Zelle",
+        "404) Superzelle",
+        "405) Format konvertieren (CIF/POSCAR/XYZ)"
+      ],
+      "choice": "Auswahl",
+      "file": "Strukturdatei (CIF/POSCAR/pw.x)",
+      "output": "Ausgabedatei",
+      "output_format": "Ausgabedatei (die Endung bestimmt das Format)",
+      "factors": "Faktoren nx ny nz",
+      "written": "Geschrieben",
+      "atoms": "Atome",
+      "invalid": "  Ungültige Auswahl.",
+      "error": "  Fehler:"
+    },
+    "postprocess": {
+      "items": [
+        "201) Bandstruktur (Analyse + Daten + Plot)",
+        "202) DOS / PDOS (Analyse + Daten + Plot)",
+        "203) Kombinierter Plot Bandstruktur + DOS",
+        "204) Nur Bandlücken-Bericht (schnell)"
+      ],
+      "choice": "Auswahl",
+      "path": "Ordner der Rechnung",
+      "output": "Ausgabeordner",
+      "range": "Energiebereich emin emax (eV)",
+      "invalid_range": "  Ungültiger Bereich; verwende -6 bis 6 eV.",
+      "template": "Vorlage",
+      "journal": "Zeitschrift für die Spaltenbreite",
+      "label_gap": "Die Bandlücke in der Abbildung annotieren? (j/n)",
+      "invalid": "  Ungültige Auswahl.",
+      "error": "  Fehler:"
+    },
+    "config": {
+      "change": "Einen Wert ändern? (j/n)",
+      "key": "Schlüssel",
+      "value": "Neuer Wert für",
+      "saved": "  Gespeichert.",
+      "error": "  Fehler:"
+    },
+    "calculation": {
+      "items": [
+        "  1) Konvergenz (ecutwfc, ecutrho oder k-Gitter)",
+        "  2) Zustandsgleichung (a0, V0, B0)",
+        "  3) Elastische Konstanten (Cij, VRH, Born-Stabilität)",
+        "  0) Zurück"
+      ],
+      "choice": "Auswahl",
+      "file": "Strukturdatei (CIF/POSCAR/pw.x)",
+      "output": "Ausgabeordner",
+      "kind": "Was konvergiert werden soll (ecutwfc/ecutrho/kmesh)",
+      "prepare": "Olla-DFT bereitet die Eingaben vor; ihre Ausführung kann dauern.",
+      "run": "Die Rechnungen jetzt ausführen (--run)?",
+      "collect": "Hast du sie schon ausgeführt und willst sie analysieren (--collect)?"
+    },
+    "properties": {
+      "items": [
+        "  1) Optische Eigenschaften: ε(ω), n, k, Absorption und Tauc",
+        "  2) Phononen (DFPT): Dispersion, DOS und Thermodynamik",
+        "  3) Ladungsdichte / ELF / Potential",
+        "  4) Austrittsarbeit eines Slabs",
+        "  0) Zurück"
+      ],
+      "choice": "Auswahl",
+      "file": "Strukturdatei (CIF/POSCAR/pw.x)",
+      "optics_output": "Ausgabeordner",
+      "scissor": "Scissor-Verschiebung in eV (experimentelle Lücke − berechnete Lücke; Enter für keine)",
+      "phonons_output": "Ausgabeordner",
+      "gamma": "Nur Gamma-Punkt (Frequenzen und IR-Aktivität)?",
+      "qgrid": "q-Gitter (zum Beispiel 2x2x2; Enter für automatisch)",
+      "charge_output": "Ausgabeordner",
+      "plot": "Was geplottet werden soll (density/potential/vtotal/elf/spin)",
+      "work_function_output": "Ausgabeordner",
+      "optics_note": "Beachte: epsilon.x akzeptiert nur normerhaltende Pseudopotentiale.",
+      "phonons_note": "Die Struktur sollte mit denselben Cutoffs relaxiert sein.",
+      "run": "Die Rechnungen jetzt ausführen (--run)?",
+      "collect": "Hast du sie schon ausgeführt und willst sie analysieren (--collect)?"
+    },
+    "layered": {
+      "items": [
+        "  1) Lagen, basalen Abstand und Lücke erkennen",
+        "  2) Simuliertes Pulverdiffraktogramm",
+        "  3) Exfoliationsenergie",
+        "  0) Zurück"
+      ],
+      "choice": "Auswahl",
+      "file": "Strukturdatei (CIF/POSCAR/pw.x)",
+      "slab": "Die Monolage in eine Datei schreiben (Enter zum Überspringen)",
+      "xrd_output": "Ausgabeordner",
+      "radiation": "Strahlung (CuKa/CoKa/MoKa oder λ in Å)",
+      "size": "Kristallitgröße in nm (Enter, um die Verbreiterung zu überspringen)",
+      "experimental": "Experimentelles Diffraktogramm zum Vergleich (Enter zum Überspringen)",
+      "exfoliation_output": "Ausgabeordner",
+      "vdw": "Dispersionskorrektur (grimme-d2/grimme-d3/none)",
+      "run": "Die Rechnungen jetzt ausführen (--run)?",
+      "collect": "Hast du sie schon ausgeführt und willst sie analysieren (--collect)?"
+    },
+    "catalog": {
+      "prompt": "Befehl, dessen Optionen du sehen willst (Enter zum Zurückgehen)",
+      "not_found": "  Befehl existiert nicht"
+    },
+    "theory": {
+      "prompt": "Befehl (leer = Index)"
+    }
+  }
+}

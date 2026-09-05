@@ -68,12 +68,12 @@ def test_cv_vibracional_tiende_a_dulong_petit():
 def test_frecuencia_imaginaria_en_un_minimo_avisa():
     tq = tc.corregir([-120.0, 500.0, 900.0], fase="solido")
     assert tq.n_imaginarias == 1
-    assert any("MÍNIMO" in a for a in tq.avisos)
+    assert any('MINIMUM' in a for a in tq.avisos)
 
 
 def test_estado_de_transicion_sin_imaginaria_avisa():
     tq = tc.corregir([500.0, 900.0], fase="transicion")
-    assert any("no hay ninguna frecuencia imaginaria" in a for a in tq.avisos)
+    assert any('there is no imaginary frequency' in a for a in tq.avisos)
 
 
 def test_modos_blandos_se_pueden_subir_a_un_piso():
@@ -170,7 +170,7 @@ def test_lee_lambda_dat_del_aluminio():
 
 
 def test_input_de_lambda_exige_que_cuadren_los_tamanos():
-    with pytest.raises(ErrorDeUso, match="MISMO orden"):
+    with pytest.raises(ErrorDeUso, match='SAME order'):
         elph.build_lambda_input([[0, 0, 0]], [1.0, 2.0], ["a", "b"])
 
 
@@ -313,20 +313,20 @@ def test_extremos_con_atomos_desordenados_se_rechazan():
     b = Atoms("OHH", positions=[[0, 0, 0], [1, 0, 0], [2, 0, 0]],
               cell=np.eye(3) * 10)
     problemas = nb.comprobar_extremos(a, b)
-    assert any("ORDEN" in p for p in problemas)
+    assert any('ORDER' in p for p in problemas)
 
 
 def test_extremos_con_celdas_distintas_se_rechazan():
     from ase import Atoms
     a = Atoms("H2", positions=[[0, 0, 0], [1, 0, 0]], cell=np.eye(3) * 10)
     b = Atoms("H2", positions=[[0, 0, 0], [2, 0, 0]], cell=np.eye(3) * 11)
-    assert any("celdas" in p for p in nb.comprobar_extremos(a, b))
+    assert any('cells' in p for p in nb.comprobar_extremos(a, b))
 
 
 def test_extremos_identicos_se_rechazan():
     from ase import Atoms
     a = Atoms("H2", positions=[[0, 0, 0], [1, 0, 0]], cell=np.eye(3) * 10)
-    assert any("idénticas" in p for p in nb.comprobar_extremos(a, a.copy()))
+    assert any('identical' in p for p in nb.comprobar_extremos(a, a.copy()))
 
 
 def test_input_de_neb_tiene_la_estructura_de_bloques():

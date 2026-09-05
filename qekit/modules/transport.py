@@ -171,20 +171,20 @@ def prepare(atoms, outdir: str = "transporte", pseudo_dir: str = None,
     # según la versión de QE, que es peor que gastar el disco.
     sweep.write_input(out / "nscf.in", nscf)
 
-    rep = ["--- Transporte electrónico (CRTA) ---",
-           f"Estructura: {atoms.get_chemical_formula()}  |  "
-           f"malla del nscf: {grid[0]}x{grid[1]}x{grid[2]} "
-           f"({grid[0]*grid[1]*grid[2]} puntos, sin simetría)",
-           f"Bandas: {nbnd if nbnd else 'automáticas'}"
-           + ("  |  con polarización de espín (nspin = 2)"
+    rep = ["--- Electronic transport (CRTA) ---",
+           f"Structure: {atoms.get_chemical_formula()}  |  "
+           f"nscf mesh: {grid[0]}x{grid[1]}x{grid[2]} "
+           f"({grid[0]*grid[1]*grid[2]} points, no symmetry)",
+           f"Bands: {nbnd if nbnd else 'automatic'}"
+           + ("  |  spin-polarized (nspin = 2)"
               if nspin == 2 else ""),
            "",
-           f"Archivos en '{out.resolve()}': scf.in, nscf.in",
-           "Orden: pw.x -in scf.in  ->  pw.x -in nscf.in",
+           f"Files in '{out.resolve()}': scf.in, nscf.in",
+           "Order: pw.x -in scf.in  ->  pw.x -in nscf.in",
            "",
-           "La malla completa (nosym) es obligatoria: las velocidades salen",
-           "de derivar E(k) sobre la rejilla, y una malla reducida por",
-           "simetría no es una rejilla."]
+           "The full mesh (nosym) is mandatory: the velocities come",
+           "from differentiating E(k) on the grid, and a symmetry-reduced",
+           "mesh is not a grid."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -196,11 +196,11 @@ def load(xml_path, spin: int = 0) -> TransportRun:
     res = qeout.read_xml(xml_path)
     if (res.calculation or "").lower() == "scf":
         raise FaltanDatos(
-            f"'{xml_path}' es de un cálculo SCF, no del nscf de malla "
-            "densa.\nEl nscf no llegó a escribir su XML y quedó el del "
-            "scf. Suele pasar por dos\nmotivos: el nscf falló (mira "
-            "nscf.out), o corrió con disk_io='nowf'/'none',\nque en QE 6.x "
-            "impide escribir el XML aunque el cálculo termine bien.")
+            f"'{xml_path}' is from an SCF calculation, not from the dense-mesh "
+            "nscf.\nThe nscf did not get to write its XML and the scf one "
+            "remained. This usually happens for two\nreasons: the nscf failed (see "
+            "nscf.out), or it ran with disk_io='nowf'/'none',\nwhich in QE 6.x "
+            "prevents writing the XML even if the calculation finishes fine.")
     run = TransportRun(volume=res.volume, nelec=res.nelec, fermi=res.fermi)
     E = res.eigenvalues[spin]                        # (nk, nbnd)
     # Llevar las fraccionarias a [0,1) CON TOLERANCIA: un cero que el XML
@@ -220,10 +220,10 @@ def load(xml_path, spin: int = 0) -> TransportRun:
     run.grid = (n1, n2, n3)
     if n1 * n2 * n3 != len(kfrac):
         raise FaltanDatos(
-            f"los {len(kfrac)} puntos k no forman una malla uniforme "
-            f"{n1}x{n2}x{n3}. El transporte necesita un nscf con "
-            "K_POINTS automatic y nosym/noinv, no un camino de bandas ni "
-            "una malla reducida por simetría."
+            f"the {len(kfrac)} k-points do not form a uniform "
+            f"{n1}x{n2}x{n3} mesh. Transport needs an nscf with "
+            "K_POINTS automatic and nosym/noinv, not a band path or "
+            "a symmetry-reduced mesh."
         )
     idx = np.lexsort((kfrac[:, 2], kfrac[:, 1], kfrac[:, 0]))
     E_grid = E[idx].reshape(n1, n2, n3, -1)
@@ -236,13 +236,13 @@ def load(xml_path, spin: int = 0) -> TransportRun:
     ntot = n1 * n2 * n3
     if min(run.grid) < 24 or ntot < 12000:
         run.warnings.append(
-            f"malla {n1}x{n2}x{n3} ({ntot} puntos): INSUFICIENTE. A 300 K "
-            "la ventana de -df/dE mide unos 25 meV, y con una malla así "
-            "solo caen dentro unos pocos estados sueltos: sigma sale en "
-            "picos aislados en vez de una curva suave, y S hereda el "
-            "ruido. Se nota a simple vista en la figura. Para transporte "
-            "hacen falta mallas de 24x24x24 en adelante — bastante más "
-            "densas que las de un scf.")
+            f"mesh {n1}x{n2}x{n3} ({ntot} points): INSUFFICIENT. At 300 K "
+            "the -df/dE window is about 25 meV wide, and with such a mesh "
+            "only a few scattered states fall inside: sigma comes out as "
+            "isolated spikes instead of a smooth curve, and S inherits the "
+            "noise. It is visible at a glance in the figure. For transport "
+            "meshes of 24x24x24 and up are needed — considerably "
+            "denser than those of an scf.")
     return run
 
 
@@ -335,13 +335,13 @@ def export_bxsf(run: TransportRun, cell, path, bands=None) -> str:
     cortada por costuras en los bordes de la zona.
     """
     if run.fermi is None:
-        raise ErrorDeUso("no hay nivel de Fermi: la superficie de Fermi solo "
-                         "tiene sentido en un metal")
+        raise ErrorDeUso("there is no Fermi level: the Fermi surface only "
+                         "makes sense in a metal")
     idx = crossing_bands(run) if bands is None else list(bands)
     if not idx:
         raise ErrorDeUso(
-            "ninguna banda cruza el nivel de Fermi: el sistema es aislante o "
-            "semiconductor y no tiene superficie de Fermi")
+            "no band crosses the Fermi level: the system is an insulator or "
+            "semiconductor and has no Fermi surface")
 
     n1, n2, n3 = run.grid
     E = run.energies.reshape(n1, n2, n3, -1)
@@ -353,7 +353,7 @@ def export_bxsf(run: TransportRun, cell, path, bands=None) -> str:
         f.write("  Fermi Energy: %.8f\n" % run.fermi)
         f.write("END_INFO\n\n")
         f.write("BEGIN_BLOCK_BANDGRID_3D\n")
-        f.write(" superficie_de_fermi_QEkit\n")
+        f.write(" fermi_surface_QEkit\n")
         f.write(" BEGIN_BANDGRID_3D\n")
         f.write("  %d\n" % len(idx))
         f.write("  %d %d %d\n" % (n1 + 1, n2 + 1, n3 + 1))
@@ -391,33 +391,33 @@ def report(run: TransportRun, t: float = 300.0) -> str:
     ef = run.fermi
     i_ef = int(np.argmin(np.abs(run.mu - ef)))
 
-    lines = ["--- Transporte electrónico (CRTA) ---",
-             f"Malla k: {run.grid[0]}x{run.grid[1]}x{run.grid[2]}  |  "
-             f"volumen {run.volume:.2f} Å³  |  T = {run.T[it]:.0f} K"]
+    lines = ["--- Electronic transport (CRTA) ---",
+             f"k-mesh: {run.grid[0]}x{run.grid[1]}x{run.grid[2]}  |  "
+             f"volume {run.volume:.2f} Å³  |  T = {run.T[it]:.0f} K"]
     if ef is not None:
-        lines.append(f"En el nivel de Fermi ({ef:.3f} eV): "
+        lines.append(f"At the Fermi level ({ef:.3f} eV): "
                      f"S = {s_iso[i_ef]:+.1f} µV/K")
     j_p = int(np.argmax(np.where(run.carriers[it] > 0, s_iso, -np.inf)))
     j_n = int(np.argmin(np.where(run.carriers[it] < 0, s_iso, np.inf)))
     lines += ["",
-              "Mejor coeficiente Seebeck en la ventana explorada:",
-              f"  tipo p: S = {s_iso[j_p]:+7.1f} µV/K  en µ − E_F = "
+              "Best Seebeck coefficient in the explored window:",
+              f"  p-type: S = {s_iso[j_p]:+7.1f} µV/K  at µ − E_F = "
               f"{run.mu[j_p] - (ef or 0):+.3f} eV  "
               f"(n = {run.carriers[it][j_p]:.2e} cm⁻³)",
-              f"  tipo n: S = {s_iso[j_n]:+7.1f} µV/K  en µ − E_F = "
+              f"  n-type: S = {s_iso[j_n]:+7.1f} µV/K  at µ − E_F = "
               f"{run.mu[j_n] - (ef or 0):+.3f} eV  "
               f"(n = {run.carriers[it][j_n]:.2e} cm⁻³)",
               "",
-              f"Máximo del factor de potencia: {np.max(pf):.3e} "
-              "W/(m·K²·s), es decir PF/τ",
+              f"Maximum of the power factor: {np.max(pf):.3e} "
+              "W/(m·K²·s), that is PF/τ",
               "",
-              "IMPORTANTE: en CRTA el tiempo de relajación τ se cancela en S,",
-              "que por tanto es una predicción real. En σ y κ_e NO se cancela:",
-              "van como σ/τ y κ_e/τ. Para dar σ en S/m hace falta un τ que",
-              "venga de un ajuste a una medida o de un cálculo de",
-              "electrón-fonón — Olla-DFT no lo inventa."]
+              "IMPORTANT: in CRTA the relaxation time τ cancels in S,",
+              "which is therefore a real prediction. In σ and κ_e it does NOT cancel:",
+              "they go as σ/τ and κ_e/τ. To give σ in S/m a τ is needed that",
+              "comes from a fit to a measurement or from an",
+              "electron-phonon calculation — Olla-DFT does not invent it."]
     for w in run.warnings:
-        lines.append(f"\nAVISO: {w}")
+        lines.append(f"\nWARNING: {w}")
     return "\n".join(lines)
 
 
@@ -430,10 +430,10 @@ def export(run: TransportRun, outdir: str = ".", t: float = 300.0) -> list:
     pf = power_factor(run)[it]
     f = out / "TRANSPORTE.dat"
     cab = provenance.header_plain(
-        "transporte (CRTA)",
+        "transport (CRTA)",
         {"T_K": float(run.T[it]),
          "malla": "x".join(map(str, run.grid))},
-        titulo="Transporte electronico en CRTA")
+        titulo="Electronic transport in CRTA")
     np.savetxt(f, np.column_stack([run.mu, s_iso, sig_iso, k_iso, pf,
                                    run.carriers[it]]),
                fmt="%16.6e", comments="# ",
@@ -536,46 +536,46 @@ def report_lorenz(run: TransportRun, t: float = 300.0) -> str:
     ef = run.fermi if run.fermi is not None else float(np.median(run.mu))
     i_ef = int(np.argmin(np.abs(run.mu - ef)))
     L_ef, c_ef = float(L[i_ef]), float(canc[i_ef])
-    lineas = [f"--- Número de Lorenz (T = {run.T[it]:.0f} K) ---",
+    lineas = [f"--- Lorenz number (T = {run.T[it]:.0f} K) ---",
               f"L(E_F) = {L_ef:.3e} W·Ω/K²   "
-              f"(L₀ de Sommerfeld = {L0_SOMMERFELD:.2e})",
+              f"(Sommerfeld L₀ = {L0_SOMMERFELD:.2e})",
               f"L/L₀   = {L_ef / L0_SOMMERFELD:.3f}"]
 
     if c_ef < 1e-3:
         lineas += [
             "",
-            "NO TE FÍES DE ESTE NÚMERO. κ_e sale de restar S²σT a κ⁰, y "
-            "aquí de esa resta\n"
-            f"  sobrevive el {c_ef * 100:.4f} %: las dos cantidades coinciden "
-            f"en casi todas sus" + "\n"
-            "  cifras y lo que queda es ruido de coma flotante, no física. "
-            "Pasa siempre que" + "\n"
-            "  µ cae dentro del gap, donde S se dispara.",
-            "  Mira L donde SÍ hay portadores: en la ventana de µ que sale "
-            "abajo, o dopando."]
+            "DO NOT TRUST THIS NUMBER. κ_e comes from subtracting S²σT from κ⁰, and "
+            "here of that subtraction\n"
+            f"  only {c_ef * 100:.4f} % survives: the two quantities agree "
+            f"in almost all their" + "\n"
+            "  digits and what remains is floating-point noise, not physics. "
+            "It happens whenever" + "\n"
+            "  µ falls inside the gap, where S blows up.",
+            "  Look at L where there ARE carriers: in the µ window given "
+            "below, or by doping."]
     else:
         r = L_ef / L0_SOMMERFELD
         if r > 1.15:
             lineas.append(
-                "  Por encima de L₀: es la firma del transporte BIPOLAR. Con "
-                "electrones y huecos" + "\n"
-                "  a la vez, los dos llevan calor en el mismo sentido y carga "
-                "en sentidos" + "\n"
-                "  opuestos, así que κ_e crece sin que crezca σ.")
+                "  Above L₀: the signature of BIPOLAR transport. With "
+                "electrons and holes" + "\n"
+                "  at the same time, both carry heat in the same direction and charge "
+                "in opposite" + "\n"
+                "  directions, so κ_e grows without σ growing.")
         elif r < 0.85:
             lineas.append(
-                "  Por debajo de L₀: es lo normal cuando el gas de portadores "
-                "NO es degenerado." + "\n"
-                "  En el límite no degenerado y con τ constante, L tiende a "
+                "  Below L₀: this is normal when the carrier gas "
+                "is NOT degenerate." + "\n"
+                "  In the non-degenerate limit and with constant τ, L tends to "
                 "2.5·(k_B/e)² = 1.86e-8," + "\n"
-                "  o sea 0.76·L₀. Wiedemann-Franz solo vale en el límite "
-                "metálico.")
+                "  that is 0.76·L₀. Wiedemann-Franz only holds in the "
+                "metallic limit.")
         else:
             lineas.append(
-                "  Se cumple Wiedemann-Franz dentro de un 15 %: el gas de "
-                "portadores es" + "\n"
-                "  degenerado y la dispersión elástica, que es justo lo que "
-                "supone la CRTA.")
+                "  Wiedemann-Franz holds within 15 %: the carrier "
+                "gas is" + "\n"
+                "  degenerate and the scattering elastic, which is exactly what "
+                "the CRTA assumes.")
 
     # "fiable" pide que sobreviva al menos el 10 % de la resta. Con el 1 %
     # todavía entran puntos cuyo L es basura, y la ventana que se anuncia
@@ -585,20 +585,20 @@ def report_lorenz(run: TransportRun, t: float = 300.0) -> str:
         Lb = L[buenos] / L0_SOMMERFELD
         p10, med, p90 = np.percentile(Lb, [10, 50, 90])
         lineas += ["",
-                   f"Donde la resta conserva más del 10 % "
-                   f"({len(buenos)} de {len(L)} puntos de µ):",
-                   f"  L/L₀ mediana {med:.2f}, con el 80 % central entre "
-                   f"{p10:.2f} y {p90:.2f}"]
+                   f"Where the subtraction retains more than 10 % "
+                   f"({len(buenos)} of {len(L)} µ points):",
+                   f"  L/L₀ median {med:.2f}, with the central 80 % between "
+                   f"{p10:.2f} and {p90:.2f}"]
     elif c_ef < 1e-3:
         lineas += ["",
-                   "En NINGÚN punto de la ventana de µ sobrevive un 10 % de "
-                   "la resta: este" + "\n"
-                   "  cálculo no puede dar el número de Lorenz. Amplía "
-                   "--mu-span para llegar a" + "\n"
-                   "  zonas con portadores de verdad."]
-    lineas.append("\nEste número NO depende de τ: κ_e y σ lo llevan los dos "
-                  "y se cancela. Es de\n  las pocas cosas que la CRTA da en "
-                  "absoluto, junto con el Seebeck.")
+                   "At NO point of the µ window does 10 % of "
+                   "the subtraction survive: this" + "\n"
+                   "  calculation cannot give the Lorenz number. Widen "
+                   "--mu-span to reach" + "\n"
+                   "  regions with real carriers."]
+    lineas.append("\nThis number does NOT depend on τ: κ_e and σ both carry it "
+                  "and it cancels. It is one of\n  the few things the CRTA gives in "
+                  "absolute terms, together with the Seebeck coefficient.")
     return "\n".join(lineas)
 
 
@@ -667,9 +667,9 @@ def report_espin(te: TransporteEspin, t: float = 300.0) -> str:
     ef = up.fermi if up.fermi is not None else float(np.median(up.mu))
     i = int(np.argmin(np.abs(up.mu - ef)))
     a_uv = 1e6
-    L = [f"--- Transporte por canal de espín (T = {up.T[te.it]:.0f} K) ---",
+    L = [f"--- Spin-resolved transport (T = {up.T[te.it]:.0f} K) ---",
          "",
-         f"  {'':22s} {'espín ↑':>14s} {'espín ↓':>14s} {'mezcla':>14s}",
+         f"  {'':22s} {'spin ↑':>14s} {'spin ↓':>14s} {'mixture':>14s}",
          "  " + "-" * 68,
          f"  {'S (µV/K)':22s} {te.seebeck_up[i] * a_uv:>14.2f} "
          f"{te.seebeck_dw[i] * a_uv:>14.2f} "
@@ -677,25 +677,25 @@ def report_espin(te: TransporteEspin, t: float = 300.0) -> str:
          f"  {'σ/τ (S/(m·s))':22s} {te.sigma_up[i]:>14.3e} "
          f"{te.sigma_dw[i]:>14.3e} {te.sigma_total[i]:>14.3e}",
          "",
-         f"Polarización de espín de la conductividad: "
+         f"Spin polarization of the conductivity: "
          f"P = {te.polarizacion[i]:+.4f}",
-         f"Termopotencia de espín  S↑ − S↓ = "
+         f"Spin thermopower  S↑ − S↓ = "
          f"{te.seebeck_de_espin[i] * a_uv:+.2f} µV/K"]
     p = abs(float(te.polarizacion[i]))
     if p > 0.95:
-        L.append("  |P| > 0.95: prácticamente medio metal, solo conduce un "
-                 "canal de espín.")
+        L.append("  |P| > 0.95: practically a half-metal, only one spin "
+                 "channel conducts.")
     elif p < 0.05:
-        L.append("  P ≈ 0: los dos canales conducen igual; separarlos no "
-                 "aporta nada aquí.")
+        L.append("  P ≈ 0: both channels conduct equally; separating them "
+                 "adds nothing here.")
     L += ["",
-          "El S de la mezcla es la media de los dos canales PESADA POR SU "
-          "CONDUCTANCIA,\n  no la media aritmética: un canal que no conduce "
-          "no aporta termopotencia por\n  mucha que tenga.",
+          "The S of the mixture is the average of the two channels WEIGHTED BY THEIR "
+          "CONDUCTANCE,\n  not the arithmetic mean: a channel that does not conduct "
+          "contributes no thermopower however\n  much it has.",
           "",
-          "Aviso: esto supone que los dos canales son independientes (modelo "
-          "de dos\n  corrientes). Vale mientras la dispersión con inversión "
-          "de espín sea lenta\n  frente a la normal, que es lo habitual muy "
-          "por debajo de la temperatura de\n  Curie y deja de valer cerca de "
-          "ella."]
+          "Caveat: this assumes the two channels are independent (two-current "
+          "model).\n  It holds as long as spin-flip scattering "
+          "is slow\n  compared with the normal one, which is usual well "
+          "below the Curie temperature\n  and stops holding near "
+          "it."]
     return "\n".join(L)

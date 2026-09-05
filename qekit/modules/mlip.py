@@ -51,9 +51,9 @@ import numpy as np
 from qekit.core.errors import ErrorDeUso
 
 MODELOS = {
-    "mace": ("mace-torch", "MACE-MP-0, entrenado sobre Materials Project (PBE)"),
-    "chgnet": ("chgnet", "CHGNet, con estados de carga (PBE+U)"),
-    "m3gnet": ("matgl", "M3GNet vía matgl (PBE)"),
+    "mace": ("mace-torch", "MACE-MP-0, trained on Materials Project (PBE)"),
+    "chgnet": ("chgnet", "CHGNet, with charge states (PBE+U)"),
+    "m3gnet": ("matgl", "M3GNet via matgl (PBE)"),
 }
 
 
@@ -77,12 +77,12 @@ class MlipRun:
 
 def _falta(nombre: str, paquete: str) -> ImportError:
     return ImportError(
-        f"para usar '{nombre}' hace falta instalar '{paquete}', que NO es "
-        "una dependencia de Olla-DFT:\n"
+        f"using '{nombre}' requires installing '{paquete}', which is NOT "
+        "a dependency of Olla-DFT:\n"
         f"    pip install torch {paquete}\n\n"
-        "Ocupa algo más de 1 GB. Todo lo demás de Olla-DFT funciona sin esto; "
-        "el MLIP solo\nsirve para llegar al cálculo DFT con la geometría ya "
-        "casi hecha."
+        "It takes a bit more than 1 GB. Everything else in Olla-DFT works without it; "
+        "the MLIP only\nserves to reach the DFT calculation with the geometry "
+        "almost done."
     )
 
 
@@ -91,8 +91,8 @@ def calculator(modelo: str = "mace", device: str = "cpu",
     """Devuelve un calculador de ASE para el modelo pedido."""
     modelo = (modelo or "mace").lower()
     if modelo not in MODELOS:
-        raise ErrorDeUso(f"modelo desconocido '{modelo}'. "
-                         f"Opciones: {', '.join(MODELOS)}")
+        raise ErrorDeUso(f"unknown model '{modelo}'. "
+                         f"Options: {', '.join(MODELOS)}")
     paquete, _detalle = MODELOS[modelo]
     if modelo == "mace":
         try:
@@ -164,14 +164,14 @@ def relax(atoms, modelo: str = "mace", fmax: float = 0.01,
 
     if run.pasos >= steps:
         run.warnings.append(
-            f"la relajación no llegó a fmax={fmax} en {steps} pasos: la "
-            "geometría de salida\nno es un mínimo del MLIP. Úsala con "
-            "cuidado como punto de partida.")
+            f"the relaxation did not reach fmax={fmax} in {steps} steps: the "
+            "output geometry\nis not a minimum of the MLIP. Use it with "
+            "care as a starting point.")
     if run.desplazamiento_max > 0.5:
         run.warnings.append(
-            f"algún átomo se movió {run.desplazamiento_max:.2f} Å. Es "
-            "mucho: revisa que la\nestructura de partida fuera la que "
-            "creías, y que el MLIP describa bien esta química.")
+            f"some atom moved {run.desplazamiento_max:.2f} Å. That is "
+            "a lot: check that the\nstarting structure was what you "
+            "thought, and that the MLIP describes this chemistry well.")
     return run
 
 
@@ -313,9 +313,9 @@ def write_provenance(run: MlipRun, destino) -> str:
         "fmax_final_eV_A": run.fmax_final,
         "presion_final_GPa": run.presion_final,
         "cambio_volumen_pct": run.cambio_volumen,
-        "aviso": ("Geometria producida por un potencial aprendido, no por "
-                  "DFT. Su energia NO es comparable con energias de Quantum "
-                  "ESPRESSO: distinta superficie de energia."),
+        "aviso": ("Geometry produced by a machine-learned potential, not by "
+                  "DFT. Its energy is NOT comparable with Quantum "
+                  "ESPRESSO energies: different energy surface."),
     }
     f = carpeta / MARCA
     f.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
@@ -338,82 +338,82 @@ def read_provenance(carpeta):
 
 # ----------------------------------------------------------------------
 def report_relax(run: MlipRun, funcional_dft: str = None) -> str:
-    lines = ["--- Pre-relajación con potencial aprendido ---",
-             f"Modelo: {run.detalle}",
-             f"{run.pasos} pasos en {run.tiempo_s:.2f} s",
-             f"Fuerza máxima: {run.fmax_inicial:.4f} -> "
+    lines = ["--- Pre-relaxation with machine-learned potential ---",
+             f"Model: {run.detalle}",
+             f"{run.pasos} steps in {run.tiempo_s:.2f} s",
+             f"Maximum force: {run.fmax_inicial:.4f} -> "
              f"{run.fmax_final:.4f} eV/Å",]
     if run.presion_inicial is not None:
         lines.append(
-            f"Presión: {run.presion_inicial:+.2f} -> "
-            f"{run.presion_final:+.2f} GPa   (en un cristal simétrico las "
-            "fuerzas son\n  cero por construcción; lo que relaja la celda "
-            "es el esfuerzo)")
+            f"Pressure: {run.presion_inicial:+.2f} -> "
+            f"{run.presion_final:+.2f} GPa   (in a symmetric crystal the "
+            "forces are\n  zero by construction; what relaxes the cell "
+            "is the stress)")
     lines += [
-             f"Desplazamiento máximo: {run.desplazamiento_max:.4f} Å  |  "
-             f"cambio de volumen: {run.cambio_volumen:+.2f} %"]
+             f"Maximum displacement: {run.desplazamiento_max:.4f} Å  |  "
+             f"volume change: {run.cambio_volumen:+.2f} %"]
     for w in run.warnings:
-        lines.append(f"\nAVISO: {w}")
+        lines.append(f"\nWARNING: {w}")
     lines += ["",
-              "ESTO NO ES EL RESULTADO FINAL. El modelo está entrenado con "
-              "datos PBE de\nMaterials Project; si tu cálculo usa otro "
-              "funcional, describe una superficie\nde energía distinta. "
-              "Usa esta geometría como PUNTO DE PARTIDA de un relax\nDFT, "
-              "y no mezcles sus energías con las de QE."]
+              "THIS IS NOT THE FINAL RESULT. The model is trained on "
+              "PBE data from\nMaterials Project; if your calculation uses another "
+              "functional, it describes a different\nenergy surface. "
+              "Use this geometry as the STARTING POINT of a DFT relax,\n"
+              "and do not mix its energies with those of QE."]
     if funcional_dft and funcional_dft.upper() not in ("PBE", "PBESOL"):
         lines.append(
-            f"\nTu cálculo usa {funcional_dft}: la diferencia con PBE será "
-            "sistemática.\nEn el silicio, por ejemplo, MACE da 5.464 Å y "
+            f"\nYour calculation uses {funcional_dft}: the difference from PBE will be "
+            "systematic.\nIn silicon, for example, MACE gives 5.464 Å and "
             "LDA 5.402 Å.")
     return "\n".join(lines)
 
 
 def report_scan(d: dict, atoms) -> str:
-    lines = ["--- Barrido de volumen con potencial aprendido ---",
-             f"Modelo: {MODELOS[d['modelo']][1]}",
-             f"{len(d['V'])} puntos en {d['tiempo_s']:.2f} s",
-             f"V0 aproximado: {d['V0']:.3f} Å³  "
-             f"(escala {d['escala_optima']:.4f} sobre la celda dada)"]
+    lines = ["--- Volume scan with machine-learned potential ---",
+             f"Model: {MODELOS[d['modelo']][1]}",
+             f"{len(d['V'])} points in {d['tiempo_s']:.2f} s",
+             f"Approximate V0: {d['V0']:.3f} Å³  "
+             f"(scale {d['escala_optima']:.4f} on the given cell)"]
     if d["B0_aprox"]:
-        lines.append(f"B0 aproximado: {d['B0_aprox']:.1f} GPa")
+        lines.append(f"Approximate B0: {d['B0_aprox']:.1f} GPa")
     if not d["minimo_dentro"]:
         lines.append(
-            "\nAVISO: el mínimo cayó FUERA del rango barrido. Amplía --span; "
-            "el V0 de arriba\nes una extrapolación y no sirve para centrar "
-            "los puntos DFT.")
+            "\nWARNING: the minimum fell OUTSIDE the scanned range. Widen --span; "
+            "the V0 above\nis an extrapolation and is not suitable to centre "
+            "the DFT points.")
     else:
         lines.append(
-            "\nUsa la escala óptima para centrar la EOS de DFT:\n"
-            f"    olla-dft eos estructura.cif --scale {d['escala_optima']:.4f}"
+            "\nUse the optimal scale to centre the DFT EOS:\n"
+            f"    olla-dft eos structure.cif --scale {d['escala_optima']:.4f}"
             " --span 0.04\n"
-            "Con el mínimo ya localizado, un rango estrecho da un ajuste "
-            "mejor con menos\npuntos — que es donde está el ahorro real.")
+            "With the minimum already located, a narrow range gives a "
+            "better fit with fewer\npoints — which is where the real saving is.")
     lines.append(
-        "\nEl B0 de aquí es de una parábola y del funcional del modelo: "
-        "sirve para saber\nel orden de magnitud, no para reportarlo.")
+        "\nThe B0 here comes from a parabola and from the model's functional: "
+        "it serves to know\nthe order of magnitude, not to report it.")
     return "\n".join(lines)
 
 
 def report_phonon(d: dict) -> str:
-    lines = ["--- Cribado de estabilidad dinámica (MLIP) ---",
-             f"Modelo: {MODELOS[d['modelo']][1]}",
-             f"Supercelda {d['supercell'][0]}x{d['supercell'][1]}x"
+    lines = ["--- Dynamical stability screening (MLIP) ---",
+             f"Model: {MODELOS[d['modelo']][1]}",
+             f"Supercell {d['supercell'][0]}x{d['supercell'][1]}x"
              f"{d['supercell'][2]}  |  {d['tiempo_s']:.1f} s",
-             f"Frecuencia máxima: {d['max']:.1f} cm⁻¹"]
+             f"Maximum frequency: {d['max']:.1f} cm⁻¹"]
     if d["estable"]:
         lines += ["",
-                  "Sin frecuencias imaginarias: la estructura parece estar "
-                  "en un mínimo.\nVale la pena lanzar la DFPT."]
+                  "No imaginary frequencies: the structure appears to be "
+                  "at a minimum.\nIt is worth launching the DFPT."]
     else:
         lines += ["",
-                  f"{d['n_imaginarias']} frecuencias imaginarias, la peor "
-                  f"de {d['peor_imaginaria']:.1f} cm⁻¹.",
-                  "La estructura NO está en un mínimo del modelo. Antes de "
-                  "gastar horas en DFPT,\nrelaja mejor (con --pre-ml o con "
-                  "un vc-relax de DFT más apretado)."]
+                  f"{d['n_imaginarias']} imaginary frequencies, the worst "
+                  f"at {d['peor_imaginaria']:.1f} cm⁻¹.",
+                  "The structure is NOT at a minimum of the model. Before "
+                  "spending hours on DFPT,\nrelax it better (with --pre-ml or with "
+                  "a tighter DFT vc-relax)."]
     lines.append(
-        "\nEsto es un CRIBADO, no un cálculo de fonones: el modelo no es tu "
-        "funcional y\nlas diferencias finitas sobre una supercelda pequeña "
-        "no reproducen la\ndispersión. Sirve para decidir si lanzar la "
-        "DFPT, no para sustituirla.")
+        "\nThis is a SCREENING, not a phonon calculation: the model is not your "
+        "functional and\nfinite differences on a small supercell "
+        "do not reproduce the\ndispersion. It serves to decide whether to launch the "
+        "DFPT, not to replace it.")
     return "\n".join(lines)

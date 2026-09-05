@@ -14,7 +14,7 @@ def test_el_platino_esta_en_la_cumbre_del_volcan():
     """Pt(111): E_ads(H) = -0.33 eV y ZPE-TdS = +0.24 dan dG_H = -0.09."""
     e = echem.her(-0.33)
     assert e.dG_H == pytest.approx(-0.09, abs=1e-9)
-    assert "cumbre del volcán" in echem.report(e)
+    assert 'top of the volcano' in echem.report(e)
 
 
 def test_los_dos_pasos_de_la_her_son_opuestos():
@@ -30,8 +30,8 @@ def test_el_sobrepotencial_de_la_her_es_el_paso_peor():
 
 
 def test_se_reconoce_cada_rama_del_volcan():
-    assert "se pega demasiado" in echem.report(echem.her(-1.0))
-    assert "apenas se adsorbe" in echem.report(echem.her(+1.0))
+    assert 'binds too strongly' in echem.report(echem.her(-1.0))
+    assert 'barely adsorbs' in echem.report(echem.her(+1.0))
 
 
 def test_la_correccion_se_puede_dar_a_mano():
@@ -39,8 +39,8 @@ def test_la_correccion_se_puede_dar_a_mano():
 
 
 def test_avisa_de_que_la_correccion_es_de_tabla():
-    assert "no una calculada" in echem.report(echem.her(-0.33))
-    assert "no una calculada" not in echem.report(echem.her(-0.33, correccion=0.2))
+    assert 'not one computed' in echem.report(echem.her(-0.33))
+    assert 'not one computed' not in echem.report(echem.her(-0.33, correccion=0.2))
 
 
 # ----------------------------------------------------------------------
@@ -78,7 +78,7 @@ def test_faltan_intermedios():
 def test_avisa_si_el_cuarto_paso_sale_negativo():
     """Si los tres calculados ya suman mas de 4.92, algo falla."""
     e = echem.oer({"OH": 1.5, "O": 3.0, "OOH": 5.0}, correcciones=SIN_CORR)
-    assert any("NEGATIVO" in a for a in e.avisos)
+    assert any('NEGATIVE' in a for a in e.avisos)
 
 
 def test_la_relacion_de_escala_se_comprueba():
@@ -89,7 +89,7 @@ def test_la_relacion_de_escala_se_comprueba():
 
 def test_una_escala_rara_se_senala():
     e = echem.oer({"OH": 0.5, "O": 2.0, "OOH": 5.0}, correcciones=SIN_CORR)
-    assert "antes de celebrarlo" in echem.report(e)
+    assert 'before celebrating' in echem.report(e)
 
 
 # ----------------------------------------------------------------------

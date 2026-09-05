@@ -36,7 +36,7 @@ def load(filename: str) -> Atoms:
     """Lee una estructura desde un archivo y valida que tenga celda."""
     path = Path(filename)
     if not path.exists():
-        raise FileNotFoundError(f"no existe el archivo '{filename}'")
+        raise FileNotFoundError(f"file '{filename}' does not exist")
     name = path.name.upper()
     try:
         if name.startswith(("POSCAR", "CONTCAR")):
@@ -48,13 +48,13 @@ def load(filename: str) -> Atoms:
         # o una tabla, revienta con un error interno que no dice nada al
         # usuario. Aquí sí es un error de uso: el archivo no es una estructura.
         raise ErrorDeUso(
-            f"no se pudo leer '{filename}' como estructura "
-            f"({type(exc).__name__}: {exc}). Se esperaba un CIF, POSCAR, "
-            "XYZ con celda o un input de pw.x.") from None
+            f"could not read '{filename}' as a structure "
+            f"({type(exc).__name__}: {exc}). Expected a CIF, POSCAR, "
+            "XYZ with cell or a pw.x input.") from None
     if isinstance(atoms, list):
         atoms = atoms[-1]
     if atoms is None or atoms.cell.volume < 1e-6:
-        raise ErrorDeUso(f"'{filename}' no contiene una celda unitaria válida")
+        raise ErrorDeUso(f"'{filename}' does not contain a valid unit cell")
     return atoms
 
 
@@ -82,7 +82,7 @@ def symmetry_dataset(atoms: Atoms, symprec: float = SYMPREC):
     """Dataset completo de simetría de spglib (grupo espacial, etc.)."""
     dataset = spglib.get_symmetry_dataset(to_spglib_cell(atoms), symprec=symprec)
     if dataset is None:
-        raise RuntimeError("spglib no pudo determinar la simetría de la estructura")
+        raise RuntimeError("spglib could not determine the symmetry of the structure")
     return dataset
 
 
@@ -92,7 +92,7 @@ def primitive(atoms: Atoms, symprec: float = SYMPREC) -> Atoms:
         to_spglib_cell(atoms), to_primitive=True, symprec=symprec
     )
     if cell is None:
-        raise RuntimeError("spglib no pudo estandarizar la celda")
+        raise RuntimeError("spglib could not standardize the cell")
     return from_spglib_cell(cell)
 
 
@@ -102,14 +102,14 @@ def conventional(atoms: Atoms, symprec: float = SYMPREC) -> Atoms:
         to_spglib_cell(atoms), to_primitive=False, symprec=symprec
     )
     if cell is None:
-        raise RuntimeError("spglib no pudo estandarizar la celda")
+        raise RuntimeError("spglib could not standardize the cell")
     return from_spglib_cell(cell)
 
 
 def supercell(atoms: Atoms, nx: int, ny: int, nz: int) -> Atoms:
     """Supercelda nx × ny × nz."""
     if min(nx, ny, nz) < 1:
-        raise ErrorDeUso("los factores de la supercelda deben ser >= 1")
+        raise ErrorDeUso("supercell factors must be >= 1")
     return atoms.repeat((nx, ny, nz))
 
 
@@ -157,28 +157,28 @@ def info_text(atoms: Atoms, symprec: float = SYMPREC) -> str:
     comp_str = " ".join(f"{el}{n}" for el, n in sorted(composition.items()))
 
     lines = [
-        "--- Estructura ---",
-        f"Fórmula:            {atoms.get_chemical_formula()}   ({comp_str})",
-        f"Número de átomos:   {len(atoms)}",
-        f"Volumen:            {atoms.cell.volume:.4f} Å³",
+        "--- Structure ---",
+        f"Formula:            {atoms.get_chemical_formula()}   ({comp_str})",
+        f"Number of atoms:    {len(atoms)}",
+        f"Volume:             {atoms.cell.volume:.4f} Å³",
         "",
-        "Parámetros de red:",
+        "Lattice parameters:",
         f"  a = {a:.5f} Å   b = {b:.5f} Å   c = {c:.5f} Å",
         f"  α = {alpha:.3f}°   β = {beta:.3f}°   γ = {gamma:.3f}°",
         "",
-        "--- Simetría (spglib) ---",
-        f"Grupo espacial:     {ds.international} (N.º {ds.number})",
-        f"Símbolo de Hall:    {ds.hall}",
-        f"Grupo puntual:      {ds.pointgroup}",
-        f"Átomos en la celda primitiva: {len(prim)}",
+        "--- Symmetry (spglib) ---",
+        f"Space group:        {ds.international} (No. {ds.number})",
+        f"Hall symbol:        {ds.hall}",
+        f"Point group:        {ds.pointgroup}",
+        f"Atoms in the primitive cell: {len(prim)}",
     ]
 
     wyckoffs = sorted(set(ds.wyckoffs))
-    lines.append(f"Posiciones de Wyckoff: {' '.join(wyckoffs)}")
+    lines.append(f"Wyckoff positions: {' '.join(wyckoffs)}")
 
     lines += [
         "",
-        "Vectores de celda (Å):",
+        "Cell vectors (Å):",
     ]
     for vec in atoms.cell.array:
         lines.append(f"  {vec[0]:12.6f} {vec[1]:12.6f} {vec[2]:12.6f}")

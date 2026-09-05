@@ -76,70 +76,70 @@ PALETTES = {
 
 THEMES = {
     "journal": dict(
-        description="Artículo científico: fondo blanco, sans, marco completo.",
+        description="Scientific article: white background, sans, full frame.",
         family="sans", usetex=False, background="#FFFFFF",
         ink="#1a1a1a", ink_soft="#4d4d4d", ink_faint="#8c8c8c", grid_color="#d9d9d9",
         palette="okabe-ito", spines="box", ticks="in", all_sides=True,
         grid=False, size="paper", dashes="auto", fill_alpha=0.10,
     ),
     "latex": dict(
-        description="Tipografía Computer Modern, igual que un documento LaTeX, "
-                    "sin necesidad de tener LaTeX instalado.",
+        description="Computer Modern typography, like a LaTeX document, "
+                    "without needing LaTeX installed.",
         family="latex", usetex=False, background="#FFFFFF",
         ink="#1a1a1a", ink_soft="#4d4d4d", ink_faint="#8c8c8c", grid_color="#d9d9d9",
         palette="okabe-ito", spines="box", ticks="in", all_sides=True,
         grid=False, size="paper", dashes="auto", fill_alpha=0.10,
     ),
     "latex-true": dict(
-        description="Renderizado con LaTeX real: la figura usa exactamente el "
-                    "mismo motor tipográfico que tu manuscrito. Requiere una "
-                    "instalación de TeX con dvipng.",
+        description="Rendered with real LaTeX: the figure uses exactly the "
+                    "same typesetting engine as your manuscript. Requires a "
+                    "TeX installation with dvipng.",
         family="latex", usetex=True, background="#FFFFFF",
         ink="#1a1a1a", ink_soft="#4d4d4d", ink_faint="#8c8c8c", grid_color="#d9d9d9",
         palette="okabe-ito", spines="box", ticks="in", all_sides=True,
         grid=False, size="paper", dashes="auto", fill_alpha=0.10,
     ),
     "minimal": dict(
-        description="Solo ejes izquierdo e inferior, rejilla tenue. Aire limpio "
-                    "para informes y tesis.",
+        description="Left and bottom axes only, faint grid. A clean look "
+                    "for reports and theses.",
         family="sans", usetex=False, background="#FFFFFF",
         ink="#262626", ink_soft="#595959", ink_faint="#a6a6a6", grid_color="#e8e8e8",
         palette="okabe-ito", spines="lr", ticks="out", all_sides=False,
         grid="both", size="paper", dashes="auto", fill_alpha=0.09,
     ),
     "dark": dict(
-        description="Fondo oscuro para diapositivas: paleta propia validada "
-                    "contra la superficie oscura, no la clara invertida.",
+        description="Dark background for slides: its own palette validated "
+                    "against the dark surface, not the inverted light one.",
         family="sans", usetex=False, background="#1a1a19",
         ink="#f2f2f0", ink_soft="#c4c4c0", ink_faint="#8a8a86", grid_color="#3a3a38",
         palette="okabe-ito-dark", spines="box", ticks="in", all_sides=True,
         grid=False, size="presentation", dashes="auto", fill_alpha=0.16,
     ),
     "slides": dict(
-        description="Diapositivas en claro: tipografía y trazos grandes, fondo "
-                    "hueso que cansa menos que el blanco puro proyectado.",
+        description="Light slides: large type and strokes, off-white "
+                    "background that is less tiring than pure projected white.",
         family="sans", usetex=False, background="#FBFBF9",
         ink="#1a1a1a", ink_soft="#4d4d4d", ink_faint="#8c8c8c", grid_color="#e0e0dc",
         palette="okabe-ito", spines="lr", ticks="out", all_sides=False,
         grid="y", size="presentation", dashes="auto", fill_alpha=0.12,
     ),
     "poster": dict(
-        description="Cartel: todo a mayor escala, para leerse a un metro.",
+        description="Poster: everything at a larger scale, readable from a metre away.",
         family="sans", usetex=False, background="#FFFFFF",
         ink="#1a1a1a", ink_soft="#4d4d4d", ink_faint="#8c8c8c", grid_color="#dcdcdc",
         palette="okabe-ito", spines="box", ticks="in", all_sides=True,
         grid=False, size="poster", dashes="auto", fill_alpha=0.12,
     ),
     "mono": dict(
-        description="Monocromo para revistas que cobran el color: la identidad "
-                    "de cada serie la lleva el patrón de línea.",
+        description="Monochrome for journals that charge for colour: each "
+                    "series is identified by its line pattern.",
         family="sans", usetex=False, background="#FFFFFF",
         ink="#000000", ink_soft="#4d4d4d", ink_faint="#8c8c8c", grid_color="#d9d9d9",
         palette="grayscale", spines="box", ticks="in", all_sides=True,
         grid=False, size="paper", dashes="always", fill_alpha=0.08,
     ),
     "mono-latex": dict(
-        description="Monocromo con tipografía Computer Modern.",
+        description="Monochrome with Computer Modern typography.",
         family="latex", usetex=False, background="#FFFFFF",
         ink="#000000", ink_soft="#4d4d4d", ink_faint="#8c8c8c", grid_color="#d9d9d9",
         palette="grayscale", spines="box", ticks="in", all_sides=True,
@@ -191,13 +191,13 @@ def resolve_palette(value, mono: bool = False) -> list:
         bad = [c for c in colors if not c.startswith("#")]
         if bad:
             raise ErrorDeUso(
-                f"colores no reconocidos: {', '.join(bad)}. "
-                "Usa valores hexadecimales (#0072B2) separados por coma."
+                f"unrecognized colours: {', '.join(bad)}. "
+                "Use comma-separated hexadecimal values (#0072B2)."
             )
         return colors
     raise ErrorDeUso(
-        f"paleta desconocida '{value}'. Disponibles: {', '.join(sorted(PALETTES))}, "
-        "o una lista de colores hexadecimales separados por coma."
+        f"unknown palette '{value}'. Available: {', '.join(sorted(PALETTES))}, "
+        "or a comma-separated list of hexadecimal colours."
     )
 
 
@@ -238,15 +238,15 @@ def load(name=None, **overrides) -> dict:
                 try:
                     from qekit.core.style import JOURNALS
                     if text in JOURNALS:
-                        extra = (f"\n'{text}' existe, pero es una REVISTA, no "
-                                 f"una plantilla: usa --journal {text}.")
+                        extra = (f"\n'{text}' exists, but it is a JOURNAL, not "
+                                 f"a template: use --journal {text}.")
                 except Exception:                      # noqa: BLE001
                     pass
                 if not extra and text in PALETTES:
-                    extra = (f"\n'{text}' existe, pero es una PALETA: usa "
+                    extra = (f"\n'{text}' exists, but it is a PALETTE: use "
                              f"--palette {text}.")
                 raise ErrorDeUso(
-                    f"plantilla desconocida '{text}'. Disponibles: "
+                    f"unknown template '{text}'. Available: "
                     f"{', '.join(names())}" + extra
                 )
 
@@ -259,22 +259,22 @@ def load(name=None, **overrides) -> dict:
 def describe(name: str) -> str:
     """Descripción legible de una plantilla."""
     t = load(name)
-    lines = [f"Plantilla: {name}"]
+    lines = [f"Template: {name}"]
     if t.get("description"):
         lines.append(f"  {t['description']}")
     colors = resolve_palette(t.get("palette"))
     lines += [
-        f"  tipografía   : {t.get('family')}"
-        + ("  (LaTeX real)" if t.get("usetex") else ""),
-        f"  fondo        : {t.get('background')}",
-        f"  tinta        : {t.get('ink')}",
-        f"  paleta       : {t.get('palette')}",
+        f"  typography   : {t.get('family')}"
+        + ("  (real LaTeX)" if t.get("usetex") else ""),
+        f"  background   : {t.get('background')}",
+        f"  ink          : {t.get('ink')}",
+        f"  palette      : {t.get('palette')}",
         f"                 {' '.join(colors[:6])}",
-        f"  ejes         : {t.get('spines')} · marcas {t.get('ticks')}"
-        + (" en los cuatro lados" if t.get("all_sides") else ""),
-        f"  rejilla      : {t.get('grid')}",
-        f"  escala       : {t.get('size')}",
-        f"  guiones      : {t.get('dashes')}",
+        f"  axes         : {t.get('spines')} · ticks {t.get('ticks')}"
+        + (" on all four sides" if t.get("all_sides") else ""),
+        f"  grid         : {t.get('grid')}",
+        f"  scale        : {t.get('size')}",
+        f"  dashes       : {t.get('dashes')}",
     ]
     return "\n".join(lines)
 

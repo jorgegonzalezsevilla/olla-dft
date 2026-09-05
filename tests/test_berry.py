@@ -309,7 +309,7 @@ def test_avisa_cuando_un_paso_del_camino_es_demasiado_grande():
     at = _si(0.0)
     run = _run_falso(at, [0.0, 0.9, 1.8], [0.0, 0.0, 0.1])
     B.analizar(run)
-    assert any("del cuanto" in a for a in run.avisos)
+    assert any('of the quantum' in a for a in run.avisos)
 
 
 def test_el_cuanto_del_analisis_sale_del_mod_tot_de_la_salida():
@@ -386,7 +386,7 @@ def test_un_punto_suelto_avisa_de_que_no_significa_nada(tmp_path):
                             kperp=(2, 2),
                             pseudo_dir="/usr/share/espresso/pseudo")
     assert len(run.jobs) == 1
-    assert any("no significa nada" in a for a in run.avisos)
+    assert any('means nothing' in a for a in run.avisos)
 
 
 def test_no_se_pueden_pedir_los_dos_caminos_a_la_vez(tmp_path):

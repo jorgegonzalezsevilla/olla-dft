@@ -36,7 +36,7 @@ def read(path) -> list:
         rows.append({"line": number, "value": value, "energy_ry": energy_ry,
                      "delta_mev_atom": abs(delta)})
     if not rows:
-        raise ErrorDeUso(f"'{path}' no contiene filas numéricas de convergencia.")
+        raise ErrorDeUso(f"'{path}' contains no numeric convergence rows.")
     return rows
 
 
@@ -45,7 +45,7 @@ def analyze(path, threshold=None) -> dict:
     if threshold is None:
         threshold = 1.0
     if threshold <= 0:
-        raise ErrorDeUso("el umbral debe ser positivo.")
+        raise ErrorDeUso("the threshold must be positive.")
     index = None
     for i in range(len(rows)):
         if all(row["delta_mev_atom"] <= threshold for row in rows[i:]):
@@ -55,15 +55,15 @@ def analyze(path, threshold=None) -> dict:
     if index is None:
         status = "extend"
         recommendation = _next_value(values)
-        reason = "ningún punto mantiene toda la cola dentro del umbral"
+        reason = "no point keeps the whole tail within the threshold"
     elif index == len(rows) - 1:
         status = "confirm"
         recommendation = _next_value(values)
-        reason = "solo el último punto cumple; hace falta un punto más para confirmar"
+        reason = "only the last point complies; one more point is needed to confirm"
     else:
         status = "ready"
         recommendation = rows[index]["value"]
-        reason = "desde este punto toda la cola queda dentro del umbral"
+        reason = "from this point on the whole tail stays within the threshold"
     return {"file": str(Path(path).resolve()), "threshold": float(threshold),
             "rows": rows, "converged_index": index, "status": status,
             "recommended_value": recommendation, "reason": reason}
@@ -80,19 +80,19 @@ def _next_value(values):
 
 
 def report(result: dict) -> str:
-    lines = ["--- Recomendación adaptativa de convergencia ---",
-             f"Archivo: {result['file']}",
-             f"Umbral: {result['threshold']:g} meV/átomo"]
+    lines = ["--- Adaptive convergence recommendation ---",
+             f"File: {result['file']}",
+             f"Threshold: {result['threshold']:g} meV/atom"]
     index = result["converged_index"]
     if index is None:
-        lines.append("Estado: EXTENDER — la serie todavía no converge.")
+        lines.append("Status: EXTEND — the series does not converge yet.")
     elif result["status"] == "confirm":
-        lines.append("Estado: CONFIRMAR — el último punto no basta como evidencia.")
+        lines.append("Status: CONFIRM — the last point is not enough as evidence.")
     else:
-        lines.append(f"Estado: LISTO — usar desde el punto {index + 1} de la serie.")
-    lines.append(f"Recomendación: probar valor {result['recommended_value']:g}.")
-    lines.append(f"Motivo: {result['reason']}.")
-    lines.append("La propiedad energía puede converger antes que fuerzas, fonones o tensores.")
+        lines.append(f"Status: READY — use from point {index + 1} of the series.")
+    lines.append(f"Recommendation: try value {result['recommended_value']:g}.")
+    lines.append(f"Reason: {result['reason']}.")
+    lines.append("The energy may converge before forces, phonons or tensors.")
     return "\n".join(lines)
 
 

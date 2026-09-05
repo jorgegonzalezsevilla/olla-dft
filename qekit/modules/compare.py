@@ -27,14 +27,14 @@ from qekit.modules import audit
 
 
 METRICS = (
-    ("energia_eV", "energía total", "eV"),
-    ("energia_por_atomo_eV", "energía por átomo", "eV/átomo"),
+    ("energia_eV", "total energy", "eV"),
+    ("energia_por_atomo_eV", "energy per atom", "eV/atom"),
     ("gap_eV", "gap", "eV"),
-    ("volumen_A3", "volumen", "Å³"),
-    ("presion_GPa", "presión", "GPa"),
-    ("fuerza_max", "fuerza máxima", "eV/Å"),
-    ("magnetizacion", "magnetización", "μB/celda"),
-    ("wall_s", "tiempo de pared", "s"),
+    ("volumen_A3", "volume", "Å³"),
+    ("presion_GPa", "pressure", "GPa"),
+    ("fuerza_max", "maximum force", "eV/Å"),
+    ("magnetizacion", "magnetization", "μB/cell"),
+    ("wall_s", "wall time", "s"),
 )
 
 
@@ -85,18 +85,18 @@ def _reference_index(records, reference=None):
     if isinstance(reference, int):
         if 0 <= reference < len(records):
             return reference
-        raise ErrorDeUso(f"--reference debe estar entre 0 y {len(records) - 1}.")
+        raise ErrorDeUso(f"--reference must be between 0 and {len(records) - 1}.")
     wanted = str(Path(reference).resolve())
     for index, record in enumerate(records):
         if record["path"] == wanted:
             return index
-    raise ErrorDeUso(f"no encuentro la corrida de referencia '{reference}'.")
+    raise ErrorDeUso(f"cannot find the reference run '{reference}'.")
 
 
 def compare(paths, reference=None) -> dict:
     paths = list(paths or [])
     if len(paths) < 2:
-        raise ErrorDeUso("compare necesita al menos dos carpetas o XML.")
+        raise ErrorDeUso("compare needs at least two folders or XML files.")
     runs = audit.collect(paths)
     checked = audit.audit(runs)
     records = [_record(run) for run in runs]
@@ -137,15 +137,15 @@ def compare(paths, reference=None) -> dict:
 
 
 def report(result: dict) -> str:
-    lines = ["--- Comparación de corridas ---",
-             f"Corridas: {len(result['runs'])}  | referencia: "
+    lines = ["--- Run comparison ---",
+             f"Runs: {len(result['runs'])}  | reference: "
              f"{result['reference']}"]
     if result["comparable_energy"]:
-        lines.append("Energías: comparables; las diferencias se calculan contra la referencia.")
+        lines.append("Energies: comparable; differences are computed against the reference.")
     else:
-        lines.append("Energías: NO se restan; faltan comparabilidad, convergencia o energía utilizable.")
+        lines.append("Energies: NOT subtracted; comparability, convergence or a usable energy is missing.")
     lines.append("")
-    header = f"{'corrida':28s} {'fórmula':10s} {'E/átomo':>14s} {'gap':>10s} {'ΔE/át':>14s}"
+    header = f"{'run':28s} {'formula':10s} {'E/atom':>14s} {'gap':>10s} {'ΔE/atom':>14s}"
     lines.append(header)
     lines.append("-" * len(header))
     for row in result["runs"]:
@@ -159,11 +159,11 @@ def report(result: dict) -> str:
         lines.append(f"{path:28s} {(row.get('formula') or '?'):10s} "
                      f"{e_text} {gap_text} {de_text}")
     if result["audit"]["difieren"]:
-        lines += ["", "Parámetros que impiden restar energías:"]
+        lines += ["", "Parameters that prevent subtracting energies:"]
         for key, values in result["audit"]["difieren"]:
             lines.append(f"  - {key}: {', '.join(values)}")
     if result["audit"]["not_converged"]:
-        lines += ["", "Corridas no convergidas:"]
+        lines += ["", "Non-converged runs:"]
         lines.extend(f"  - {path}" for path in result["audit"]["not_converged"])
     return "\n".join(lines)
 

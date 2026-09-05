@@ -53,38 +53,38 @@ from qekit.core.errors import ErrorDeUso
 #: Cada entrada es (nombre legible, comprobación, por qué).
 TAREAS = {
     "optics": {
-        "nombre": "óptica con epsilon.x",
+        "nombre": "optics with epsilon.x",
         "tipo": ("NC",),
-        "razon_tipo": "epsilon.x SOLO funciona con norma conservada. Con "
-                      "ultrasuaves o PAW devuelve un espectro sin quejarse, "
-                      "y está mal.",
+        "razon_tipo": "epsilon.x ONLY works with norm-conserving pseudopotentials. With "
+                      "ultrasoft or PAW it returns a spectrum without complaint, "
+                      "and it is wrong.",
     },
     "soc": {
-        "nombre": "espín-órbita",
+        "nombre": "spin-orbit",
         "relativista": ("full",),
-        "razon_rel": "el acoplamiento espín-órbita necesita un pseudo "
-                     "TOTALMENTE relativista. Uno escalar ya promedió el "
-                     "SOC y daría un desdoblamiento cero disfrazado de "
-                     "resultado.",
+        "razon_rel": "spin-orbit coupling needs a FULLY relativistic "
+                     "pseudopotential. A scalar one has already averaged the "
+                     "SOC and would give a zero splitting disguised as a "
+                     "result.",
     },
     "xanes": {
-        "nombre": "XANES con xspectra.x",
+        "nombre": "XANES with xspectra.x",
         "gipaw": True,
-        "razon_gipaw": "xspectra.x reconstruye la función de onda de todos "
-                       "los electrones con GIPAW: el pseudo tiene que traer "
-                       "esa información.",
+        "razon_gipaw": "xspectra.x reconstructs the all-electron wave "
+                       "function with GIPAW: the pseudopotential must carry "
+                       "that information.",
     },
     "hubbard": {
         "nombre": "DFT+U",
         "prefiere_semicore": True,
     },
     "fonones": {
-        "nombre": "fonones (DFPT)",
+        "nombre": "phonons (DFPT)",
         "prefiere_tipo": ("NC", "US"),
-        "razon_pref": "la DFPT con PAW es más frágil y más cara; con norma "
-                      "conservada o ultrasuave va mejor.",
+        "razon_pref": "DFPT with PAW is more fragile and more expensive; with "
+                      "norm-conserving or ultrasoft it works better.",
     },
-    "general": {"nombre": "cálculo general"},
+    "general": {"nombre": "general calculation"},
 }
 
 
@@ -182,8 +182,8 @@ def candidatos(elemento: str, pseudo_dir: str) -> list:
     pdir = Path(pseudo_dir).expanduser()
     if not pdir.is_dir():
         raise ErrorDeUso(
-            f"la carpeta de pseudopotenciales '{pseudo_dir}' no existe.\n"
-            "Se fija con:  olla-dft config set pseudo_dir /ruta/a/tus/pseudos")
+            f"the pseudopotential folder '{pseudo_dir}' does not exist.\n"
+            "It is set with:  olla-dft config set pseudo_dir /path/to/your/pseudos")
     return [leer(f) for f in ps.find_for_element(elemento, pdir)]
 
 
@@ -195,7 +195,7 @@ def evaluar(cands: list, tarea: str = "general",
     """Descarta los que no sirven y ordena el resto. No elige por ti."""
     if tarea not in TAREAS:
         raise ErrorDeUso(
-            f"tarea '{tarea}' desconocida. Opciones: "
+            f"unknown task '{tarea}'. Options: "
             + ", ".join(sorted(TAREAS)))
     reglas = TAREAS[tarea]
 
@@ -204,8 +204,8 @@ def evaluar(cands: list, tarea: str = "general",
 
         tipos = reglas.get("tipo")
         if tipos and c.tipo and c.tipo not in tipos:
-            c.descartado = (f"es {c.tipo} y hace falta "
-                            f"{'/'.join(tipos)}: " + reglas["razon_tipo"])
+            c.descartado = (f"it is {c.tipo} and "
+                            f"{'/'.join(tipos)} is required: " + reglas["razon_tipo"])
             continue
         rel = reglas.get("relativista")
         if rel and c.relativista and c.relativista not in rel:
@@ -215,46 +215,46 @@ def evaluar(cands: list, tarea: str = "general",
                 # Descartarlo dejaria sin opciones a un calculo que es
                 # perfectamente valido.
                 c.notas.append(
-                    f"es {c.relativista}, pero en {c.elemento} (Z pequeno) "
-                    "el espin-orbita es\n    despreciable: se puede usar "
-                    "junto a pseudos relativistas de los\n    elementos "
-                    "pesados.")
+                    f"it is {c.relativista}, but in {c.elemento} (small Z) "
+                    "spin-orbit is\n    negligible: it can be used "
+                    "together with relativistic pseudopotentials of the\n    heavy "
+                    "elements.")
                 c.puntos -= 0.5
             else:
-                c.descartado = (f"es {c.relativista}: " + reglas["razon_rel"])
+                c.descartado = (f"it is {c.relativista}: " + reglas["razon_rel"])
                 continue
         if reglas.get("gipaw") and not c.gipaw:
-            c.descartado = "no trae GIPAW: " + reglas["razon_gipaw"]
+            c.descartado = "no GIPAW data: " + reglas["razon_gipaw"]
             continue
         if funcional and c.funcional and \
                 not _mismo_funcional(c.funcional, funcional):
-            c.descartado = (f"su funcional es {c.funcional} y el pedido es "
-                            f"{funcional}: mezclar funcionales invalida la "
-                            "energía total.")
+            c.descartado = (f"its functional is {c.funcional} and the requested one is "
+                            f"{funcional}: mixing functionals invalidates the "
+                            "total energy.")
             continue
 
         # preferencias
         pref = reglas.get("prefiere_tipo")
         if pref and c.tipo in pref:
             c.puntos += 2.0
-            c.notas.append(f"tipo {c.tipo}: " + reglas.get("razon_pref", ""))
+            c.notas.append(f"type {c.tipo}: " + reglas.get("razon_pref", ""))
         if reglas.get("prefiere_semicore") and c.z_valence:
             c.puntos += 0.15 * c.z_valence
-            c.notas.append(f"{c.z_valence:g} electrones de valencia: más "
-                           "semicore es más transferible para DFT+U")
+            c.notas.append(f"{c.z_valence:g} valence electrons: more "
+                           "semicore is more transferable for DFT+U")
         if c.ecutwfc:
             # un cutoff bajo es dinero; se premia, pero poco
             c.puntos += max(0.0, (90.0 - c.ecutwfc) / 30.0)
         else:
-            c.notas.append("no declara cutoff sugerido: habrá que converger "
-                           "a ciegas")
+            c.notas.append("no suggested cutoff declared: it will have to be "
+                           "converged blindly")
             c.puntos -= 0.5
         if prefiere_ligero and c.tipo in ("US", "PAW"):
             c.puntos += 1.0
-            c.notas.append("ultrasuave/PAW: menos ondas planas, más barato")
+            c.notas.append("ultrasoft/PAW: fewer plane waves, cheaper")
         if c.gipaw:
             c.puntos += 0.3
-            c.notas.append("trae GIPAW: sirve también para XANES y RMN")
+            c.notas.append("has GIPAW data: also usable for XANES and NMR")
         if c.relativista == "full":
             c.puntos += 0.2
 
@@ -267,15 +267,15 @@ def elegir(elemento: str, pseudo_dir: str, tarea: str = "general",
     cands = candidatos(elemento, pseudo_dir)
     if not cands:
         raise ErrorDeUso(
-            f"no hay ningún pseudopotencial de {elemento} en "
-            f"'{pseudo_dir}'.\nSe descargan de pseudo-dojo.org o de "
+            f"there is no pseudopotential for {elemento} in "
+            f"'{pseudo_dir}'.\nThey can be downloaded from pseudo-dojo.org or from "
             "quantum-espresso.org/pseudopotentials.")
     ev = evaluar(cands, tarea, funcional, prefiere_ligero)
     buenos = [c for c in ev if c.ok]
     if not buenos:
         raise ErrorDeUso(
-            f"hay {len(ev)} pseudopotencial(es) de {elemento} pero ninguno "
-            f"sirve para {TAREAS[tarea]['nombre']}:\n" +
+            f"there are {len(ev)} pseudopotential(s) for {elemento} but none "
+            f"is suitable for {TAREAS[tarea]['nombre']}:\n" +
             "\n".join(f"  {c.nombre}: {c.descartado}" for c in ev))
     return buenos[0], ev
 
@@ -313,27 +313,27 @@ def coherencia(elegidos: dict) -> list:
         base = list(funcs)[0]
         if not all(_mismo_funcional(base, f) for f in funcs):
             avisos.append(
-                "FUNCIONALES DISTINTOS entre elementos: "
+                "DIFFERENT FUNCTIONALS between elements: "
                 + "; ".join(f"{k}={v.funcional}" for k, v in elegidos.items()
                             if v.funcional)
-                + ".\nLa energía total de una estructura con pseudos de "
-                  "funcionales distintos no\nsignifica nada. Esto no da "
-                  "error en QE: sale un número perfectamente\nplausible y "
-                  "equivocado.")
+                + ".\nThe total energy of a structure with pseudopotentials of "
+                  "different functionals means\nnothing. This gives no "
+                  "error in QE: a perfectly plausible and\nwrong number "
+                  "comes out.")
     tipos = {c.tipo for c in elegidos.values() if c.tipo}
     if "NC" in tipos and tipos & {"US", "PAW"}:
         avisos.append(
-            "Se mezclan norma conservada con ultrasuave/PAW. QE lo permite, "
-            "pero el\necutrho lo manda el más exigente: usa el dual del "
-            "ultrasuave (8-12x) para\ntodos, no el del NC (4x).")
+            "Norm-conserving and ultrasoft/PAW are mixed. QE allows it, "
+            "but the\necutrho is dictated by the most demanding one: use the dual of the "
+            "ultrasoft (8-12x) for\nall of them, not that of the NC (4x).")
     cut = [c.ecutwfc for c in elegidos.values() if c.ecutwfc]
     if cut and max(cut) / min(cut) > 2.5:
         peor = max(elegidos.values(), key=lambda c: c.ecutwfc or 0)
         avisos.append(
-            f"Los cutoffs sugeridos van de {min(cut):.0f} a {max(cut):.0f} "
-            f"Ry. Manda el mayor ({peor.nombre}),\nasí que ese elemento "
-            "decide el coste de todo el cálculo. Si hay otro pseudo\nde ese "
-            "elemento más blando, puede ahorrar mucho tiempo.")
+            f"The suggested cutoffs range from {min(cut):.0f} to {max(cut):.0f} "
+            f"Ry. The largest one rules ({peor.nombre}),\nso that element "
+            "decides the cost of the whole calculation. If there is another softer\n"
+            "pseudopotential for that element, it can save a lot of time.")
     return avisos
 
 
@@ -341,13 +341,13 @@ def coherencia(elegidos: dict) -> list:
 # Reporte
 # ----------------------------------------------------------------------
 def report(elemento: str, evaluados: list, tarea: str = "general") -> str:
-    lines = [f"--- Pseudopotenciales de {elemento} ---",
-             f"Para: {TAREAS[tarea]['nombre']}", ""]
+    lines = [f"--- Pseudopotentials for {elemento} ---",
+             f"For: {TAREAS[tarea]['nombre']}", ""]
     buenos = [c for c in evaluados if c.ok]
     malos = [c for c in evaluados if not c.ok]
 
     if buenos:
-        lines.append(f"{'':2s} {'archivo':<42s} {'tipo':>5s} {'func':>12s} "
+        lines.append(f"{'':2s} {'file':<42s} {'type':>5s} {'func':>12s} "
                      f"{'rel':>7s} {'zval':>5s} {'ecut':>6s} {'rho':>6s}")
         for i, c in enumerate(buenos):
             marca = "->" if i == 0 else "  "
@@ -358,29 +358,29 @@ def report(elemento: str, evaluados: list, tarea: str = "general") -> str:
                 f"{(f'{c.z_valence:g}' if c.z_valence else '?'):>5s} "
                 f"{(f'{c.ecutwfc:.0f}' if c.ecutwfc else '-'):>6s} "
                 f"{(f'{c.ecutrho:.0f}' if c.ecutrho else '-'):>6s}")
-        lines += ["", f"Recomendado: {buenos[0].nombre}"]
+        lines += ["", f"Recommended: {buenos[0].nombre}"]
         for n in buenos[0].notas:
             if n:
                 lines.append(f"  - {n}")
 
     if malos:
-        lines += ["", "Descartados:"]
+        lines += ["", "Discarded:"]
         for c in malos:
             lines.append(f"  {c.nombre}")
             lines.append(f"      {c.descartado}")
 
     lines += ["",
-              "Esto es una recomendación, no una verdad: el pseudopotencial "
-              "adecuado depende\ndel sistema. Se fuerza uno concreto con "
-              "--pseudo " + elemento + "=archivo.UPF, y sea cual sea\nel que "
-              "elijas, hay que converger el cutoff con 'olla-dft converge'."]
+              "This is a recommendation, not a truth: the appropriate "
+              "pseudopotential depends\non the system. A specific one is forced with "
+              "--pseudo " + elemento + "=file.UPF, and whichever\none you "
+              "choose, the cutoff must be converged with 'olla-dft converge'."]
     return "\n".join(lines)
 
 
 def report_coherencia(elegidos: dict) -> str:
     avisos = coherencia(elegidos)
     if not avisos:
-        return ("Los pseudopotenciales elegidos son coherentes entre sí "
-                "(mismo funcional,\ntipos compatibles, cutoffs del mismo "
-                "orden).")
+        return ("The chosen pseudopotentials are mutually consistent "
+                "(same functional,\ncompatible types, cutoffs of the same "
+                "order).")
     return "\n\n".join(avisos)

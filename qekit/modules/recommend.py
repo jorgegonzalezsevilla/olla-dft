@@ -90,11 +90,11 @@ def sugerir(filas: list, elementos, natoms: int = None,
     if not vecinos:
         sug.append(Sugerencia(
             campo="(sin historial)", n_casos=0, confianza="baja",
-            razon="No hay cálculos previos con estos elementos. Usa los "
-                  "cutoffs que declara\nel propio pseudopotencial (Olla-DFT "
-                  "los lee del UPF) o la tabla SSSP: eso es un\ndato "
-                  "medido, no una predicción, y siempre le gana a una "
-                  "extrapolación."))
+            razon="There are no previous calculations with these elements. Use the "
+                  "cutoffs declared\nby the pseudopotential itself (Olla-DFT "
+                  "reads them from the UPF) or the SSSP table: that is a\nmeasured "
+                  "datum, not a prediction, and it always beats an "
+                  "extrapolation."))
         return sug
 
     ecuts = [f["ecutwfc"] for f in vecinos if f.get("ecutwfc")]
@@ -104,10 +104,10 @@ def sugerir(filas: list, elementos, natoms: int = None,
             campo="ecutwfc", valor=v, n_casos=len(ecuts),
             rango=(float(np.min(ecuts)), float(np.max(ecuts))),
             confianza=_confianza(len(ecuts)),
-            razon=f"el MÁXIMO de {len(ecuts)} cálculos convergidos con "
-                  f"estos elementos (rango {min(ecuts):.0f}–{max(ecuts):.0f} "
-                  "Ry). Se toma el máximo, no la media: un cutoff bajo que "
-                  "funcionó en un\nsistema no garantiza nada en otro."))
+            razon=f"the MAXIMUM of {len(ecuts)} converged calculations with "
+                  f"these elements (range {min(ecuts):.0f}–{max(ecuts):.0f} "
+                  "Ry). The maximum is taken, not the mean: a low cutoff that "
+                  "worked in one\nsystem guarantees nothing in another."))
 
     duales = [(f["ecutrho"] / f["ecutwfc"]) for f in vecinos
               if f.get("ecutrho") and f.get("ecutwfc")]
@@ -115,46 +115,46 @@ def sugerir(filas: list, elementos, natoms: int = None,
         sug.append(Sugerencia(
             campo="dual (ecutrho/ecutwfc)", valor=float(np.max(duales)),
             n_casos=len(duales), confianza=_confianza(len(duales)),
-            razon="el dual que usaron los cálculos previos; depende del "
-                  "tipo de pseudo\n(4 para norma conservada, 8-12 para "
-                  "ultrasoft y PAW)."))
+            razon="the dual used by the previous calculations; it depends on the "
+                  "pseudopotential type\n(4 for norm-conserving, 8-12 for "
+                  "ultrasoft and PAW)."))
 
     dens = [f["kdensity"] for f in vecinos if f.get("kdensity")]
     if dens:
         sug.append(Sugerencia(
-            campo="densidad de k (puntos/Å⁻³)", valor=float(np.median(dens)),
+            campo="k-point density (points/Å⁻³)", valor=float(np.median(dens)),
             n_casos=len(dens), rango=(float(np.min(dens)),
                                       float(np.max(dens))),
             confianza=_confianza(len(dens)),
-            razon="mediana de los cálculos convergidos. La densidad, no el "
-                  "número de puntos,\nes lo comparable entre celdas de "
-                  "tamaño distinto."))
+            razon="median of the converged calculations. The density, not the "
+                  "number of points,\nis what is comparable between cells of "
+                  "different size."))
 
     pasos = [f["n_scf"] for f in vecinos if f.get("n_scf")]
     if pasos and np.median(pasos) > 40:
         sug.append(Sugerencia(
             campo="electron_maxstep", valor=300, n_casos=len(pasos),
             confianza=_confianza(len(pasos)),
-            razon=f"tus cálculos con estos elementos necesitaron una "
-                  f"mediana de {np.median(pasos):.0f} pasos SCF:\nel "
-                  "máximo por defecto se queda corto."))
+            razon=f"your calculations with these elements needed a "
+                  f"median of {np.median(pasos):.0f} SCF steps:\nthe "
+                  "default maximum falls short."))
 
     if es_losa:
         sug.append(Sugerencia(
             campo="mixing_beta", valor=0.3, n_casos=0, confianza="baja",
-            razon="es una losa con vacío: son las que más oscilación de "
-                  "carga dan. Empezar\ncon mixing_beta bajo y "
-                  "mixing_mode='local-TF' ahorra reintentos. Esto no sale "
-                  "de\ntu historial, es una regla general."))
+            razon="it is a slab with vacuum: these give the most charge "
+                  "sloshing. Starting\nwith a low mixing_beta and "
+                  "mixing_mode='local-TF' saves retries. This does not come "
+                  "from\nyour history, it is a general rule."))
     return sug
 
 
 def report(sug: list, elementos, n_historial: int = 0) -> str:
-    lines = ["--- Sugerencias desde tu historial ---",
-             f"Elementos: {', '.join(elementos)}  |  "
-             f"cálculos en la base: {n_historial}", ""]
+    lines = ["--- Suggestions from your history ---",
+             f"Elements: {', '.join(elementos)}  |  "
+             f"calculations in the database: {n_historial}", ""]
     if not sug or sug[0].campo == "(sin historial)":
-        lines.append(sug[0].razon if sug else "Sin datos.")
+        lines.append(sug[0].razon if sug else "No data.")
         return "\n".join(lines)
 
     for s in sug:
@@ -163,21 +163,21 @@ def report(sug: list, elementos, n_historial: int = 0) -> str:
             val = f"{val:.4g}"
         # la confianza 'baja' cubre 1 y 2 casos: no se dice "un solo caso"
         # cuando hay dos
-        marca = {"alta": "", "media": "  (pocos casos)",
-                 "baja": ("  (UN SOLO CASO: tómalo como indicio)"
+        marca = {"alta": "", "media": "  (few cases)",
+                 "baja": ("  (A SINGLE CASE: take it as a hint)"
                           if s.n_casos == 1 else
-                          f"  (SOLO {s.n_casos} CASOS: tómalo como indicio)")
+                          f"  (ONLY {s.n_casos} CASES: take it as a hint)")
                  }[s.confianza]
         if s.n_casos == 0:
-            marca = "  (regla general, no de tu historial)"
+            marca = "  (general rule, not from your history)"
         lines.append(f"  {s.campo}: {val}"
-                     f"   [{s.n_casos} caso{'s' if s.n_casos != 1 else ''}]"
+                     f"   [{s.n_casos} case{'s' if s.n_casos != 1 else ''}]"
                      f"{marca}")
         for l in s.razon.splitlines():
             lines.append(f"      {l}")
         lines.append("")
-    lines.append("Estas sugerencias salen de lo que YA te funcionó, no de un "
-                 "modelo entrenado.\nNo sustituyen a una prueba de "
-                 "convergencia: 'olla-dft converge' sigue siendo\nla forma de "
-                 "saberlo de verdad para un sistema nuevo.")
+    lines.append("These suggestions come from what ALREADY worked for you, not from a "
+                 "trained model.\nThey do not replace a convergence "
+                 "test: 'olla-dft converge' is still\nthe way to "
+                 "know for sure for a new system.")
     return "\n".join(lines)

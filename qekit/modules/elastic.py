@@ -54,6 +54,17 @@ FAMILIES = {
     "monoclínico/triclínico": ["matriz completa"],
 }
 
+# English display names for the family keys above (the keys themselves are
+# logic/lookup identifiers and are kept unchanged).
+FAMILY_LABEL = {
+    "cúbico": "cubic",
+    "hexagonal": "hexagonal",
+    "tetragonal": "tetragonal",
+    "ortorrómbico": "orthorhombic",
+    "trigonal": "trigonal",
+    "monoclínico/triclínico": "monoclinic/triclinic",
+}
+
 
 def crystal_family(spacegroup_number: int) -> str:
     n = spacegroup_number
@@ -223,9 +234,9 @@ def prepare(atoms, outdir: str = "elastic", delta: float = 0.010,
         # tal como viene, que es la que tiene el vacío donde el usuario lo puso.
         if 2 not in kp.direcciones_con_vacio(atoms):
             raise ErrorDeUso(
-                "--2d espera una lámina con vacío en c, y esta celda no lo "
-                "tiene. Si es material en bulto, quita --2d; si es una "
-                "monocapa, añádele vacío (por ejemplo 'olla-dft layers --slab "
+                "--2d expects a sheet with vacuum along c, and this cell does not "
+                "have it. If it is bulk material, drop --2d; if it is a "
+                "monolayer, add vacuum (for example 'olla-dft layers --slab "
                 "mono.cif --vacuum 20').")
         atoms_in = atoms
         reoriented = False
@@ -245,54 +256,55 @@ def prepare(atoms, outdir: str = "elastic", delta: float = 0.010,
         natoms=len(atoms),
         volume=float(abs(np.linalg.det(atoms.cell.array))),
         family=crystal_family(ds.number),
-        spacegroup=f"{ds.international} (N.º {ds.number})",
+        spacegroup=f"{ds.international} (No. {ds.number})",
         dosd=dosd,
         altura=float(np.linalg.norm(atoms.cell.array[2])) if dosd else None,
         espesor=espesor,
     )
 
     if npoints % 2 or npoints < 2:
-        raise ErrorDeUso("npoints debe ser un número par >= 2 "
-                         "(las deformaciones van en pares ±)")
+        raise ErrorDeUso("npoints must be an even number >= 2 "
+                         "(strains come in ± pairs)")
     if ion_mode not in ("auto", "relax", "fixed"):
-        raise ErrorDeUso("ion_mode debe ser auto, relax o fixed")
+        raise ErrorDeUso("ion_mode must be auto, relax or fixed")
     half = npoints // 2
     magnitudes = [delta * (k + 1) / half for k in range(half)]
     amounts = sorted([-m for m in magnitudes] + magnitudes)
 
     modo_txt = {
-        "auto": "fijas en ε1–ε3, relajadas en ε4–ε6 (auto)",
-        "relax": "relajadas en todas",
-        "fixed": "fijas en todas (clamped-ion)",
+        "auto": "fixed in ε1–ε3, relaxed in ε4–ε6 (auto)",
+        "relax": "relaxed in all",
+        "fixed": "fixed in all (clamped-ion)",
     }[ion_mode]
-    report = ["--- Constantes elásticas (esfuerzo–deformación) ---",
-              f"Estructura: {atoms.get_chemical_formula()} ({len(atoms)} átomos)",
-              f"Grupo espacial: {run.spacegroup}  ->  familia {run.family}",
-              "Constantes independientes: "
-              + ("C11, C22, C12, C66 (lámina)" if dosd
-                 else ", ".join(FAMILIES.get(run.family, ['?']))),
-              f"Deformaciones: {amounts} en cada una de las "
-              + ("3 componentes del plano (ε1, ε2, ε6)" if dosd
-                 else "6 componentes de Voigt"),
-              f"Malla k: {grid[0]}x{grid[1]}x{grid[2]}  |  "
-              f"posiciones internas: {modo_txt}"]
+    report = ["--- Elastic constants (stress–strain) ---",
+              f"Structure: {atoms.get_chemical_formula()} ({len(atoms)} atoms)",
+              f"Space group: {run.spacegroup}  ->  family {FAMILY_LABEL.get(run.family, run.family)}",
+              "Independent constants: "
+              + ("C11, C22, C12, C66 (sheet)" if dosd
+                 else ", ".join("full matrix" if c == "matriz completa" else c
+                                for c in FAMILIES.get(run.family, ['?']))),
+              f"Strains: {amounts} in each of the "
+              + ("3 in-plane components (ε1, ε2, ε6)" if dosd
+                 else "6 Voigt components"),
+              f"k-mesh: {grid[0]}x{grid[1]}x{grid[2]}  |  "
+              f"internal positions: {modo_txt}"]
     if dosd:
         report.append(
-            f"Modo lámina: las Cij se darán en N/m multiplicando por la altura "
-            f"de la celda\n  (c = {run.altura:.3f} Å). No se toca ε3: estirar "
-            "el vacío no mide nada.")
+            f"Sheet mode: the Cij will be given in N/m by multiplying by the cell "
+            f"height\n  (c = {run.altura:.3f} Å). ε3 is not touched: stretching "
+            "the vacuum measures nothing.")
     if reoriented:
         report.append(
-            "La estructura se llevó a la celda primitiva estandarizada para que\n"
-            "los ejes cartesianos coincidan con los cristalofísicos (las Cij se\n"
-            "definen en ese marco)."
+            "The structure was brought to the standardized primitive cell so that\n"
+            "the Cartesian axes coincide with the crystal-physical ones (the Cij are\n"
+            "defined in that frame)."
         )
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
 
     # punto de referencia sin deformar, para medir el esfuerzo residual
-    job0 = sweep.write_scf_job(atoms, common, out / "ref", "sin deformar", grid,
+    job0 = sweep.write_scf_job(atoms, common, out / "ref", "undeformed", grid,
                                meta={"component": None, "delta": 0.0},
                                calculation="scf")
     run.jobs.append(job0)
@@ -321,8 +333,8 @@ def prepare(atoms, outdir: str = "elastic", delta: float = 0.010,
             run.components.append(comp); run.deltas.append(amt)
 
     sweep.write_run_script(run.jobs, out / "run.sh")
-    report += ["", f"{len(run.jobs)} cálculos escritos en '{out.resolve()}'",
-               "Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta."]
+    report += ["", f"{len(run.jobs)} calculations written to '{out.resolve()}'",
+               "Run them with --run, or by hand with ./run.sh inside that folder."]
     return run, "\n".join(report)
 
 
@@ -483,13 +495,13 @@ def moduli(C: np.ndarray) -> Moduli:
     eig = np.linalg.eigvalsh(0.5 * (C + C.T))
     m.stable = bool(np.all(eig > 0))
     if m.stable:
-        m.stability_note = ("todos los valores propios de C son positivos: "
-                            "la estructura es mecánicamente estable.")
+        m.stability_note = ("all eigenvalues of C are positive: "
+                            "the structure is mechanically stable.")
     else:
         neg = ", ".join(f"{e:.1f}" for e in eig if e <= 0)
-        m.stability_note = (f"hay valores propios no positivos ({neg} GPa): la "
-                            "estructura NO es\nmecánicamente estable, o el "
-                            "cálculo no está bien convergido.")
+        m.stability_note = (f"there are non-positive eigenvalues ({neg} GPa): the "
+                            "structure is NOT\nmechanically stable, or the "
+                            "calculation is not well converged.")
     return m
 
 
@@ -497,22 +509,22 @@ def moduli(C: np.ndarray) -> Moduli:
 # Reporte y exportación
 # ----------------------------------------------------------------------
 def report(run: ElasticRun, symmetrized: bool = True) -> str:
-    lines = ["--- Constantes elásticas ---",
-             f"Estructura: {run.natoms} átomos, V = {run.volume:.4f} Å³",
-             f"Grupo espacial: {run.spacegroup}  ->  familia {run.family}"]
+    lines = ["--- Elastic constants ---",
+             f"Structure: {run.natoms} atoms, V = {run.volume:.4f} Å³",
+             f"Space group: {run.spacegroup}  ->  family {FAMILY_LABEL.get(run.family, run.family)}"]
 
     done = sum(1 for s in run.stresses if s is not None)
-    lines.append(f"Cálculos con esfuerzo leído: {done} de {len(run.jobs)}")
+    lines.append(f"Calculations with stress read: {done} of {len(run.jobs)}")
     if run.reference_stress is not None:
         p = np.trace(run.reference_stress) / 3.0
-        lines.append(f"Esfuerzo residual de la celda sin deformar: "
+        lines.append(f"Residual stress of the undeformed cell: "
                      f"{p:.3f} GPa")
         if abs(p) > 0.5:
-            lines.append("  AVISO: es alto. Relaja la celda con vc-relax antes "
-                         "de calcular\n  las constantes elásticas, o los valores "
-                         "saldrán sesgados.")
+            lines.append("  WARNING: it is high. Relax the cell with vc-relax before "
+                         "computing\n  the elastic constants, or the values "
+                         "will be biased.")
     if done < 3:
-        lines.append("\nNo hay suficientes cálculos terminados para ajustar.")
+        lines.append("\nNot enough finished calculations to fit.")
         return "\n".join(lines)
 
     C = run.C if run.C is not None else fit(run)
@@ -522,7 +534,7 @@ def report(run: ElasticRun, symmetrized: bool = True) -> str:
 
     Cs = symmetrize(C, run.family) if symmetrized else 0.5 * (C + C.T)
 
-    lines += ["", "Matriz elástica C (GPa):"]
+    lines += ["", "Elastic matrix C (GPa):"]
     header = "      " + "".join(f"{i + 1:>10d}" for i in range(6))
     lines.append(header)
     for i in range(6):
@@ -532,28 +544,28 @@ def report(run: ElasticRun, symmetrized: bool = True) -> str:
 
     indep = FAMILIES.get(run.family, [])
     if indep and indep != ["matriz completa"]:
-        lines += ["", "Constantes independientes:"]
+        lines += ["", "Independent constants:"]
         for name in indep:
             i, j = int(name[1]) - 1, int(name[2]) - 1
             lines.append(f"  {name} = {Cs[i, j]:8.2f} GPa")
 
     m = moduli(Cs)
     if m.B_hill is not None:
-        lines += ["", "Módulos elásticos (promedios de Voigt–Reuss–Hill):",
+        lines += ["", "Elastic moduli (Voigt–Reuss–Hill averages):",
                   f"  {'':10s} {'Voigt':>10s} {'Reuss':>10s} {'Hill':>10s}",
                   f"  {'B (GPa)':10s} {m.B_voigt:10.2f} {m.B_reuss:10.2f} "
                   f"{m.B_hill:10.2f}",
                   f"  {'G (GPa)':10s} {m.G_voigt:10.2f} {m.G_reuss:10.2f} "
                   f"{m.G_hill:10.2f}",
                   "",
-                  f"  Módulo de Young E = {m.E:.2f} GPa",
-                  f"  Razón de Poisson ν = {m.nu:.4f}",
-                  f"  Cociente de Pugh B/G = {m.pugh:.3f}  "
-                  f"({'dúctil' if m.pugh > 1.75 else 'frágil'}, umbral 1.75)"]
+                  f"  Young's modulus E = {m.E:.2f} GPa",
+                  f"  Poisson ratio ν = {m.nu:.4f}",
+                  f"  Pugh ratio B/G = {m.pugh:.3f}  "
+                  f"({'ductile' if m.pugh > 1.75 else 'brittle'}, threshold 1.75)"]
         if m.anisotropy is not None:
-            lines.append(f"  Anisotropía universal A^U = {m.anisotropy:.4f}  "
-                         f"({'isótropo' if abs(m.anisotropy) < 0.01 else 'anisótropo'})")
-        lines += ["", "Estabilidad mecánica (criterio de Born):",
+            lines.append(f"  Universal anisotropy A^U = {m.anisotropy:.4f}  "
+                         f"({'isotropic' if abs(m.anisotropy) < 0.01 else 'anisotropic'})")
+        lines += ["", "Mechanical stability (Born criterion):",
                   f"  {m.stability_note}"]
     return "\n".join(lines)
 
@@ -564,16 +576,16 @@ def _report_2d(run: ElasticRun, C: np.ndarray, lines: list) -> str:
     m = modulos_2d(C2)
     etiquetas = ("1 (xx)", "2 (yy)", "6 (xy)")
 
-    lines += ["", f"Altura de la celda: c = {run.altura:.4f} Å  "
-                  f"(el vacío se cancela al multiplicar)",
-              "", "Constantes elásticas de lámina (N/m):",
+    lines += ["", f"Cell height: c = {run.altura:.4f} Å  "
+                  f"(the vacuum cancels out in the product)",
+              "", "Sheet elastic constants (N/m):",
               "        " + "".join(f"{e:>12s}" for e in etiquetas)]
     for i, e in enumerate(etiquetas):
         fila = "".join(f"{C2[i, j]:12.2f}" if np.isfinite(C2[i, j])
                        else f"{'—':>12s}" for j in range(3))
         lines.append(f"  {e:>6s}{fila}")
 
-    lines += ["", "Constantes independientes (N/m):",
+    lines += ["", "Independent constants (N/m):",
               f"  C11 = {m['C11']:9.2f}",
               f"  C22 = {m['C22']:9.2f}",
               f"  C12 = {m['C12']:9.2f}",
@@ -581,51 +593,51 @@ def _report_2d(run: ElasticRun, C: np.ndarray, lines: list) -> str:
     iso = abs(m["C11"] - m["C22"]) < 0.02 * max(abs(m["C11"]), 1.0)
     if iso:
         c66_esp = (m["C11"] - m["C12"]) / 2.0
-        lines.append(f"  C11 ≈ C22: lámina isótropa en el plano; para serlo del "
-                     f"todo\n  debe cumplirse C66 = (C11−C12)/2 = "
-                     f"{c66_esp:.2f} N/m  (calculado: {m['C66']:.2f})")
+        lines.append(f"  C11 ≈ C22: sheet isotropic in the plane; to be fully "
+                     f"isotropic\n  it must satisfy C66 = (C11−C12)/2 = "
+                     f"{c66_esp:.2f} N/m  (computed: {m['C66']:.2f})")
         if abs(c66_esp - m["C66"]) > 0.03 * max(abs(c66_esp), 1.0):
             lines.append(
-                "  La diferencia es apreciable. Antes de leerla como "
-                "anisotropía, mira que\n  con --ion-mode auto (el que viene "
-                "por omisión) las cizallas se relajan y\n  las normales no: "
-                "el relajamiento interno baja C66 y no toca C11 ni C12, así\n"
-                "  que la identidad deja de cumplirse aunque la lámina sea "
-                "isótropa. Para\n  compararlas en igualdad de condiciones:  "
-                "--ion-mode fixed  (o  relax).")
+                "  The difference is appreciable. Before reading it as "
+                "anisotropy, note that\n  with --ion-mode auto (the default) "
+                "the shears are relaxed and\n  the normals are not: "
+                "internal relaxation lowers C66 and does not touch C11 or C12, so\n"
+                "  the identity stops holding even if the sheet is "
+                "isotropic. To\n  compare them on equal footing:  "
+                "--ion-mode fixed  (or  relax).")
 
-    lines += ["", "Módulos de lámina (N/m):"]
+    lines += ["", "Sheet moduli (N/m):"]
     if "Y_x" in m:
-        lines.append(f"  Módulo de Young 2D   Yx = {m['Y_x']:8.2f}   "
+        lines.append(f"  2D Young's modulus   Yx = {m['Y_x']:8.2f}   "
                      f"Yy = {m.get('Y_y', float('nan')):8.2f}")
-        lines.append(f"  Razón de Poisson     νx = {m['nu_x']:8.4f}   "
+        lines.append(f"  Poisson ratio        νx = {m['nu_x']:8.4f}   "
                      f"νy = {m.get('nu_y', float('nan')):8.4f}")
-    lines.append(f"  Módulo de área 2D     K = {m['K']:8.2f}")
-    lines.append(f"  Módulo de cizalla     G = {m['G']:8.2f}")
+    lines.append(f"  2D area modulus       K = {m['K']:8.2f}")
+    lines.append(f"  Shear modulus         G = {m['G']:8.2f}")
 
     estable, fallan = born_2d(C2)
-    lines += ["", "Estabilidad mecánica (criterio de Born en 2D):"]
+    lines += ["", "Mechanical stability (2D Born criterion):"]
     if estable:
-        lines.append("  Estable: se cumplen C11 > 0, C66 > 0 y C11·C22 − C12² > 0.")
+        lines.append("  Stable: C11 > 0, C66 > 0 and C11·C22 − C12² > 0 are satisfied.")
     else:
-        lines.append("  INESTABLE: no se cumple " + "; ".join(fallan) + ".")
-        lines.append("  Antes de concluir que la lámina no existe, comprueba "
-                     "que la estructura\n  estaba relajada y que la malla k y "
-                     "el cutoff están convergidos: una\n  celda con esfuerzo "
-                     "residual da Cij sesgadas y puede fingir inestabilidad.")
+        lines.append("  UNSTABLE: not satisfied: " + "; ".join(fallan) + ".")
+        lines.append("  Before concluding that the sheet does not exist, check "
+                     "that the structure\n  was relaxed and that the k-mesh and "
+                     "cutoff are converged: a\n  cell with residual "
+                     "stress gives biased Cij and can fake instability.")
 
     if run.espesor:
         f = 1.0 / (run.espesor * GPA_A_NM)
-        lines += ["", f"Equivalente en 3D suponiendo un espesor de "
+        lines += ["", f"3D equivalent assuming a thickness of "
                       f"{run.espesor:g} Å:",
                   f"  C11 = {m['C11'] * f:8.2f} GPa    "
                   f"C12 = {m['C12'] * f:8.2f} GPa    "
                   f"C66 = {m['C66'] * f:8.2f} GPa"]
         if "Y_x" in m:
             lines.append(f"  Young Yx = {m['Y_x'] * f:8.2f} GPa")
-        lines.append("  Este espesor es un CONVENIO, no una medida: los "
-                     "números en GPa\n  cambian si se elige otro. Los N/m de "
-                     "arriba no dependen de él.")
+        lines.append("  This thickness is a CONVENTION, not a measurement: the "
+                     "numbers in GPa\n  change if another one is chosen. The N/m "
+                     "above do not depend on it.")
     return "\n".join(lines)
 
 
@@ -638,17 +650,17 @@ def export(run: ElasticRun, outdir: str = ".") -> list:
         Cs = constantes_2d(0.5 * (C + C.T), run.altura)
         np.savetxt(fname, Cs, fmt="%14.6f",
                    header=provenance.header_plain(
-                       "constantes de lamina", {"c_A": f"{run.altura:.4f}",
-                                                "delta": run.delta},
-                       titulo="Constantes elasticas 2D (N/m); orden 1(xx) 2(yy) 6(xy)"),
+                       "sheet constants", {"c_A": f"{run.altura:.4f}",
+                                           "delta": run.delta},
+                       titulo="2D elastic constants (N/m); order 1(xx) 2(yy) 6(xy)"),
                    comments="# ")
     else:
         Cs = symmetrize(C, run.family)
         np.savetxt(fname, Cs, fmt="%14.6f",
                    header=provenance.header_plain(
-                       "matriz elástica", {"familia": run.family,
-                                           "delta": run.delta},
-                       titulo="Matriz elastica C (GPa); Voigt 1..6"),
+                       "elastic matrix", {"familia": run.family,
+                                          "delta": run.delta},
+                       titulo="Elastic matrix C (GPa); Voigt 1..6"),
                    comments="# ")
     written.append(str(fname))
     txt = out / "ELASTIC.txt"
@@ -668,7 +680,7 @@ def plot(run: ElasticRun, outfile: str = "elastic", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -695,8 +707,8 @@ def plot(run: ElasticRun, outfile: str = "elastic", formats="pdf,png",
 
     ax.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"])
     ax.axvline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"])
-    ax.set_xlabel(r"deformación $\varepsilon$ (\%)" if qstyle.USETEX
-                  else "deformación ε (%)")
+    ax.set_xlabel(r"strain $\varepsilon$ (\%)" if qstyle.USETEX
+                  else "strain ε (%)")
     ax.set_ylabel(r"$\sigma$ (GPa)")
     ax.legend(ncol=2, loc="best")
     written = qstyle.save(fig, outfile, formats, dpi=dpi,

@@ -80,10 +80,10 @@ def from_runs(runs, elementos=None) -> HullResult:
     origenes = {getattr(x, "origen", "dft") for x in runs if x.ok}
     if len(origenes) > 1:
         res.warnings.append(
-            "el conjunto mezcla energias de DFT y de potenciales "
-            "aprendidos: " + ", ".join(sorted(origenes)) +
-            ".\nSon superficies de energia distintas; un casco convexo "
-            "construido con ambas\nno significa nada.")
+            "the set mixes energies from DFT and from machine-learned "
+            "potentials: " + ", ".join(sorted(origenes)) +
+            ".\nThey are different energy surfaces; a convex hull "
+            "built with both\nmeans nothing.")
         return res
     fases = []
     for x in runs:
@@ -106,7 +106,7 @@ def from_runs(runs, elementos=None) -> HullResult:
                           energia=r.total_energy, natoms=nat))
 
     if not fases:
-        res.warnings.append("no hay cálculos con energía utilizable")
+        res.warnings.append("there are no calculations with usable energy")
         return res
 
     els = elementos or sorted({s for f in fases for s in f.conteo})
@@ -124,11 +124,11 @@ def from_runs(runs, elementos=None) -> HullResult:
 
     if res.faltan_ref:
         res.warnings.append(
-            "faltan las referencias elementales de: "
+            "the elemental references are missing for: "
             + ", ".join(res.faltan_ref)
-            + ".\nSin ellas no se puede definir una energía de formación: "
-            "hay que calcular\ncada elemento puro en su fase estable, con "
-            "los mismos parámetros.")
+            + ".\nWithout them a formation energy cannot be defined: "
+            "each pure element must be\ncomputed in its stable phase, with "
+            "the same parameters.")
         res.fases = fases
         return res
 
@@ -165,7 +165,7 @@ def from_table(filas, elementos=None) -> HullResult:
         else:
             res.faltan_ref.append(el)
     if res.faltan_ref:
-        res.warnings.append("faltan referencias elementales: "
+        res.warnings.append("missing elemental references: "
                             + ", ".join(res.faltan_ref))
         res.fases = fases
         return res
@@ -217,18 +217,18 @@ def _casco(res: HullResult) -> None:
     try:
         from scipy.spatial import ConvexHull, Delaunay
     except ImportError:                                # pragma: no cover
-        res.warnings.append("scipy no está disponible: no se puede calcular "
-                            "el casco de un sistema de 3+ elementos")
+        res.warnings.append("scipy is not available: the hull of a "
+                            "system with 3+ elements cannot be computed")
         return
     try:
         ch = ConvexHull(pts)
     except Exception as exc:                           # noqa: BLE001
-        res.warnings.append(f"no se pudo construir el casco: {exc}")
+        res.warnings.append(f"the hull could not be built: {exc}")
         return
     abajo = [s for s, eq in zip(ch.simplices, ch.equations) if eq[-2] < -1e-12]
     if not abajo:
-        res.warnings.append("el casco no tiene facetas inferiores; "
-                            "¿faltan fases?")
+        res.warnings.append("the hull has no lower facets; "
+                            "are phases missing?")
         return
     verts = sorted({int(i) for s in abajo for i in s})
     tri = Delaunay(pts[verts][:, :-1])
@@ -249,53 +249,53 @@ def _casco(res: HullResult) -> None:
 
 
 def report(res: HullResult, umbral: float = 0.025) -> str:
-    lines = ["--- Estabilidad de fases (casco convexo) ---",
-             f"Elementos: {', '.join(res.elementos) or '?'}  |  "
-             f"fases: {len(res.fases)}"]
+    lines = ["--- Phase stability (convex hull) ---",
+             f"Elements: {', '.join(res.elementos) or '?'}  |  "
+             f"phases: {len(res.fases)}"]
     if res.referencias:
-        lines.append("Referencias elementales (eV/átomo): " + "  ".join(
+        lines.append("Elemental references (eV/atom): " + "  ".join(
             f"{k} = {v:.4f}" for k, v in res.referencias.items()))
     if res.faltan_ref:
-        lines += ["", "AVISO: " + res.warnings[0] if res.warnings else ""]
+        lines += ["", "WARNING: " + res.warnings[0] if res.warnings else ""]
         return "\n".join(lines)
 
-    lines += ["", f"{'fase':>14s} {'E_f (eV/át)':>13s} "
-                  f"{'E_hull (eV/át)':>15s}  estado"]
+    lines += ["", f"{'phase':>14s} {'E_f (eV/at)':>13s} "
+                  f"{'E_hull (eV/at)':>15s}  state"]
     for f in sorted(res.fases, key=lambda z: (tuple(z.x), z.e_form or 0)):
         eh = f.e_hull
         if eh is None:
-            estado, ehs = "fuera del dominio", "     n/d"
+            estado, ehs = "outside the domain", "     n/a"
         elif f.en_casco:
-            estado, ehs = "ESTABLE (en el casco)", f"{0.0:15.4f}"
+            estado, ehs = "STABLE (on the hull)", f"{0.0:15.4f}"
         elif eh <= umbral:
-            estado = f"metaestable (< {umbral*1000:.0f} meV/át)"
+            estado = f"metastable (< {umbral*1000:.0f} meV/at)"
             ehs = f"{eh:15.4f}"
         else:
-            estado, ehs = "inestable", f"{eh:15.4f}"
+            estado, ehs = "unstable", f"{eh:15.4f}"
         lines.append(f"{f.nombre:>14s} {f.e_form:13.4f} {ehs}  {estado}")
 
     lines += ["",
-              "E_hull es cuánta energía por átomo gana la fase "
-              "descomponiéndose en las\nfases del casco. Cero = estable.",
+              "E_hull is how much energy per atom the phase gains by "
+              "decomposing into the\nhull phases. Zero = stable.",
               "",
-              "Esto es energía a 0 K, sin punto cero ni entropía: una fase "
-              "por encima del\ncasco puede sintetizarse igual si la "
-              "estabiliza la entropía a la temperatura\nde reacción. Y todo "
-              "depende de que las energías vengan de cálculos con los\n"
-              "mismos parámetros — pásalas antes por 'olla-dft audit'."]
+              "This is energy at 0 K, without zero-point or entropy: a phase "
+              "above the\nhull can still be synthesized if entropy "
+              "stabilizes it at the reaction\ntemperature. And everything "
+              "depends on the energies coming from calculations with the\n"
+              "same parameters — run them through 'olla-dft audit' first."]
     for w in res.warnings:
-        lines.append(f"\nAVISO: {w}")
+        lines.append(f"\nWARNING: {w}")
     return "\n".join(lines)
 
 
 def export(res: HullResult, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "CASCO_CONVEXO.dat"
-    lines = [provenance.header("casco convexo",
+    lines = [provenance.header("convex hull",
                                {"elementos": ",".join(res.elementos)},
-                               titulo="Estabilidad de fases"),
-             f"# {'fase':>14s} {'natoms':>7s} {'E_total(eV)':>14s} "
-             f"{'E_f(eV/at)':>12s} {'E_hull(eV/at)':>14s}  ruta"]
+                               titulo="Phase stability"),
+             f"# {'phase':>14s} {'natoms':>7s} {'E_total(eV)':>14s} "
+             f"{'E_f(eV/at)':>12s} {'E_hull(eV/at)':>14s}  path"]
     for x in res.fases:
         ef = x.e_form if x.e_form is not None else float("nan")
         eh = x.e_hull if x.e_hull is not None else float("nan")
@@ -312,9 +312,9 @@ def plot(res: HullResult, outfile: str = "casco", formats="pdf,png",
          mono: bool = False, dpi: int = None) -> list:
     """Diagrama de casco convexo (solo binarios)."""
     if len(res.elementos) != 2:
-        raise ErrorDeUso("la gráfica del casco solo está implementada para "
-                         "sistemas binarios; para ternarios usa los datos "
-                         "de CASCO_CONVEXO.dat")
+        raise ErrorDeUso("the hull plot is only implemented for "
+                         "binary systems; for ternaries use the data "
+                         "in CASCO_CONVEXO.dat")
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -334,9 +334,9 @@ def plot(res: HullResult, outfile: str = "casco", formats="pdf,png",
     ax.plot(x[est][orden], y[est][orden], "-", color=c[0], lw=st["line"],
             zorder=2)
     ax.plot(x[~est], y[~est], "o", ms=4, color=c[1], mec=st["background"],
-            mew=0.5, label="inestable", zorder=3)
+            mew=0.5, label="unstable", zorder=3)
     ax.plot(x[est], y[est], "o", ms=5, color=c[0], mec=st["background"],
-            mew=0.5, label="estable", zorder=4)
+            mew=0.5, label="stable", zorder=4)
     ax.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"])
     for f in res.fases:
         if f.en_casco and 0 < f.x[1] < 1:
@@ -349,8 +349,8 @@ def plot(res: HullResult, outfile: str = "casco", formats="pdf,png",
     lo, hi = float(min(y.min(), 0.0)), float(max(y.max(), 0.0))
     rango = max(hi - lo, 1e-6)
     ax.set_ylim(lo - 0.18 * rango, hi + 0.06 * rango)
-    ax.set_xlabel(f"fracción de {qstyle.tex_safe(res.elementos[1])}")
-    ax.set_ylabel(r"$E_\mathrm{f}$ (eV/átomo)")
+    ax.set_xlabel(f"{qstyle.tex_safe(res.elementos[1])} fraction")
+    ax.set_ylabel(r"$E_\mathrm{f}$ (eV/atom)")
     ax.set_xlim(-0.02, 1.02)
     ax.legend()
     written = qstyle.save(fig, outfile, formats, dpi=dpi,

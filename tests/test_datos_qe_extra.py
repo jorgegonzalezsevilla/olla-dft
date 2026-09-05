@@ -81,7 +81,7 @@ def test_casco_exige_las_referencias_elementales():
     from qekit.modules import thermo
     r = thermo.from_table([("AB", {"A": 1, "B": 1}, -1.0)])
     assert set(r.faltan_ref) == {"A", "B"}
-    assert "referencias elementales" in thermo.report(r)
+    assert "elemental references" in thermo.report(r)
 
 
 # ----------------------------------------------------------------------
@@ -108,7 +108,7 @@ def test_detecta_oscilacion_de_carga(tmp_path):
     h = diagnose.read_scf_history(_stdout_falso(tmp_path, acc, beta=0.7))
     assert h.patologia == "oscilacion"
     assert "mixing_mode = 'local-TF'" in h.consejo
-    assert "lo EMPEORA" in h.consejo
+    assert 'makes it WORSE' in h.consejo
 
 
 def test_detecta_convergencia_lenta(tmp_path):
@@ -179,7 +179,7 @@ def test_auditoria_acepta_un_conjunto_homogeneo():
     from qekit.modules import audit
     a = audit.audit([_run("a"), _run("b"), _run("c")])
     assert a["comparables"]
-    assert "COMPARABLES" in audit.report(a)
+    assert 'COMPARABLE' in audit.report(a)
 
 
 def test_auditoria_nombra_el_parametro_que_difiere():
@@ -189,7 +189,7 @@ def test_auditoria_nombra_el_parametro_que_difiere():
     claves = [c for c, _ in a["difieren"]]
     assert "ecutwfc" in claves
     rep = audit.report(a)
-    assert "NO COMPARABLES" in rep and "ecutwfc" in rep
+    assert 'NOT COMPARABLE' in rep and "ecutwfc" in rep
 
 
 def test_auditoria_detecta_pseudos_distintos():
@@ -213,7 +213,7 @@ def test_auditoria_si_marca_un_scf_no_convergido():
     from qekit.modules import audit
     a = audit.audit([_run("malo", converged=False)])
     assert len(a["no_convergidos"]) == 1
-    assert "NO CONVERGIERON" in audit.report(a)
+    assert 'NOT CONVERGED' in audit.report(a)
 
 
 def test_densidad_de_k_es_comparable_entre_celdas():
@@ -253,7 +253,7 @@ def test_base_de_datos_solo_admite_select(tmp_path):
     from qekit.modules import audit
     db = tmp_path / "q.db"
     audit.index([_run("/x/a")], db)
-    with pytest.raises(ValueError, match="solo se admiten consultas SELECT"):
+    with pytest.raises(ValueError, match='only SELECT queries are allowed'):
         audit.query("DELETE FROM calculos", db)
 
 

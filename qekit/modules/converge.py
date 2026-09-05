@@ -29,9 +29,9 @@ from qekit.modules import sweep
 from qekit.core.errors import ErrorDeUso, FaltanDatos
 
 KIND_LABEL = {
-    "ecutwfc": "Cutoff de funciones de onda",
-    "ecutrho": "Cutoff de densidad de carga",
-    "kmesh": "Malla de puntos k",
+    "ecutwfc": "Wavefunction cutoff",
+    "ecutrho": "Charge-density cutoff",
+    "kmesh": "k-point mesh",
 }
 
 
@@ -79,17 +79,17 @@ def prepare(atoms, kind: str, outdir: str = "convergencia",
     """Escribe la serie de cálculos. Devuelve (ConvergenceRun, reporte)."""
     if kind not in KIND_LABEL:
         raise ErrorDeUso(
-            f"tipo de convergencia desconocido '{kind}'. "
-            f"Opciones: {', '.join(KIND_LABEL)}"
+            f"unknown convergence type '{kind}'. "
+            f"Options: {', '.join(KIND_LABEL)}"
         )
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho, insulator)
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
 
     run = ConvergenceRun(kind=kind, natoms=len(atoms), threshold=threshold)
-    report = [f"--- Convergencia: {KIND_LABEL[kind]} ---",
-              f"Estructura: {atoms.get_chemical_formula()} ({len(atoms)} átomos)",
-              f"Umbral: {threshold:g} meV/átomo"]
+    report = [f"--- Convergence: {KIND_LABEL[kind]} ---",
+              f"Structure: {atoms.get_chemical_formula()} ({len(atoms)} atoms)",
+              f"Threshold: {threshold:g} meV/atom"]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
@@ -98,7 +98,7 @@ def prepare(atoms, kind: str, outdir: str = "convergencia",
         vals = values or list(range(30, 101, 10))
         d = dual if dual else common["ecutrho"] / common["ecutwfc"]
         grid = sweep.default_grid(atoms, kspacing)
-        report.append(f"Malla k fija: {grid[0]}x{grid[1]}x{grid[2]}  |  "
+        report.append(f"Fixed k-mesh: {grid[0]}x{grid[1]}x{grid[2]}  |  "
                       f"ecutrho = {d:g} x ecutwfc")
         for v in vals:
             label = f"ecutwfc = {v:g} Ry"
@@ -112,8 +112,8 @@ def prepare(atoms, kind: str, outdir: str = "convergencia",
         base = common["ecutwfc"]
         vals = values or [base * f for f in (4, 6, 8, 10, 12)]
         grid = sweep.default_grid(atoms, kspacing)
-        report.append(f"ecutwfc fijo en {base:g} Ry  |  "
-                      f"malla k {grid[0]}x{grid[1]}x{grid[2]}")
+        report.append(f"ecutwfc fixed at {base:g} Ry  |  "
+                      f"k-mesh {grid[0]}x{grid[1]}x{grid[2]}")
         for v in vals:
             label = f"ecutrho = {v:g} Ry (dual {v / base:.1f})"
             job = sweep.write_scf_job(
@@ -135,10 +135,10 @@ def prepare(atoms, kind: str, outdir: str = "convergencia",
                 g = kpoints.kgrid_from_spacing(atoms, sp)
                 if g not in grids:
                     grids.append(g); shown.append(sp)
-        report.append(f"Cutoffs fijos: ecutwfc = {common['ecutwfc']:g} Ry, "
+        report.append(f"Fixed cutoffs: ecutwfc = {common['ecutwfc']:g} Ry, "
                       f"ecutrho = {common['ecutrho']:g} Ry")
         for g, sp in zip(grids, shown):
-            label = f"malla {g[0]}x{g[1]}x{g[2]}"
+            label = f"mesh {g[0]}x{g[1]}x{g[2]}"
             job = sweep.write_scf_job(
                 atoms, common, out / f"k_{g[0]}x{g[1]}x{g[2]}", label, g,
                 meta={"value": float(np.prod(g)), "grid": g, "spacing": sp},
@@ -148,8 +148,8 @@ def prepare(atoms, kind: str, outdir: str = "convergencia",
 
     sweep.write_run_script(run.jobs, out / "run.sh")
     report.append("")
-    report.append(f"{len(run.jobs)} cálculos escritos en '{out.resolve()}'")
-    report.append("Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta.")
+    report.append(f"{len(run.jobs)} calculations written to '{out.resolve()}'")
+    report.append("Run them with --run, or by hand with ./run.sh inside that folder.")
     return run, "\n".join(report)
 
 
@@ -174,50 +174,50 @@ def collect(run: ConvergenceRun, results: list = None) -> ConvergenceRun:
 
 
 def report(run: ConvergenceRun) -> str:
-    lines = [f"--- Resultado de convergencia: {KIND_LABEL[run.kind]} ---"]
+    lines = [f"--- Convergence result: {KIND_LABEL[run.kind]} ---"]
     d = run.per_atom_diffs()
     if d.size == 0:
-        lines.append("No hay suficientes cálculos terminados para analizar.")
+        lines.append("Not enough finished calculations to analyze.")
         return "\n".join(lines)
 
-    lines.append(f"{'punto':>26s}  {'E (Ry/celda)':>16s}  "
-                 f"{'ΔE vs. más denso':>18s}")
+    lines.append(f"{'point':>26s}  {'E (Ry/cell)':>16s}  "
+                 f"{'ΔE vs. densest':>18s}")
     for label, e, diff in zip(run.labels, run.energies, d):
         if e is None:
-            lines.append(f"{label:>26s}  {'FALLÓ':>16s}")
+            lines.append(f"{label:>26s}  {'FAILED':>16s}")
             continue
         lines.append(f"{label:>26s}  {e / qeout.RY_EV:16.8f}  "
-                     f"{diff:14.2f} meV/át")
+                     f"{diff:14.2f} meV/at")
 
     idx = run.converged_index()
     lines.append("")
     if idx is None:
         lines.append(
-            f"NO converge dentro de {run.threshold:g} meV/átomo con los valores "
-            "probados.\nExtiende la serie hacia valores más densos."
+            f"NOT converged within {run.threshold:g} meV/atom with the values "
+            "tried.\nExtend the series towards denser values."
         )
     elif idx == len(run.labels) - 1:
         lines.append(
-            f"Solo el último punto queda bajo {run.threshold:g} meV/átomo, así que "
-            "no hay margen\npara asegurar que ahí ya aplanó: conviene extender la "
-            "serie más allá."
+            f"Only the last point is below {run.threshold:g} meV/atom, so "
+            "there is no margin\nto be sure it has flattened there: extend the "
+            "series further."
         )
     else:
-        lines.append(f"CONVERGE en: {run.labels[idx]}")
-        lines.append(f"  A partir de ahí ningún punto se aparta más de "
-                     f"{run.threshold:g} meV/átomo del más denso.")
+        lines.append(f"CONVERGES at: {run.labels[idx]}")
+        lines.append(f"  From there on no point deviates more than "
+                     f"{run.threshold:g} meV/atom from the densest one.")
         if run.kind == "ecutwfc":
-            lines.append(f"  Úsalo con:  olla-dft gen estructura.cif "
+            lines.append(f"  Use it with:  olla-dft gen structure.cif "
                          f"--ecutwfc {run.values[idx]:g}")
         elif run.kind == "kmesh":
             g = run.jobs[idx].meta.get("grid")
             if g:
-                lines.append(f"  Malla recomendada: {g[0]}x{g[1]}x{g[2]}")
+                lines.append(f"  Recommended mesh: {g[0]}x{g[1]}x{g[2]}")
     lines.append("")
-    lines.append("Recuerda que la convergencia depende de la propiedad: la energía "
-                 "total\nconverge antes que los esfuerzos o los fonones. Para "
-                 "constantes elásticas\nconviene subir el cutoff por encima de lo "
-                 "que pide la energía.")
+    lines.append("Remember that convergence depends on the property: the total "
+                 "energy\nconverges before stresses or phonons. For "
+                 "elastic constants\nit is advisable to raise the cutoff above what "
+                 "the energy requires.")
     return "\n".join(lines)
 
 
@@ -226,9 +226,9 @@ def export(run: ConvergenceRun, outdir: str = ".") -> list:
     d = run.per_atom_diffs()
     fname = out / "CONVERGENCIA.dat"
     lines = [provenance.header(
-                 f"convergencia de {KIND_LABEL[run.kind]}",
-                 {"umbral": f"{run.threshold:g} meV/atomo"}),
-             f"# {'valor':>14s} {'E(Ry/celda)':>18s} {'dE(meV/atomo)':>16s}"]
+                 f"convergence of {KIND_LABEL[run.kind]}",
+                 {"umbral": f"{run.threshold:g} meV/atom"}),
+             f"# {'value':>14s} {'E(Ry/cell)':>18s} {'dE(meV/atom)':>16s}"]
     for v, e, diff in zip(run.values, run.energies, d if d.size else [np.nan]*len(run.values)):
         if e is None:
             continue
@@ -252,7 +252,7 @@ def plot(run: ConvergenceRun, outfile: str = "convergencia",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -260,7 +260,7 @@ def plot(run: ConvergenceRun, outfile: str = "convergencia",
     xs = [v for v, e in zip(run.values, run.energies) if e is not None]
     ys = [diff for diff, e in zip(d, run.energies) if e is not None]
     if not xs:
-        raise FaltanDatos("no hay puntos convergidos que graficar")
+        raise FaltanDatos("there are no converged points to plot")
 
     fig, ax = qstyle.new_figure(width, journal, aspect)
     color = qstyle.palette(1, mono=mono)[0]
@@ -268,7 +268,7 @@ def plot(run: ConvergenceRun, outfile: str = "convergencia",
     ax.axhspan(0, run.threshold, color=color, alpha=0.10, lw=0)
     ax.axhline(run.threshold, color=qstyle.INK_FAINT, lw=st["axis_line"],
                dashes=[3.5, 2.0])
-    ax.annotate(f"{run.threshold:g} meV/át", xy=(xs[-1], run.threshold),
+    ax.annotate(f"{run.threshold:g} meV/at", xy=(xs[-1], run.threshold),
                 xytext=(-2, 3), textcoords="offset points", ha="right",
                 fontsize=st["legend"], color=qstyle.INK_SOFT)
 
@@ -278,9 +278,9 @@ def plot(run: ConvergenceRun, outfile: str = "convergencia",
                    lw=st["axis_line"], dashes=[1.5, 1.5])
 
     xlabel = {"ecutwfc": "ecutwfc (Ry)", "ecutrho": "ecutrho (Ry)",
-              "kmesh": "número de puntos k de la malla"}[run.kind]
+              "kmesh": "number of k-points in the mesh"}[run.kind]
     ax.set_xlabel(xlabel)
-    ax.set_ylabel(r"$|\Delta E|$ (meV/átomo)")
+    ax.set_ylabel(r"$|\Delta E|$ (meV/atom)")
     ax.set_yscale("log")
     fig.savefig  # noqa: B018  (el guardado real lo hace qstyle.save)
     written = qstyle.save(fig, outfile, formats, dpi=dpi,

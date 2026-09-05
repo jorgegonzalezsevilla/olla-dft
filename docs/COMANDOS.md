@@ -21,7 +21,7 @@ Los 80 subcomandos de `olla-dft`, agrupados por área, con sus opciones. Generad
 
 inicio guiado para crear un proyecto sin conocer la CLI
 
-**Uso:** `olla-dft start [-h] [--project PROJECT] [--structure STRUCTURE] [--goal GOAL] [--name NAME] [--non-interactive] [--no-validate] [--language {es,en}]`
+**Uso:** `olla-dft start [-h] [--project PROJECT] [--structure STRUCTURE] [--goal GOAL] [--name NAME] [--non-interactive] [--no-validate] [--language {es,en,de}]`
 
 **Opciones:**
 
@@ -33,7 +33,7 @@ inicio guiado para crear un proyecto sin conocer la CLI
 | `--name` | nombre visible del proyecto |
 | `--non-interactive` | no preguntar; requiere --structure en un proyecto nuevo |
 | `--no-validate` | no ejecutar la validación inicial |
-| `--language {es,en}` | idioma del inicio guiado (default: es) |
+| `--language {es,en,de}` | idioma del inicio guiado (default: es) |
 
 ### `wizard`
 
@@ -95,7 +95,7 @@ el fundamento físico de un comando: qué responde, las fórmulas que implementa
 
 referencia navegable de todos los subcomandos, generada del propio código
 
-**Uso:** `olla-dft docs [-h] [-o OUTPUT] [--open] [--language {es,en}] [--both]`
+**Uso:** `olla-dft docs [-h] [-o OUTPUT] [--open] [--language {es,en,de}] [--both] [--all-languages]`
 
 **Opciones:**
 
@@ -103,8 +103,9 @@ referencia navegable de todos los subcomandos, generada del propio código
 |---|---|
 | `-o, --output` | archivo HTML de salida (default: `olla-dft-docs.html`) |
 | `--open` | abrirla en el navegador al terminar |
-| `--language {es,en}` | idioma de la interfaz de referencia (default: es) |
+| `--language {es,en,de}` | idioma de la interfaz de referencia (default: es) |
 | `--both` | generar referencias en español e inglés por separado |
+| `--all-languages` | generar interfaces en inglés, español y alemán |
 
 ### `sistema`
 
@@ -2466,7 +2467,7 @@ comparar los pseudopotenciales disponibles y elegir con criterio, no por orden a
 
 gestionar un proyecto reproducible: fuentes, workflow, calidad y dashboard
 
-**Uso:** `olla-dft project [-h] [--project PROJECT] [--name NAME] [--command TASK_COMMANDS] [--execute] [--force] [--parallel PARALLEL] [--retries RETRIES] [--timeout TIMEOUT] [--cancel-file CANCEL_FILE] [--reason REASON] [--selftest] [--advanced] [-o OUTPUT] [--pdf] [--theme {auto,light,dark}] [--language {es,en}] [--both] [--verify-environment] [--other OTHER] [--json] {init,add,plan,show,status,validate,run,dashboard,report,export,ingest,environment,diff,cancel,resume} [target]`
+**Uso:** `olla-dft project [-h] [--project PROJECT] [--name NAME] [--command TASK_COMMANDS] [--execute] [--force] [--parallel PARALLEL] [--retries RETRIES] [--timeout TIMEOUT] [--cancel-file CANCEL_FILE] [--reason REASON] [--selftest] [--advanced] [-o OUTPUT] [--pdf] [--theme {auto,light,dark}] [--language {es,en,de}] [--both] [--all-languages] [--verify-environment] [--other OTHER] [--json] {init,add,plan,show,status,validate,run,dashboard,report,export,ingest,environment,diff,cancel,resume} [target]`
 
 **Argumentos:**
 
@@ -2492,8 +2493,9 @@ gestionar un proyecto reproducible: fuentes, workflow, calidad y dashboard
 | `-o, --output` | salida para dashboard, report o export |
 | `--pdf` | en report, generar un informe PDF autocontenido |
 | `--theme {auto,light,dark}` | tema del dashboard (default: auto) |
-| `--language {es,en}` | idioma del dashboard (default: es) |
+| `--language {es,en,de}` | idioma del dashboard (default: es) |
 | `--both` | generar dashboard español e inglés en archivos separados |
+| `--all-languages` | generar interfaces en inglés, español y alemán |
 | `--verify-environment` | en environment, comprobar el bloqueo guardado |
 | `--other` | en diff, snapshot o proyecto de comparación |
 | `--json` | en diff, imprimir JSON |
@@ -2559,4 +2561,4 @@ ver o cambiar la configuración
 
 ---
 
-*Olla-DFT 1.4.0*
+*Olla-DFT 1.5.0*

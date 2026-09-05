@@ -46,8 +46,8 @@ def test_tipo_II_escalonado():
     al = align.alinear(a, b)
     assert al.tipo == "II"
     txt = align.report(al)
-    assert "electrón se va a B" in txt, "el CBM mas bajo es el de B"
-    assert "hueco a A" in txt, "el VBM mas alto es el de A"
+    assert 'electron goes to B' in txt, "el CBM mas bajo es el de B"
+    assert 'hole to A' in txt, "el VBM mas alto es el de A"
 
 
 def test_tipo_III_roto():
@@ -63,7 +63,7 @@ def test_sin_offset_apreciable_no_se_inventa_un_tipo():
     b = _lado("B", -5.010, 2.005, 0.0)
     al = align.alinear(a, b)
     assert al.tipo == "="
-    assert "sería leer ruido" in align.report(al)
+    assert 'would be reading noise' in align.report(al)
 
 
 def test_el_cbm_se_situa_bien_en_la_escala_del_otro():
@@ -85,20 +85,20 @@ def test_un_metal_no_tiene_cbm():
     al = align.alinear(a, b)
     assert al.delta_v == pytest.approx(1.0)
     assert al.delta_c is None
-    assert any("no tiene CBM" in x for x in al.avisos)
+    assert any('has no CBM' in x for x in al.avisos)
 
 
 def test_avisa_si_la_meseta_de_vacio_no_es_plana():
     a = _lado("A", -5.0, 2.0, 0.0); a.planitud = 0.4
     b = _lado("B", -6.0, 2.0, 0.0); b.planitud = 0.01
     al = align.alinear(a, b)
-    assert any("meseta de vacío de A" in x for x in al.avisos)
-    assert not any("meseta de vacío de B" in x for x in al.avisos)
+    assert any('vacuum plateau of A' in x for x in al.avisos)
+    assert not any('vacuum plateau of B' in x for x in al.avisos)
 
 
 def test_el_modo_vacio_avisa_de_lo_que_ignora():
     al = align.alinear(_lado("A", -5.0, 2.0, 0.0), _lado("B", -6.0, 2.0, 0.0))
-    assert any("dipolo de interfaz" in x for x in al.avisos)
+    assert any('interface dipole' in x for x in al.avisos)
 
 
 def test_el_puente_de_la_interfaz_desplaza_el_offset():

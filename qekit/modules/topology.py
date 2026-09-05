@@ -62,20 +62,20 @@ def resolve_model(path) -> Path:
     if p.is_file():
         return p.resolve()
     if not p.exists():
-        raise FaltanDatos(f"no existe el modelo de Wannier '{p}'.")
+        raise FaltanDatos(f"the Wannier model '{p}' does not exist.")
     if not p.is_dir():
-        raise ErrorDeUso(f"'{p}' no es un archivo ni una carpeta.")
+        raise ErrorDeUso(f"'{p}' is neither a file nor a folder.")
     preferred = p / "WANNIER_hr.dat"
     if preferred.is_file():
         return preferred.resolve()
     candidates = sorted(p.glob("*_hr.dat"))
     if not candidates:
         raise FaltanDatos(
-            f"en '{p}' no hay ningún WANNIER_hr.dat ni seedname_hr.dat.")
+            f"in '{p}' there is no WANNIER_hr.dat or seedname_hr.dat.")
     if len(candidates) > 1:
         names = ", ".join(x.name for x in candidates)
         raise ErrorDeUso(
-            f"en '{p}' hay varios modelos ({names}); indica el archivo exacto.")
+            f"in '{p}' there are several models ({names}); specify the exact file.")
     return candidates[0].resolve()
 
 
@@ -83,9 +83,9 @@ def _validate_grid(grid) -> tuple:
     try:
         n1, n2 = (int(x) for x in grid)
     except (TypeError, ValueError):
-        raise ErrorDeUso("la malla topológica necesita dos enteros.") from None
+        raise ErrorDeUso("the topological mesh needs two integers.") from None
     if n1 < 3 or n2 < 3:
-        raise ErrorDeUso("la malla topológica debe ser de al menos 3x3.")
+        raise ErrorDeUso("the topological mesh must be at least 3x3.")
     return n1, n2
 
 
@@ -94,7 +94,7 @@ def kmesh(grid=(40, 40), plane="xy", fixed=0.0):
     n1, n2 = _validate_grid(grid)
     if plane not in PLANES:
         raise ErrorDeUso(
-            f"plano desconocido '{plane}'. Opciones: {', '.join(PLANES)}.")
+            f"unknown plane '{plane}'. Options: {', '.join(PLANES)}.")
     a, b, c = PLANES[plane]
     points = np.zeros((n1, n2, 3), float)
     points[..., c] = float(fixed) % 1.0
@@ -121,7 +121,7 @@ def invariants_from_vectors(vectors):
     vectors = np.asarray(vectors, complex)
     if vectors.ndim != 4 or vectors.shape[-1] < 1:
         raise ErrorDeUso(
-            "los vectores ocupados deben tener forma (n1,n2,norb,nocc).")
+            "the occupied vectors must have shape (n1,n2,norb,nocc).")
     n1, n2, _norb, nocc = vectors.shape
     ux = np.empty((n1, n2), complex)
     uy = np.empty((n1, n2), complex)
@@ -167,13 +167,13 @@ def analyze(path, occupied=None, fermi=None, grid=(40, 40), plane="xy",
     """
     if (occupied is None) == (fermi is None):
         raise ErrorDeUso(
-            "indica exactamente una ocupación: --occupied N o --fermi EV.")
+            "specify exactly one occupation: --occupied N or --fermi EV.")
     if not np.isfinite(float(fixed)):
-        raise ErrorDeUso("--fixed tiene que ser un número finito.")
+        raise ErrorDeUso("--fixed must be a finite number.")
     if not np.isfinite(float(gap_tol)) or float(gap_tol) <= 0:
-        raise ErrorDeUso("--gap-tol tiene que ser un número positivo y finito.")
+        raise ErrorDeUso("--gap-tol must be a positive, finite number.")
     if fermi is not None and not np.isfinite(float(fermi)):
-        raise ErrorDeUso("--fermi tiene que ser un número finito.")
+        raise ErrorDeUso("--fermi must be a finite number.")
     n1, n2 = _validate_grid(grid)
     model = resolve_model(path)
     HR, R, deg = wannier.leer_hr(model)
@@ -187,29 +187,29 @@ def analyze(path, occupied=None, fermi=None, grid=(40, 40), plane="xy",
     if occupied is not None:
         nocc = int(occupied)
         if float(occupied) != nocc:
-            raise ErrorDeUso("--occupied tiene que ser un entero.")
+            raise ErrorDeUso("--occupied must be an integer.")
     else:
         counts = np.sum(energy < float(fermi), axis=2)
         if counts.min() != counts.max():
             raise ErrorDeUso(
-                f"el nivel de Fermi corta bandas: hay entre {counts.min()} y "
-                f"{counts.max()} estados ocupados según k. El sistema es "
-                "metálico en esta sección y el Chern de 'las ocupadas' no "
-                "está definido.")
+                f"the Fermi level cuts bands: there are between {counts.min()} and "
+                f"{counts.max()} occupied states depending on k. The system is "
+                "metallic in this section and the Chern number of 'the occupied bands' is "
+                "not defined.")
         nocc = int(counts.flat[0])
     if not 1 <= nocc < nw:
         raise ErrorDeUso(
-            f"la ocupación debe estar entre 1 y {nw - 1}; recibí {nocc} "
-            f"para un modelo de {nw} orbitales.")
+            f"the occupation must be between 1 and {nw - 1}; got {nocc} "
+            f"for a model with {nw} orbitals.")
 
     direct = float(np.min(energy[..., nocc] - energy[..., nocc - 1]))
     indirect = float(np.min(energy[..., nocc])
                      - np.max(energy[..., nocc - 1]))
     if direct <= float(gap_tol):
         raise ErrorDeUso(
-            f"el subespacio ocupado no está aislado: gap directo mínimo "
-            f"{direct:.3e} eV (tolerancia {gap_tol:.1e}). El número de Chern "
-            "no está definido; aumenta la malla solo si esperabas un gap.")
+            f"the occupied subspace is not isolated: minimum direct gap "
+            f"{direct:.3e} eV (tolerance {gap_tol:.1e}). The Chern number "
+            "is not defined; increase the mesh only if you expected a gap.")
 
     occupied_vectors = eigvec[..., :nocc]
     curvature, raw, wilson, minimum = invariants_from_vectors(occupied_vectors)
@@ -224,44 +224,44 @@ def analyze(path, occupied=None, fermi=None, grid=(40, 40), plane="xy",
     )
     if indirect <= 0:
         run.warnings.append(
-            "El gap indirecto no es positivo: el subespacio está aislado "
-            "banda a banda, pero el sistema no es un aislante global.")
+            "The indirect gap is not positive: the subspace is isolated "
+            "band by band, but the system is not a global insulator.")
     if run.chern_residual > 1e-6:
         run.warnings.append(
-            "El Chern discreto no cerró a un entero con precisión numérica; "
-            "refina la malla y revisa la localización del modelo Wannier.")
+            "The discrete Chern number did not close to an integer within numerical precision; "
+            "refine the mesh and check the localization of the Wannier model.")
     if minimum < 1e-6:
         run.warnings.append(
-            "Hay subespacios ocupados casi ortogonales entre puntos vecinos; "
-            "la malla puede ser demasiado gruesa.")
+            "There are occupied subspaces that are almost orthogonal between neighbouring points; "
+            "the mesh may be too coarse.")
     return run
 
 
 def report(run: TopologyRun) -> str:
     """Informe legible con los límites físicos explícitos."""
-    occupation = (f"{run.occupied} bandas"
+    occupation = (f"{run.occupied} bands"
                   if run.fermi is None
-                  else f"E < {run.fermi:g} eV ({run.occupied} bandas)")
+                  else f"E < {run.fermi:g} eV ({run.occupied} bands)")
     lines = [
-        "--- Topología del modelo de Wannier ---",
-        f"Modelo:       {run.model_path}",
-        f"Sección BZ:   plano {run.plane}, coordenada fija {run.fixed:g}",
-        f"Malla:        {run.grid[0]}x{run.grid[1]} (periódica)",
-        f"Ocupación:    {occupation}",
+        "--- Topology of the Wannier model ---",
+        f"Model:        {run.model_path}",
+        f"BZ section:   plane {run.plane}, fixed coordinate {run.fixed:g}",
+        f"Mesh:         {run.grid[0]}x{run.grid[1]} (periodic)",
+        f"Occupation:   {occupation}",
         "",
-        f"Gap directo mínimo: {run.direct_gap:.8g} eV",
-        f"Gap indirecto:      {run.indirect_gap:.8g} eV",
-        f"Chern discreto:     {run.chern_raw:+.12f}",
-        f"Chern entero:       {run.chern:+d}",
-        f"Residuo al entero:  {run.chern_residual:.3e}",
-        f"Solape mínimo:      {run.min_overlap:.3e}",
+        f"Minimum direct gap: {run.direct_gap:.8g} eV",
+        f"Indirect gap:       {run.indirect_gap:.8g} eV",
+        f"Discrete Chern:     {run.chern_raw:+.12f}",
+        f"Integer Chern:      {run.chern:+d}",
+        f"Residual to integer: {run.chern_residual:.3e}",
+        f"Minimum overlap:    {run.min_overlap:.3e}",
         "",
-        "Convención: la señal cambia al invertir la orientación del plano.",
-        "Los centros de Wilson se exportan módulo 1; no se asigna un Z2 "
-        "automático sin comprobar simetría de reversión temporal.",
+        "Convention: the sign changes when the orientation of the plane is reversed.",
+        "Wilson centres are exported modulo 1; no automatic Z2 is "
+        "assigned without checking time-reversal symmetry.",
     ]
     for warning in run.warnings:
-        lines += ["", f"AVISO: {warning}"]
+        lines += ["", f"WARNING: {warning}"]
     return "\n".join(lines)
 
 
@@ -303,7 +303,7 @@ def plot(run: TopologyRun, outfile="topology", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     qstyle.apply(theme, size=size, family=family, background=background,
                  palette=palette, usetex=usetex, mono=mono)
@@ -312,18 +312,18 @@ def plot(run: TopologyRun, outfile="topology", formats="pdf,png",
     extent = (0.0, 1.0, 0.0, 1.0)
     image = axes[0].imshow(run.curvature.T, origin="lower", extent=extent,
                            aspect="auto", cmap="RdBu_r")
-    axes[0].set_xlabel("$k_1$ (fracc.)")
-    axes[0].set_ylabel("$k_2$ (fracc.)")
-    axes[0].set_title(f"Flujo de Berry  C = {run.chern:+d}")
-    fig.colorbar(image, ax=axes[0], label="fase por plaqueta (rad)")
+    axes[0].set_xlabel("$k_1$ (frac.)")
+    axes[0].set_ylabel("$k_2$ (frac.)")
+    axes[0].set_title(f"Berry flux  C = {run.chern:+d}")
+    fig.colorbar(image, ax=axes[0], label="phase per plaquette (rad)")
 
     transverse = np.arange(run.grid[1]) / run.grid[1]
     color = qstyle.palette(1, mono=mono)[0]
     for band in range(run.occupied):
         axes[1].scatter(transverse, run.wilson[:, band], s=8,
                         color=color, alpha=0.8)
-    axes[1].set(xlabel="$k_2$ (fracc.)", ylabel="centro híbrido (mód. 1)",
-                xlim=(0, 1), ylim=(0, 1), title="Lazos de Wilson")
+    axes[1].set(xlabel="$k_2$ (frac.)", ylabel="hybrid centre (mod 1)",
+                xlim=(0, 1), ylim=(0, 1), title="Wilson loops")
     for label, ax in zip(("(a)", "(b)"), axes):
         qstyle.panel_label(ax, label)
         qstyle.finish_axes(ax)

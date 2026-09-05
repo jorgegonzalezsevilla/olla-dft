@@ -117,12 +117,12 @@ def test_el_nk_de_la_salida_gana_al_estimado(tmp_path):
     """pw.x y spglib no siempre ven la misma simetria; manda pw.x."""
     f = tmp_path / "pw.in"; f.write_text(INPUT)
     d1 = cost.descriptores_de_input(f)
-    assert d1["nk_fuente"].startswith("simetría")
+    assert d1["nk_fuente"].startswith('symmetry')
     (tmp_path / "pw.out").write_text(
         "     number of k points=    85  Marzari-Vanderbilt smearing\n")
     d2 = cost.descriptores_de_input(f)
     assert d2["nk"] == 85
-    assert d2["nk_fuente"] == "el que usó pw.x"
+    assert d2["nk_fuente"] == 'the one pw.x used'
 
 
 def test_k_points_gamma(tmp_path):
@@ -188,7 +188,7 @@ def _con_relax(filas, cuantos, pasos, t0, C1, C2):
 def test_base_vacia_no_calibra(tmp_path):
     m = cost.calibrar(_base(tmp_path, []))
     assert not m.calibrado
-    assert "Sin calibrar" in cost.report_modelo(m)
+    assert 'Not calibrated' in cost.report_modelo(m)
 
 
 def test_recupera_un_modelo_conocido(tmp_path):
@@ -234,7 +234,7 @@ def test_historial_poco_variado_se_declara_flojo(tmp_path):
     m = cost.calibrar(_base(tmp_path, filas))
     assert m.calibrado
     assert not m.extrapola_bien
-    assert "poco variado" in cost.report_modelo(m)
+    assert 'little variety' in cost.report_modelo(m)
 
 
 def test_los_pasos_ionicos_se_aprenden(tmp_path):

@@ -141,11 +141,11 @@ def _clasificar(h: ScfHistory) -> None:
     if a.size < 8:
         h.patologia = "pocos_datos"
         h.consejo = (
-            f"solo {a.size} iteraciones: no alcanzan para distinguir "
-            "oscilacion de carga de\nconvergencia lenta, que piden remedios "
-            "opuestos. Sube electron_maxstep\n(a 100 o mas) y vuelve a "
-            "mirar la curva; con el ciclo cortado tan pronto,\ncualquier "
-            "diagnostico seria adivinar.")
+            f"only {a.size} iterations: not enough to distinguish "
+            "charge sloshing from\nslow convergence, which call for opposite "
+            "remedies. Raise electron_maxstep\n(to 100 or more) and look at "
+            "the curve again; with the cycle cut so early,\nany "
+            "diagnosis would be guesswork.")
         return
 
     cola = a[2:] if a.size > 5 else a          # saltar el transitorio
@@ -160,46 +160,46 @@ def _clasificar(h: ScfHistory) -> None:
     # el criterio de frecuencia solo se aplica con suficientes puntos
     frecuente = len(cola) >= 6 and frac_subidas > 0.25
     if frecuente or peor > 5.0:
-        motivo = (f"el error subio en {subidas} de {len(cola)-1} "
-                  "iteraciones" if frecuente
-                  else f"el error se multiplico por {peor:.0f} en una "
-                       "iteracion")
+        motivo = (f"the error rose in {subidas} of {len(cola)-1} "
+                  "iterations" if frecuente
+                  else f"the error grew by a factor of {peor:.0f} in one "
+                       "iteration")
         h.patologia = "oscilacion"
         h.consejo = (
-            f"{motivo}: es OSCILACION DE CARGA, tipica de losas,\n"
-            "metales y celdas con mucho vacio. Se arregla mezclando MENOS:\n"
+            f"{motivo}: this is CHARGE SLOSHING, typical of slabs,\n"
+            "metals and cells with a lot of vacuum. It is fixed by mixing LESS:\n"
             f"  mixing_beta = {max(0.05, beta / 3):.2f}   "
-            f"(ahora {beta:.2f})\n"
-            "  mixing_mode = 'local-TF'   (pensado justo para este caso)\n"
-            "  mixing_ndim = 12           (mas historia de mezcla)\n"
-            "Subir mixing_beta aqui lo EMPEORA.")
+            f"(now {beta:.2f})\n"
+            "  mixing_mode = 'local-TF'   (designed precisely for this case)\n"
+            "  mixing_ndim = 12           (more mixing history)\n"
+            "Raising mixing_beta here makes it WORSE.")
     elif decadas < 3:
         h.patologia = "estancada"
         h.consejo = (
-            f"en {len(a)} iteraciones el error solo bajo {decadas:.1f} "
-            "ordenes de magnitud y se\nquedo plano: no es lentitud, esta "
-            "estancado. Suele ser un estado magnetico o\nde ocupaciones mal "
-            "planteado, o una estructura con atomos casi encima.\nRevisa "
-            "starting_magnetization, el smearing y las distancias "
-            "interatomicas.")
+            f"in {len(a)} iterations the error only dropped {decadas:.1f} "
+            "orders of magnitude and\nwent flat: this is not slowness, it is "
+            "stalled. It is usually a badly posed magnetic\nor occupation "
+            "state, or a structure with atoms almost on top of each other.\nCheck "
+            "starting_magnetization, the smearing and the interatomic "
+            "distances.")
     else:
         h.patologia = "lenta"
         # Si beta ya es agresivo, subirlo mas seria justo lo contrario de
         # lo que conviene: ahi lo que falta son pasos, no mezcla.
         if beta >= 0.6:
             h.consejo = (
-                f"el error baja de forma monotona y llego a {a[-1]:.1e} Ry "
-                "sin alcanzar el\numbral: le faltaron PASOS, no mezcla. "
-                f"mixing_beta ya esta en {beta:.2f}, que es\nagresivo; "
-                "subirlo mas arriesga desestabilizarlo.\n"
+                f"the error decreases monotonically and reached {a[-1]:.1e} Ry "
+                "without reaching the\nthreshold: it lacked STEPS, not mixing. "
+                f"mixing_beta is already at {beta:.2f}, which is\naggressive; "
+                "raising it further risks destabilizing it.\n"
                 "  electron_maxstep = 300")
         else:
             h.consejo = (
-                "el error baja de forma monotona pero no llego al umbral: "
-                "es convergencia\nLENTA, no oscilacion. Aqui si conviene "
-                "mezclar MAS o dar mas pasos:\n"
+                "the error decreases monotonically but did not reach the threshold: "
+                "this is SLOW\nconvergence, not sloshing. Here it does help to "
+                "mix MORE or allow more steps:\n"
                 f"  mixing_beta = {min(0.7, max(beta * 1.75, 0.3)):.2f}   "
-                f"(ahora {beta:.2f})\n"
+                f"(now {beta:.2f})\n"
                 "  electron_maxstep = 300")
 
 
@@ -239,7 +239,7 @@ def diagnose(workdir, prefix: str = None) -> Diagnosis:
         xml = qeout.find_xml(str(workdir), prefix)
         d.result = qeout.read_xml(xml)
     except (FileNotFoundError, ValueError) as exc:
-        d.problemas.append(f"no se pudo leer el XML: {exc}")
+        d.problemas.append(f"could not read the XML: {exc}")
 
     so = find_stdout(workdir)
     if so is not None:
@@ -257,86 +257,93 @@ def diagnose(workdir, prefix: str = None) -> Diagnosis:
     r = d.result
     if r is not None:
         if r.converged is False:
-            d.problemas.append("el SCF NO convergió: el resultado no sirve")
+            d.problemas.append("the SCF did NOT converge: the result is unusable")
         if r.max_force is not None and r.max_force > 0.05:
             d.problemas.append(
-                f"fuerza residual máxima {r.max_force:.4f} eV/Å: la "
-                "estructura no está relajada (umbral usual 0.01–0.03)")
+                f"maximum residual force {r.max_force:.4f} eV/Å: the "
+                "structure is not relaxed (usual threshold 0.01–0.03)")
         if r.pressure is not None and abs(r.pressure) > 1.0 and \
                 r.calculation in ("vc-relax", "relax", "scf"):
             d.problemas.append(
-                f"presión residual {r.pressure:+.2f} GPa: la celda no está "
-                "en equilibrio con estos cutoffs")
+                f"residual pressure {r.pressure:+.2f} GPa: the cell is not "
+                "in equilibrium with these cutoffs")
     return d
+
+
+#: English display names of the `patologia` identifiers (the identifiers
+#: themselves are kept as they are stored in ScfHistory).
+_PATOLOGIA_EN = {"oscilacion": "charge sloshing", "lenta": "slow",
+                 "estancada": "stalled", "pocos_datos": "too few iterations"}
 
 
 def report(d: Diagnosis) -> str:
     r = d.result
-    lines = ["--- Diagnóstico del cálculo ---"]
+    lines = ["--- Calculation diagnosis ---"]
     if r is not None:
-        lines += [f"Archivo: {r.xml_path}",
-                  f"Tipo: {r.calculation or '?'}  |  "
+        lines += [f"File: {r.xml_path}",
+                  f"Type: {r.calculation or '?'}  |  "
                   f"{r.functional or '?'}  |  ecut {r.ecutwfc or '?'}/"
                   f"{r.ecutrho or '?'} Ry"]
         if r.kgrid:
-            lines.append(f"Malla k: {r.kgrid[0]}x{r.kgrid[1]}x{r.kgrid[2]}"
-                         f"  |  {r.nk} puntos en la ZBI  |  "
-                         f"{r.n_sym or '?'} operaciones de simetría")
-        estado = ("convergió" if r.converged else "NO convergió"
-                  if r.converged is not None else "convergencia desconocida")
+            lines.append(f"k-grid: {r.kgrid[0]}x{r.kgrid[1]}x{r.kgrid[2]}"
+                         f"  |  {r.nk} points in the IBZ  |  "
+                         f"{r.n_sym or '?'} symmetry operations")
+        estado = ("converged" if r.converged else "did NOT converge"
+                  if r.converged is not None else "convergence unknown")
         extra = ""
         if r.n_scf_steps:
-            extra = f" en {r.n_scf_steps} pasos"
+            extra = f" in {r.n_scf_steps} steps"
         if r.scf_error is not None:
-            extra += f", error final {r.scf_error:.2e} Ry"
+            extra += f", final error {r.scf_error:.2e} Ry"
         lines.append(f"SCF: {estado}{extra}")
         if r.max_force is not None:
-            lines.append(f"Fuerza residual máxima: {r.max_force:.5f} eV/Å")
+            lines.append(f"Maximum residual force: {r.max_force:.5f} eV/Å")
         if r.pressure is not None:
-            lines.append(f"Presión residual: {r.pressure:+.3f} GPa")
+            lines.append(f"Residual pressure: {r.pressure:+.3f} GPa")
         if r.total_magnetization is not None and \
                 abs(r.total_magnetization) > 1e-8:
-            lines.append(f"Magnetización: {r.total_magnetization:.3f} μB "
-                         f"(absoluta {r.absolute_magnetization:.3f})")
+            lines.append(f"Magnetization: {r.total_magnetization:.3f} μB "
+                         f"(absolute {r.absolute_magnetization:.3f})")
         if r.wall_time:
-            lines.append(f"Tiempo: {r.wall_time:.1f} s de reloj "
-                         f"({r.cpu_time:.1f} s de CPU)")
+            lines.append(f"Time: {r.wall_time:.1f} s wall "
+                         f"({r.cpu_time:.1f} s CPU)")
 
     if d.traj and d.traj.n_steps > 1:
         t = d.traj
-        lines += ["", f"Relajación: {t.n_steps} pasos iónicos",
-                  f"  energía: {t.energies[0]:.6f} -> {t.energies[-1]:.6f} Ry "
+        lines += ["", f"Relaxation: {t.n_steps} ionic steps",
+                  f"  energy: {t.energies[0]:.6f} -> {t.energies[-1]:.6f} Ry "
                   f"({(t.energies[-1]-t.energies[0])*13.6057:.4f} eV)"]
         if t.forces:
-            lines.append(f"  fuerza total: {t.forces[0]:.5f} -> "
+            lines.append(f"  total force: {t.forces[0]:.5f} -> "
                          f"{t.forces[-1]:.5f} Ry/bohr")
         subidas = sum(1 for a, b in zip(t.energies, t.energies[1:]) if b > a)
         if subidas > t.n_steps // 3:
             lines.append(
-                f"  AVISO: la energía subió en {subidas} de {t.n_steps-1} "
-                "pasos. Una relajación sana\n  baja casi siempre; esto "
-                "sugiere una superficie de energía muy plana o un\n  paso "
-                "de BFGS demasiado grande.")
+                f"  WARNING: the energy rose in {subidas} of {t.n_steps-1} "
+                "steps. A healthy relaxation\n  almost always goes down; this "
+                "suggests a very flat energy surface or a\n  BFGS step "
+                "that is too large.")
 
     if d.scf and d.scf.n_iter:
         ciclos = ""
         if d.scf.n_ciclos > 1:
-            ciclos = (f" en el último de {d.scf.n_ciclos} ciclos SCF (uno "
-                      "por paso iónico; se diagnostica solo el último)")
-        lines += ["", f"Historia SCF: {d.scf.n_iter} iteraciones{ciclos}"
+            ciclos = (f" in the last of {d.scf.n_ciclos} SCF cycles (one "
+                      "per ionic step; only the last one is diagnosed)")
+        lines += ["", f"SCF history: {d.scf.n_iter} iterations{ciclos}"
                        f"{'' if d.scf.beta is None else f', beta = {d.scf.beta:.2f}'}"]
         if d.scf.patologia:
-            lines += ["", f"PROBLEMA DE CONVERGENCIA ({d.scf.patologia}):",
+            nombre_pat = _PATOLOGIA_EN.get(d.scf.patologia, d.scf.patologia)
+            lines += ["", f"CONVERGENCE PROBLEM ({nombre_pat}):",
                       d.scf.consejo]
 
     if d.problemas:
-        lines += ["", "PROBLEMAS:"]
+        lines += ["", "PROBLEMS:"]
         lines += [f"  - {p}" for p in d.problemas]
     elif r is not None and r.converged:
-        lines += ["", "Sin problemas detectados."]
+        lines += ["", "No problems detected."]
 
     if d.warnings:
-        lines += ["", f"Avisos de QE ({len(d.warnings)}):"]
+        lines += ["", f"QE warnings ({len(d.warnings)}):"]
         lines += [f"  {w}" for w in d.warnings[:6]]
     return "\n".join(lines)
 
@@ -362,8 +369,8 @@ def plot(d: Diagnosis, outfile: str = "diagnostico", formats="pdf,png",
     if d.scf and d.scf.accuracy:
         ax.semilogy(range(1, len(d.scf.accuracy) + 1), d.scf.accuracy,
                     "o-", color=c[0], lw=st["line"], ms=3)
-    ax.set_xlabel("iteración SCF")
-    ax.set_ylabel("precisión estimada (Ry)")
+    ax.set_xlabel("SCF iteration")
+    ax.set_ylabel("estimated accuracy (Ry)")
     qstyle.panel_label(ax, "(a)")
 
     if tiene_traj:
@@ -371,7 +378,7 @@ def plot(d: Diagnosis, outfile: str = "diagnostico", formats="pdf,png",
         e = np.array(d.traj.energies) * 13.605693
         ax2.plot(range(1, len(e) + 1), e - e[-1], "o-", color=c[1],
                  lw=st["line"], ms=3)
-        ax2.set_xlabel("paso iónico")
+        ax2.set_xlabel("ionic step")
         ax2.set_ylabel(r"$E - E_\mathrm{final}$ (eV)")
         qstyle.panel_label(ax2, "(b)")
 

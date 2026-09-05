@@ -53,22 +53,22 @@ def test_encuentra_la_temperatura_de_estabilizacion():
 def test_si_nunca_hay_imaginarios_no_hay_estabilizacion():
     r = _barrido({300: [100.0, 400.0], 900: [110.0, 410.0]})
     assert tp.temperatura_de_estabilizacion(r) is None
-    assert "No hay modos imaginarios" in tp.report(r)
+    assert 'There are no imaginary modes' in tp.report(r)
 
 
 def test_si_siempre_hay_imaginarios_se_dice():
     r = _barrido({300: [-100.0, 400.0], 3000: [-90.0, 410.0]})
     assert tp.temperatura_de_estabilizacion(r) is None
     txt = tp.report(r)
-    assert "no es de origen electrónico" in txt
+    assert 'not of electronic origin' in txt
 
 
 def test_avisa_si_el_numero_de_imaginarios_no_es_monotono():
     r = _barrido({300: [-100.0, 400.0], 600: [50.0, 400.0],
                   900: [-80.0, 400.0]})
     assert not tp.monotono(r)
-    assert "NO baja de forma monótona" in tp.report(r)
-    assert "sería inventada" in tp.report(r)
+    assert 'does NOT decrease monotonically' in tp.report(r)
+    assert 'would be made up' in tp.report(r)
 
 
 def test_el_modo_blando_ignora_los_acusticos():
@@ -87,8 +87,8 @@ def test_la_estabilizacion_cae_ENTRE_dos_puntos():
 def test_el_reporte_recuerda_que_los_iones_no_se_mueven():
     r = _barrido({300: [100.0, 400.0], 900: [110.0, 410.0]})
     txt = tp.report(r)
-    assert "temperatura ELECTRÓNICA" in txt
-    assert "iones siguen estando quietos" in txt
+    assert 'ELECTRONIC temperature' in txt
+    assert 'ions remain still' in txt
 
 
 def test_sin_datos_se_queja():

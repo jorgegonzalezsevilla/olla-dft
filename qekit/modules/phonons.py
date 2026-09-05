@@ -79,7 +79,7 @@ def _exe(name: str, pw_cmd: str = None, nproc: int = None) -> list:
     exe = Path(cmd[-1]).parent / name if "/" in cmd[-1] else Path(name)
     if not shutil.which(str(exe)) and not Path(exe).exists():
         raise FileNotFoundError(
-            f"no se encontró {name} junto a pw.x. Compílalo con 'make ph'."
+            f"{name} was not found next to pw.x. Compile it with 'make ph'."
         )
     return cmd[:-1] + [str(exe)]
 
@@ -148,11 +148,11 @@ def prepare(atoms, outdir: str = "fonones", pseudo_dir: str = None,
                  if p["found"] and p["type"] != "NC"]
         if no_nc:
             raise ErrorDeUso(
-                "el cálculo Raman (lraman) solo funciona con "
-                "pseudopotenciales de NORMA CONSERVADA, y estos no lo "
-                "son:\n  " + "\n  ".join(no_nc) +
-                "\n\nCon ultrasoft o PAW, ph.x se detiene o devuelve "
-                "tensores sin sentido.")
+                "the Raman calculation (lraman) only works with "
+                "NORM-CONSERVING pseudopotentials, and these are "
+                "not:\n  " + "\n  ".join(no_nc) +
+                "\n\nWith ultrasoft or PAW, ph.x stops or returns "
+                "meaningless tensors.")
     run = PhononRun(prefix=common["prefix"], outdir=out,
                     qgrid=None if gamma_only else tuple(qgrid),
                     gamma_only=gamma_only, epsil=epsil or raman,
@@ -173,7 +173,7 @@ def prepare(atoms, outdir: str = "fonones", pseudo_dir: str = None,
                       input_file="scf.in", output_file="scf.out")
     run.jobs = [job]
 
-    ph = ["fonones de Olla-DFT", "&inputph",
+    ph = ["Olla-DFT phonons", "&inputph",
           f"  prefix   = '{common['prefix']}'",
           "  outdir   = './out'",
           "  fildyn   = 'dyn'",
@@ -234,25 +234,25 @@ def prepare(atoms, outdir: str = "fonones", pseudo_dir: str = None,
             f"  nk3 = {dos_grid[2]}\n/\n"
         )
 
-    report = ["--- Fonones (DFPT) ---",
-              f"Estructura: {atoms.get_chemical_formula()} "
-              f"({len(atoms)} átomos, celda primitiva estandarizada)",
-              f"Malla k del scf: {grid_scf[0]}x{grid_scf[1]}x{grid_scf[2]}  |  "
-              "conv_thr = 1e-12 (la DFPT lo necesita)"]
+    report = ["--- Phonons (DFPT) ---",
+              f"Structure: {atoms.get_chemical_formula()} "
+              f"({len(atoms)} atoms, standardized primitive cell)",
+              f"scf k-grid: {grid_scf[0]}x{grid_scf[1]}x{grid_scf[2]}  |  "
+              "conv_thr = 1e-12 (DFPT needs it)"]
     if gamma_only:
-        report.append("Modo Γ: ph.x en un solo q + dynmat.x "
-                      "(frecuencias y actividades IR)")
+        report.append("Γ mode: ph.x at a single q + dynmat.x "
+                      "(frequencies and IR activities)")
     else:
-        report.append(f"Malla de q: {qgrid[0]}x{qgrid[1]}x{qgrid[2]}  |  "
-                      f"dispersión por el camino de alta simetría + DOS "
+        report.append(f"q-grid: {qgrid[0]}x{qgrid[1]}x{qgrid[2]}  |  "
+                      f"dispersion along the high-symmetry path + DOS "
                       f"{dos_grid[0]}x{dos_grid[1]}x{dos_grid[2]}")
     if epsil:
-        report.append("epsil = .true.: tensor dieléctrico y cargas de Born "
-                      "(separación LO–TO)")
-    report += ["", "IMPORTANTE: la estructura debe estar relajada (vc-relax) "
-                    "con estos mismos\ncutoffs; si no, aparecerán frecuencias "
-                    "imaginarias espurias.",
-               f"Archivos escritos en '{out.resolve()}'"]
+        report.append("epsil = .true.: dielectric tensor and Born charges "
+                      "(LO–TO splitting)")
+    report += ["", "IMPORTANT: the structure must be relaxed (vc-relax) "
+                    "with these same\ncutoffs; otherwise spurious imaginary "
+                    "frequencies will appear.",
+               f"Files written to '{out.resolve()}'"]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
@@ -278,7 +278,7 @@ def run_chain(run: PhononRun, pw_cmd: str = None, nproc: int = None,
         # es el paso caro y el que un usuario corre a mano en el clúster.
         if _step_done(run.outdir, stem):
             if verbose:
-                print(f"  {exe} ({stem}) ... ya estaba hecho")
+                print(f"  {exe} ({stem}) ... already done")
             continue
         cmd = _exe(exe, pw_cmd, nproc)
         if verbose:
@@ -297,8 +297,8 @@ def _read_flfrq(path: Path):
     text = path.read_text().split()
     if not text or text[0] != "&plot":
         raise FaltanDatos(
-            f"'{path}' no tiene el formato de frecuencias de matdyn.x "
-            "(debe empezar con '&plot'); ¿corrió matdyn.x correctamente?"
+            f"'{path}' does not have the matdyn.x frequency format "
+            "(it must start with '&plot'); did matdyn.x run correctly?"
         )
     nbnd = int(text[2].rstrip(","))
     nks = int(text[4])
@@ -459,13 +459,13 @@ def raman_spectrum(run: PhononRun, laser_nm: float = 532.0,
     Devuelve (w en cm-1, intensidad normalizada a 100).
     """
     if not run.modes:
-        raise FaltanDatos("no hay modos con actividad Raman; corre con "
+        raise FaltanDatos("there are no modes with Raman activity; run with "
                          "--raman")
     act = [(d["omega_cm1"], d.get("raman")) for d in run.modes
            if d.get("raman") is not None]
     if not act:
-        raise FaltanDatos("el calculo no trae columna Raman: ph.x tiene que "
-                         "haber corrido con lraman = .true.")
+        raise FaltanDatos("the calculation has no Raman column: ph.x must "
+                         "have run with lraman = .true.")
 
     w_laser = 1.0e7 / float(laser_nm)          # nm -> cm-1
     picos = [(w, a) for w, a in act if w > 1.0]     # fuera los acusticos
@@ -493,7 +493,7 @@ def thermodynamics(run: PhononRun, T=None, natoms: int = None):
     renormaliza a 3N exacto para absorber el error de malla.
     """
     if run.dos is None:
-        raise FaltanDatos("no hay DOS de fonones; corre primero la cadena")
+        raise FaltanDatos("there is no phonon DOS; run the chain first")
     if T is None:
         T = np.arange(0.0, 1001.0, 10.0)
     T = np.asarray(T, dtype=float)
@@ -532,8 +532,8 @@ def report_gamma_activities(run: PhononRun) -> str:
     if not run.modes:
         return ""
     tiene_raman = any("raman" in d for d in run.modes)
-    lines = ["--- Modos en Gamma ---",
-             f"{'modo':>5s} {'cm-1':>10s} {'THz':>9s} {'IR':>12s}"
+    lines = ["--- Modes at Gamma ---",
+             f"{'mode':>5s} {'cm-1':>10s} {'THz':>9s} {'IR':>12s}"
              + (f" {'Raman':>12s} {'depol':>7s}" if tiene_raman else "")]
     for d in run.modes:
         fila = (f"{d['modo']:5d} {d['omega_cm1']:10.2f} "
@@ -543,7 +543,7 @@ def report_gamma_activities(run: PhononRun) -> str:
                     f"{d.get('depol', float('nan')):7.4f}"
         lines.append(fila)
     lines.append("")
-    lines.append("IR en (D/A)^2/amu; Raman en A^4/amu (unidades de QE).")
+    lines.append("IR in (D/A)^2/amu; Raman in A^4/amu (QE units).")
 
     opticos = [d for d in run.modes if d["omega_cm1"] > 1.0]
     if tiene_raman and opticos:
@@ -551,29 +551,29 @@ def report_gamma_activities(run: PhononRun) -> str:
         ra_act = [d for d in opticos if d.get("raman", 0.0) > 1e-4]
         if ra_act and not ir_act:
             lines.append(
-                "\nTodos los modos ópticos son activos en Raman e INACTIVOS "
-                "en IR: es la regla\nde exclusión mutua, y confirma que el "
-                "cristal tiene centro de inversión.")
+                "\nAll optical modes are Raman active and IR INACTIVE: "
+                "this is the mutual\nexclusion rule, and confirms that the "
+                "crystal has an inversion centre.")
         elif ir_act and not ra_act:
             lines.append(
-                "\nLos modos ópticos son activos en IR e inactivos en "
-                "Raman.")
+                "\nThe optical modes are IR active and Raman "
+                "inactive.")
         depols = {round(d.get("depol", -1), 3) for d in ra_act}
         if depols == {0.75}:
             lines.append(
-                "Factor de despolarización 0.75 en todos los modos activos: "
-                "el valor exacto\nde un modo triplemente degenerado.")
+                "Depolarization ratio 0.75 in all active modes: "
+                "the exact value\nof a triply degenerate mode.")
     return "\n".join(lines)
 
 
 def report(run: PhononRun, natoms: int = None) -> str:
-    lines = ["--- Fonones ---"]
+    lines = ["--- Phonons ---"]
     if run.gamma_only:
-        lines.append("Frecuencias en Γ (dynmat.x, con regla de suma acústica):")
+        lines.append("Frequencies at Γ (dynmat.x, with acoustic sum rule):")
         has_ir = any(a is not None for _, a in run.gamma_freqs)
-        head = f"  {'modo':>4s} {'ω (cm⁻¹)':>12s} {'ω (THz)':>10s}"
+        head = f"  {'mode':>4s} {'ω (cm⁻¹)':>12s} {'ω (THz)':>10s}"
         if has_ir:
-            head += f" {'IR (u. arb.)':>14s}"
+            head += f" {'IR (arb. u.)':>14s}"
         lines.append(head)
         for i, (w, act) in enumerate(run.gamma_freqs, start=1):
             row = f"  {i:>4d} {w:12.2f} {w * CM1_TO_THZ:10.3f}"
@@ -582,29 +582,29 @@ def report(run: PhononRun, natoms: int = None) -> str:
             lines.append(row)
         neg = [w for w, _ in run.gamma_freqs if w < -5.0]
         if neg:
-            lines.append("\nAVISO: hay frecuencias imaginarias (negativas). "
-                         "O la estructura no está\nrelajada, o es inestable en Γ.")
+            lines.append("\nWARNING: there are imaginary (negative) frequencies. "
+                         "Either the structure is not\nrelaxed, or it is unstable at Γ.")
         return "\n".join(lines)
 
     fr = run.band_freqs
-    lines.append(f"Dispersión: {fr.shape[1]} ramas en {fr.shape[0]} puntos q")
+    lines.append(f"Dispersion: {fr.shape[1]} branches at {fr.shape[0]} q-points")
     wmin, wmax = float(fr.min()), float(fr.max())
-    lines.append(f"Rango: {wmin:.1f} a {wmax:.1f} cm⁻¹ "
-                 f"({wmax * CM1_TO_THZ:.2f} THz máx.)")
+    lines.append(f"Range: {wmin:.1f} to {wmax:.1f} cm⁻¹ "
+                 f"({wmax * CM1_TO_THZ:.2f} THz max.)")
     if wmin < -5.0:
         n_neg = int((fr < -5.0).sum())
-        lines.append(f"\nAVISO: {n_neg} frecuencias imaginarias (mínimo "
-                     f"{wmin:.1f} cm⁻¹). La estructura\nno está relajada con "
-                     "estos parámetros, o es dinámicamente inestable.")
+        lines.append(f"\nWARNING: {n_neg} imaginary frequencies (minimum "
+                     f"{wmin:.1f} cm⁻¹). The structure\nis not relaxed with "
+                     "these parameters, or it is dynamically unstable.")
     else:
-        lines.append("Sin frecuencias imaginarias: la estructura es "
-                     "dinámicamente estable.")
+        lines.append("No imaginary frequencies: the structure is "
+                     "dynamically stable.")
     if run.dos is not None and natoms:
         th = thermodynamics(run, natoms=natoms)
         i300 = int(np.searchsorted(th["T"], 300.0))
-        lines += ["", "Termodinámica armónica (por celda):",
-                  f"  energía de punto cero: {th['ZPE'] * 1000:.2f} meV",
-                  f"  a 300 K:  C_v = {th['Cv'][i300] * 1000:.3f} meV/K   "
+        lines += ["", "Harmonic thermodynamics (per cell):",
+                  f"  zero-point energy: {th['ZPE'] * 1000:.2f} meV",
+                  f"  at 300 K:  C_v = {th['Cv'][i300] * 1000:.3f} meV/K   "
                   f"S = {th['S'][i300] * 1000:.3f} meV/K   "
                   f"F = {th['F'][i300] * 1000:.1f} meV"]
     return "\n".join(lines)
@@ -615,9 +615,9 @@ def export(run: PhononRun, outdir: str = ".", natoms: int = None) -> list:
     written = []
     if run.gamma_only:
         f = out / "FONONES_GAMMA.dat"
-        lines = [provenance.header("fonones en Gamma",
+        lines = [provenance.header("phonons at Gamma",
                                    {"epsil": run.epsil}),
-                 "# modo  omega(cm-1)  omega(THz)  IR"]
+                 "# mode  omega(cm-1)  omega(THz)  IR"]
         for i, (w, a) in enumerate(run.gamma_freqs, start=1):
             lines.append(f"{i:6d} {w:12.3f} {w * CM1_TO_THZ:11.4f} "
                          f"{a if a is not None else float('nan'):12.4f}")
@@ -625,18 +625,18 @@ def export(run: PhononRun, outdir: str = ".", natoms: int = None) -> list:
         return [str(f)]
 
     f = out / "FONONES_BANDAS.dat"
-    header = (provenance.header("dispersión de fonones",
+    header = (provenance.header("phonon dispersion",
                                 {"malla_q": "x".join(map(str, run.qgrid))
                                  if run.qgrid else None},
-                                titulo="Dispersion fononica")
-              + "\n# q(acum, A^-1) + ramas en cm^-1")
+                                titulo="Phonon dispersion")
+              + "\n# q(cumulative, A^-1) + branches in cm^-1")
     np.savetxt(f, np.column_stack([run.qdist, run.band_freqs]),
                fmt="%12.5f", header=header, comments="")
     written.append(str(f))
     f = out / "FONONES_DOS.dat"
     np.savetxt(f, np.column_stack([run.dos_w, run.dos]), fmt="%14.6f",
-               header=provenance.header("DOS de fonones")
-                      + "\n# omega(cm-1)  dos(estados/cm-1)", comments="")
+               header=provenance.header("phonon DOS")
+                      + "\n# omega(cm-1)  dos(states/cm-1)", comments="")
     written.append(str(f))
     if natoms:
         th = thermodynamics(run, natoms=natoms)
@@ -645,9 +645,9 @@ def export(run: PhononRun, outdir: str = ".", natoms: int = None) -> list:
                                        th["Cv"]]),
                    fmt="%14.6e",
                    header=provenance.header(
-                       "termodinámica armónica",
+                       "harmonic thermodynamics",
                        {"atomos_por_celda": natoms}) + "\n"
-                          f"# ZPE = {th['ZPE']:.6e} eV/celda\n"
+                          f"# ZPE = {th['ZPE']:.6e} eV/cell\n"
                           "# T(K)  F(eV)  U(eV)  S(eV/K)  Cv(eV/K)",
                    comments="")
         written.append(str(f))
@@ -706,7 +706,7 @@ def plot(run: PhononRun, outfile: str = "fonones", formats="pdf,png",
     # la escala absoluta de la DOS de matdyn depende de la malla; lo que
     # se lee en la figura es la forma, así que se rotula sin números y el
     # valor numérico queda en FONONES_DOS.dat
-    axd.set_xlabel(qstyle.tex_safe("DOS (estados/cm-1)").replace(
+    axd.set_xlabel(qstyle.tex_safe("DOS (states/cm-1)").replace(
         "cm-1", "cm$^{-1}$"))
     axd.set_xticks([])
     axd.xaxis.set_minor_locator(plt.NullLocator())

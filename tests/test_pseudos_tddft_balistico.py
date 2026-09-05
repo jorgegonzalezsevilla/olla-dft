@@ -80,7 +80,7 @@ def test_soc_es_indulgente_con_los_elementos_ligeros(tmp_path):
     cands = [pz.leer(_upf(tmp_path, "O.s.UPF", element="O", rel="scalar"))]
     ev = pz.evaluar(cands, "soc")
     assert ev[0].ok
-    assert any("despreciable" in n for n in ev[0].notas)
+    assert any('negligible' in n for n in ev[0].notas)
 
 
 def test_xanes_exige_gipaw(tmp_path):
@@ -118,7 +118,7 @@ def test_coherencia_detecta_funcionales_mezclados(tmp_path):
     a = pz.leer(_upf(tmp_path, "Ni.UPF", element="Ni", func="PBE"))
     b = pz.leer(_upf(tmp_path, "O.UPF", element="O", func="BLYP"))
     avisos = pz.coherencia({"Ni": a, "O": b})
-    assert any("FUNCIONALES DISTINTOS" in x for x in avisos)
+    assert any('DIFFERENT FUNCTIONALS' in x for x in avisos)
 
 
 def test_coherencia_avisa_al_mezclar_NC_con_ultrasuave(tmp_path):
@@ -132,17 +132,17 @@ def test_coherencia_avisa_de_cutoffs_muy_dispares(tmp_path):
     a = pz.leer(_upf(tmp_path, "A.UPF", element="Si", ecut=30.0))
     b = pz.leer(_upf(tmp_path, "B.UPF", element="O", ecut=100.0))
     avisos = pz.coherencia({"Si": a, "O": b})
-    assert any("decide el coste" in x for x in avisos)
+    assert any('decides the cost' in x for x in avisos)
 
 
 def test_ninguno_sirve_lo_dice_con_el_motivo(tmp_path):
     _upf(tmp_path, "Si.us.UPF", tipo="US")
-    with pytest.raises(ErrorDeUso, match="ninguno sirve"):
+    with pytest.raises(ErrorDeUso, match='none is suitable'):
         pz.elegir("Si", str(tmp_path), tarea="optics")
 
 
 def test_tarea_desconocida(tmp_path):
-    with pytest.raises(ErrorDeUso, match="Opciones"):
+    with pytest.raises(ErrorDeUso, match='Options'):
         pz.evaluar([], "noexiste")
 
 
@@ -161,7 +161,7 @@ def test_forzar_un_pseudo_manda(tmp_path):
 
 def test_forzar_algo_que_no_esta_avisa(tmp_path):
     _upf(tmp_path, "Si.a.UPF")
-    with pytest.raises(ErrorDeUso, match="no esta en la carpeta"):
+    with pytest.raises(ErrorDeUso, match="not in the pseudopotential folder"):
         ps.resolve(["Si"], str(tmp_path), forzados={"Si": "noexiste.UPF"})
 
 
@@ -231,7 +231,7 @@ def test_el_espectro_pide_las_energias_en_eV():
 
 
 def test_extrapolacion_desconocida():
-    with pytest.raises(ErrorDeUso, match="Opciones"):
+    with pytest.raises(ErrorDeUso, match='Options'):
         td.build_spectrum_input("Si", extrapolation="magia")
 
 
@@ -260,12 +260,12 @@ def _run_sintetico(gap=2.0, e_exciton=1.6):
 def test_detecta_el_exciton_bajo_el_gap():
     r = _run_sintetico(gap=2.0, e_exciton=1.6)
     assert r.onset < 2.0
-    assert any("excitón" in a or "exciton" in a for a in r.avisos)
+    assert any('exciton' in a or "exciton" in a for a in r.avisos)
 
 
 def test_sin_exciton_lo_dice_tambien():
     r = _run_sintetico(gap=2.0, e_exciton=2.0)
-    assert any("adiabático" in a or "adiabatico" in a for a in r.avisos)
+    assert any('adiabatic' in a or 'adiabatic' in a for a in r.avisos)
 
 
 def test_los_picos_salen_ordenados_por_altura():
@@ -322,7 +322,7 @@ def test_celdas_del_plano_distintas_se_rechazan(tmp_path):
               cell=[[10, 0, 0], [0, 10, 0], [0, 0, 4.5]], pbc=True)
     d = Atoms("Al", positions=[[0, 0, 0]],
               cell=[[12, 0, 0], [0, 12, 0], [0, 0, 9.0]], pbc=True)
-    with pytest.raises(ErrorDeUso, match="misma celda en el plano"):
+    with pytest.raises(ErrorDeUso, match='same cell in the xy plane'):
         bl.prepare(e, outdir=str(tmp_path), dispersor=d,
                    pseudo_dir=str(tmp_path))
 
@@ -354,7 +354,7 @@ def test_conductancia_cuantizada_se_reconoce():
     r.G_fermi = 2.0
     assert r.G_siemens == pytest.approx(2 * bl.G0)
     assert r.R_ohm == pytest.approx(bl.R0 / 2)
-    assert "cuantización" in bl.report(r)
+    assert 'quantization' in bl.report(r)
 
 
 def test_transmision_mayor_que_los_canales_es_imposible():
@@ -362,14 +362,14 @@ def test_transmision_mayor_que_los_canales_es_imposible():
     r = bl.CondRun(energias=e, transmision=np.full_like(e, 2.5),
                    canales=np.ones_like(e), ikind=1)
     bl._avisar(r)
-    assert any("imposible" in a for a in r.avisos)
+    assert any('impossible' in a for a in r.avisos)
 
 
 def test_transmision_negativa_avisa():
     e = np.linspace(-1, 1, 5)
     r = bl.CondRun(energias=e, transmision=np.full_like(e, -0.5), ikind=1)
     bl._avisar(r)
-    assert any("NEGATIVAS" in a for a in r.avisos)
+    assert any('NEGATIVE' in a for a in r.avisos)
 
 
 def test_lee_el_hilo_de_aluminio_calculado():
@@ -389,7 +389,7 @@ def test_lee_el_hilo_de_aluminio_calculado():
     assert run.canales is not None
     assert int(run.canales.max()) == 3
     assert int(run.canales.min()) == 0
-    assert any("NO es la conductancia" in a for a in run.avisos)
+    assert any('is NOT the conductance' in a for a in run.avisos)
 
 
 def test_collect_sin_nada_avisa(tmp_path):

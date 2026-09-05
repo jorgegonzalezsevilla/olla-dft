@@ -192,9 +192,9 @@ def buscar(atoms1, atoms2, max_index: int = 4, tol: float = 0.05,
     b = _plano(atoms2)
     if abs(np.linalg.det(a)) < 1e-8 or abs(np.linalg.det(b)) < 1e-8:
         raise ErrorDeUso(
-            "alguna de las dos celdas es degenerada en el plano ab. Las "
-            "estructuras tienen que ser losas con el vacío a lo largo de c "
-            "('olla-dft surface' o 'olla-dft layers --slab' las dejan así).")
+            "one of the two cells is degenerate in the ab plane. The "
+            "structures must be slabs with the vacuum along c "
+            "('olla-dft surface' or 'olla-dft layers --slab' leave them that way).")
 
     n_at1, n_at2 = len(atoms1), len(atoms2)
     area1 = abs(np.linalg.det(a))
@@ -277,7 +277,7 @@ def construir(atoms1, atoms2, coincidencia: Coincidencia,
         objetivo1 = objetivo2 = (w * A + v * B) / (w + v)
     else:
         raise ErrorDeUso(
-            f"--strain '{deformar}' desconocido. Opciones: first, second, "
+            f"unknown --strain '{deformar}'. Options: first, second, "
             "both.")
 
     s1 = _supercelda_deformada(atoms1, coincidencia.M, objetivo1)
@@ -332,14 +332,14 @@ def emparejar(atoms1, atoms2, max_index: int = 4, tol: float = 0.05,
                         max_atoms=max_atoms)
     if not candidatas:
         raise ErrorDeUso(
-            f"no hay ninguna supercelda común con menos de {tol * 100:.0f} % "
-            f"de deformación y menos de {max_atoms} átomos.\n"
-            "Opciones: subir --tol (y aceptar más deformación), subir "
-            "--max-atoms, o subir --max-index para buscar celdas más "
-            "giradas.")
+            f"there is no common supercell with less than {tol * 100:.0f} % "
+            f"strain and fewer than {max_atoms} atoms.\n"
+            "Options: raise --tol (and accept more strain), raise "
+            "--max-atoms, or raise --max-index to search for more "
+            "rotated cells.")
     if indice >= len(candidatas):
         raise ErrorDeUso(
-            f"solo hay {len(candidatas)} candidatas; pediste la {indice}.")
+            f"there are only {len(candidatas)} candidates; you asked for number {indice}.")
     c = candidatas[indice]
     sep = separacion if separacion is not None else separacion_vdw(atoms1,
                                                                    atoms2)
@@ -353,23 +353,23 @@ def emparejar(atoms1, atoms2, max_index: int = 4, tol: float = 0.05,
 
     if c.eps_pct > 3.0:
         het.avisos.append(
-            f"La deformación es del {c.eps_pct:.1f} %. Por encima de ~3 % "
-            "no se está\nmodelando el material sino una versión estirada "
-            "de él: las bandas, el gap\ny las constantes elásticas cambian. "
-            "Busca otra coincidencia (--index) o\nacepta una celda más "
-            "grande (--max-atoms).")
+            f"The strain is {c.eps_pct:.1f} %. Above ~3 % "
+            "one is no longer\nmodelling the material but a stretched version "
+            "of it: the bands, the gap\nand the elastic constants change. "
+            "Look for another match (--index) or\naccept a larger "
+            "cell (--max-atoms).")
     if separacion is None:
         het.avisos.append(
-            f"La separación de {sep:.2f} Å sale de los radios de van der "
-            "Waals: es un punto\nde partida para relajar, NO un resultado. "
-            "Y con un funcional sin corrección\nde dispersión la distancia "
-            "de equilibrio saldrá demasiado grande — usa\n'olla-dft gen "
-            "--vdw grimme-d3' o equivalente.")
+            f"The separation of {sep:.2f} Å comes from the van der Waals "
+            "radii: it is a starting\npoint for relaxation, NOT a result. "
+            "And with a functional without a dispersion\ncorrection the equilibrium "
+            "distance will come out too large — use\n'olla-dft gen "
+            "--vdw grimme-d3' or equivalent.")
     het.avisos.append(
-        "El REGISTRO (cómo se alinean lateralmente las dos capas) no está "
-        "optimizado.\nDos apilamientos distintos pueden diferir en decenas "
-        "de meV por átomo; para\nsaber cuál es el estable hay que barrer "
-        "--shift y comparar energías.")
+        "The REGISTRY (how the two layers align laterally) is not "
+        "optimized.\nTwo different stackings can differ by tens "
+        "of meV per atom; to\nknow which one is stable you have to sweep "
+        "--shift and compare energies.")
     return het
 
 
@@ -378,36 +378,36 @@ def emparejar(atoms1, atoms2, max_index: int = 4, tol: float = 0.05,
 # ----------------------------------------------------------------------
 def report(het: Heteroestructura, n_candidatas: int = 6) -> str:
     c = het.coincidencia
-    lines = ["--- Heteroestructura ---",
-             f"Material 1 (abajo): {het.formula1}",
-             f"Material 2 (arriba): {het.formula2}",
+    lines = ["--- Heterostructure ---",
+             f"Material 1 (bottom): {het.formula1}",
+             f"Material 2 (top): {het.formula2}",
              "",
-             f"Supercelda elegida: {c.n1} celda(s) del 1 y {c.n2} del 2  "
-             f"->  {c.natoms} átomos",
-             f"Área en el plano: {c.area:.2f} Å²",
-             f"Separación inicial: {het.separacion:.2f} Å   "
-             f"vacío: {het.vacio:.1f} Å",
+             f"Chosen supercell: {c.n1} cell(s) of 1 and {c.n2} of 2  "
+             f"->  {c.natoms} atoms",
+             f"In-plane area: {c.area:.2f} Å²",
+             f"Initial separation: {het.separacion:.2f} Å   "
+             f"vacuum: {het.vacio:.1f} Å",
              "",
-             "Deformación (matriz epsilon, en %):"]
+             "Strain (epsilon matrix, in %):"]
     for fila in c.deformacion:
         lines.append("   " + "  ".join(f"{100 * x:+7.3f}" for x in fila))
-    lines.append(f"  mayor componente: {c.eps_pct:.2f} %")
+    lines.append(f"  largest component: {c.eps_pct:.2f} %")
     lines += ["",
-              "Transformaciones enteras:",
+              "Integer transformations:",
               f"  material 1:  M = [[{c.M[0,0]:2d} {c.M[0,1]:2d}] "
               f"[{c.M[1,0]:2d} {c.M[1,1]:2d}]]",
               f"  material 2:  N = [[{c.N[0,0]:2d} {c.N[0,1]:2d}] "
               f"[{c.N[1,0]:2d} {c.N[1,1]:2d}]]"]
 
     if len(het.candidatas) > 1:
-        lines += ["", f"Otras candidatas (de {len(het.candidatas)}):",
-                  f"  {'#':>2s} {'átomos':>7s} {'deformación':>12s} "
+        lines += ["", f"Other candidates (of {len(het.candidatas)}):",
+                  f"  {'#':>2s} {'atoms':>7s} {'strain':>12s} "
                   f"{'n1':>4s} {'n2':>4s}"]
         for i, cc in enumerate(het.candidatas[:n_candidatas]):
             marca = " <-" if cc is c else ""
             lines.append(f"  {i:2d} {cc.natoms:7d} {cc.eps_pct:11.2f} % "
                          f"{cc.n1:4d} {cc.n2:4d}{marca}")
-        lines.append("  Se eligen con --index.")
+        lines.append("  They are selected with --index.")
 
     for a in het.avisos:
         lines += ["", a]
@@ -424,9 +424,9 @@ def export(het: Heteroestructura, outdir: str = ".",
     write(str(cif), het.atoms)
     txt = out / f"{nombre}.txt"
     txt.write_text(provenance.header_plain(
-        "heteroestructura",
+        "heterostructure",
         {"deformacion_pct": round(het.coincidencia.eps_pct, 3),
          "separacion_A": round(het.separacion, 3),
          "natoms": het.coincidencia.natoms},
-        titulo="Emparejamiento de redes") + "\n" + report(het) + "\n")
+        titulo="Lattice matching") + "\n" + report(het) + "\n")
     return [str(cif), str(txt)]

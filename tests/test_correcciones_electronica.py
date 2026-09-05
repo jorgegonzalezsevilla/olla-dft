@@ -66,7 +66,7 @@ def test_el_reporte_del_desdoblamiento_lleva_el_aviso_de_lsda():
                           M=np.eye(3, dtype=int), ncel=1, spin="up")
     d.avisos.append(unfold.aviso_lsda("up", "dw"))
     rep = unfold.report(d)
-    assert "espín polarizado" in rep and "--spin dw" in rep
+    assert 'spin-polarized' in rep and "--spin dw" in rep
 
 
 # ----------------------------------------------------------------------
@@ -91,11 +91,11 @@ def test_una_pdos_con_otra_malla_se_salta_y_se_avisa(tmp_path):
     dd = dos.load(str(tmp_path))
     assert ("Si", "s") in dd.projected and ("Si", "p") in dd.projected
     assert len(dd.avisos) == 1
-    assert "SALTADO" in dd.avisos[0]
+    assert 'SKIPPED' in dd.avisos[0]
     assert "pdos_atm#2(Si)_wfc#1(s)" in dd.avisos[0]
-    assert "57 puntos" in dd.avisos[0]
+    assert '57 points' in dd.avisos[0]
     rep = dos.report(dd)
-    assert "AVISO:" in rep and "pdos_atm#2(Si)_wfc#1(s)" in rep
+    assert 'WARNING:' in rep and "pdos_atm#2(Si)_wfc#1(s)" in rep
 
 
 def test_sin_mallas_distintas_no_hay_aviso(tmp_path):
@@ -153,8 +153,8 @@ def test_una_ventana_mas_ancha_que_el_limite_si_avisa():
     run = em.from_bands(bs, window=0.2)         # tramo 0.40 > 0.12
     assert run.fits
     for f in run.fits:
-        assert "fuera del régimen parabólico" in f.warning \
-            or "límite parabólico" in f.warning
+        assert 'outside the parabolic regime' in f.warning \
+            or 'parabolic limit' in f.warning
         assert f"{f.window:.3f}" in f.warning
 
 
@@ -198,7 +198,7 @@ def test_gen_soc_se_niega_con_pseudos_escalares(tmp_path):
     resultado. `sweep.check_soc_pseudos` existía pero nadie lo llamaba.
     """
     from qekit.core.errors import ErrorDeUso
-    with pytest.raises(ErrorDeUso, match="TOTALMENTE RELATIVISTAS"):
+    with pytest.raises(ErrorDeUso, match="FULLY RELATIVISTIC"):
         _generar_soc(tmp_path, rel="scalar")
     assert not (tmp_path / "calc" / "scf.in").exists()
 
@@ -227,7 +227,7 @@ def test_la_malla_se_describe_como_lo_que_es():
     from qekit.modules import datasheet
     fuente = inspect.getsource(datasheet)
     assert "malla de \"\n        f\"Monkhorst-Pack" not in fuente
-    assert "malla uniforme centrada" in fuente
+    assert 'uniform Γ-centred' in fuente
 
 
 # ----------------------------------------------------------------------
@@ -288,6 +288,6 @@ def test_la_cabecera_de_la_dos_de_wannier_declara_que_no_lleva_espin():
     num_wann (sin el 2 de espín): comparada con dos.x salía la mitad.
     """
     from qekit.modules import wannier
-    assert "sin factor de espín" in wannier.DOS_UNIDADES
+    assert "without spin factor" in wannier.DOS_UNIDADES
     assert "num_wann" in wannier.DOS_UNIDADES
     assert "num_wann" in wannier.dos_interpolada.__doc__

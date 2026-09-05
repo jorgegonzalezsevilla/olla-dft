@@ -117,11 +117,11 @@ def empaquetar(simbolos, densidad: float, factor: float = FACTOR_MINIMO,
     from ase.data import atomic_numbers, covalent_radii
 
     if densidad <= 0:
-        raise ErrorDeUso(f"la densidad tiene que ser positiva; "
-                         f"recibí {densidad}.")
+        raise ErrorDeUso(f"the density must be positive; "
+                         f"got {densidad}.")
     simbolos = list(simbolos)
     if not simbolos:
-        raise ErrorDeUso("hace falta al menos un átomo.")
+        raise ErrorDeUso("at least one atom is required.")
     L = celda_para_densidad(simbolos, densidad)
     rng = np.random.default_rng(semilla)
     radios = [covalent_radii[atomic_numbers[s]] for s in simbolos]
@@ -150,9 +150,9 @@ def empaquetar(simbolos, densidad: float, factor: float = FACTOR_MINIMO,
                cell=np.eye(3) * L, pbc=True)
     if fallos:
         raise ErrorDeUso(
-            f"no cupieron {fallos} de {len(simbolos)} átomos sin solaparse a "
-            f"{densidad:g} g/cm³. O la densidad es demasiado alta para esa "
-            f"composición, o hay que bajar el factor de distancia mínima "
+            f"{fallos} of {len(simbolos)} atoms could not be placed without overlap at "
+            f"{densidad:g} g/cm³. Either the density is too high for that "
+            f"composition, or the minimum-distance factor must be lowered "
             f"(--min-dist).")
     return at
 
@@ -166,11 +166,11 @@ def formula_a_simbolos(formula: str, unidades: int) -> list:
     piezas = [(el, int(n) if n else 1) for el, n in piezas if el]
     if not piezas:
         raise ErrorDeUso(
-            f"no entiendo la fórmula '{formula}'. Se escribe como SiO2, "
-            f"GeTe o Al2O3.")
+            f"cannot parse the formula '{formula}'. Write it as SiO2, "
+            f"GeTe or Al2O3.")
     malos = [el for el, _ in piezas if el not in atomic_numbers]
     if malos:
-        raise ErrorDeUso(f"elemento desconocido en la fórmula: "
+        raise ErrorDeUso(f"unknown element in the formula: "
                          f"{', '.join(malos)}.")
     fuera = []
     for el, n in piezas:
@@ -214,13 +214,13 @@ def fundir_y_templar(atoms, protocolo: Protocolo = None, modelo: str = "mace",
     t0 = time.time()
     dyn.attach(_apuntar, interval=10)
     if verbose:
-        print(f"  fundiendo a {p.T_fundido:.0f} K "
-              f"({p.pasos_fundido} pasos) ...", flush=True)
+        print(f"  melting at {p.T_fundido:.0f} K "
+              f"({p.pasos_fundido} steps) ...", flush=True)
     dyn.run(p.pasos_fundido)
 
     if verbose:
-        print(f"  templando hasta {p.T_final:.0f} K "
-              f"({p.pasos_temple} pasos, "
+        print(f"  quenching to {p.T_final:.0f} K "
+              f"({p.pasos_temple} steps, "
               f"{p.velocidad_temple:.2e} K/s) ...", flush=True)
     n_tramos = max(1, p.pasos_temple // 20)
     for k in range(20):
@@ -230,8 +230,8 @@ def fundir_y_templar(atoms, protocolo: Protocolo = None, modelo: str = "mace",
 
     if p.pasos_recocido:
         if verbose:
-            print(f"  recociendo a {p.T_final:.0f} K "
-                  f"({p.pasos_recocido} pasos) ...", flush=True)
+            print(f"  annealing at {p.T_final:.0f} K "
+                  f"({p.pasos_recocido} steps) ...", flush=True)
         dyn.set_temperature(temperature_K=p.T_final)
         dyn.run(p.pasos_recocido)
 
@@ -249,18 +249,18 @@ def fundir_y_templar(atoms, protocolo: Protocolo = None, modelo: str = "mace",
         T_fin = float(np.mean(res.temperaturas[-3:]))
         if T_fin > p.T_final * 2.5 + 200:
             res.avisos.append(
-                f"El sistema acabó a {T_fin:.0f} K, no a los {p.T_final:.0f} K "
-                f"pedidos. El termostato\n  no consigue seguir una rampa tan "
-                f"rápida: la estructura sigue siendo un\n  líquido, no un "
-                f"vidrio. Sube --quench-steps, o alarga --anneal-steps para "
-                f"que\n  termine de enfriar a temperatura fija.")
+                f"The system ended at {T_fin:.0f} K, not at the {p.T_final:.0f} K "
+                f"requested. The thermostat\n  cannot follow such a fast "
+                f"ramp: the structure is still a\n  liquid, not a "
+                f"glass. Increase --quench-steps, or lengthen --anneal-steps so "
+                f"that\n  it finishes cooling at fixed temperature.")
 
     if p.velocidad_temple > 1e13:
         res.avisos.append(
-            f"Velocidad de temple {p.velocidad_temple:.1e} K/s. Un vidrio de "
-            f"verdad se enfría\n  a 1-100 K/s: son diez órdenes de magnitud. "
-            f"La estructura sale más\n  desordenada y menos densa que la real. "
-            f"Para acercarse, alarga --quench-steps.")
+            f"Quench rate {p.velocidad_temple:.1e} K/s. A real glass "
+            f"cools\n  at 1-100 K/s: that is ten orders of magnitude. "
+            f"The structure comes out more\n  disordered and less dense than the real one. "
+            f"To get closer, lengthen --quench-steps.")
     return res
 
 
@@ -315,27 +315,27 @@ def report(res: Amorfo) -> str:
     at = res.atoms
     p = res.protocolo
     simbolos = at.get_chemical_symbols()
-    L = ["--- Sólido amorfo por fundido y temple ---",
-         f"Composición: {at.get_chemical_formula()} ({len(at)} átomos)",
-         f"Densidad: {res.densidad:.4f} g/cm³   |   celda "
+    L = ["--- Amorphous solid by melt-quench ---",
+         f"Composition: {at.get_chemical_formula()} ({len(at)} atoms)",
+         f"Density: {res.densidad:.4f} g/cm³   |   cell "
          f"{np.linalg.norm(at.cell.array[0]):.3f} Å",
-         f"Potencial: {res.modelo}   |   {p.ps_totales:.2f} ps en "
+         f"Potential: {res.modelo}   |   {p.ps_totales:.2f} ps in "
          f"{res.segundos / 60:.1f} min",
          "",
-         f"Protocolo: fundir a {p.T_fundido:.0f} K, templar a "
-         f"{p.T_final:.0f} K, recocer",
-         f"  Velocidad de temple: {p.velocidad_temple:.2e} K/s",
+         f"Protocol: melt at {p.T_fundido:.0f} K, quench to "
+         f"{p.T_final:.0f} K, anneal",
+         f"  Quench rate: {p.velocidad_temple:.2e} K/s",
          ""]
     coord = coordinaciones(at)
     especies = sorted(set(simbolos))
-    L.append("Coordinación media (primer vecino, corte por radios "
-             "covalentes):")
+    L.append("Mean coordination (first neighbour, cutoff from covalent "
+             "radii):")
     for a in especies:
         partes = [f"{b}: {coord[(a, b)]:.2f}" for b in especies]
         total = sum(coord[(a, b)] for b in especies)
         L.append(f"  {a:3s} -> {', '.join(partes)}   (total {total:.2f})")
     L.append("")
-    L.append("Distancia media del primer vecino:")
+    L.append("Mean first-neighbour distance:")
     for i, a in enumerate(especies):
         for b in especies[i:]:
             d = distancia_media(at, a, b)
@@ -344,15 +344,15 @@ def report(res: Amorfo) -> str:
 
     if res.temperaturas:
         T_fin = float(np.mean(res.temperaturas[-3:]))
-        L += ["", f"Temperatura final: {T_fin:.0f} K "
-                  f"(objetivo {p.T_final:.0f} K)"]
+        L += ["", f"Final temperature: {T_fin:.0f} K "
+                  f"(target {p.T_final:.0f} K)"]
     L += ["",
-          "Esta estructura viene de un potencial aprendido, NO de DFT. Es un "
-          "punto de\n  partida: relájala con 'olla-dft gen -p relax' antes de "
-          "calcularle nada, y\n  compara varias realizaciones (--seed "
-          "distintas), porque una sola no\n  representa a un amorfo."]
+          "This structure comes from a machine-learned potential, NOT from DFT. It is a "
+          "starting\n  point: relax it with 'olla-dft gen -p relax' before "
+          "computing anything on it, and\n  compare several realizations (different --seed "
+          "values), because a single one does not\n  represent an amorphous solid."]
     for a in res.avisos:
-        L.append(f"\nAVISO: {a}")
+        L.append(f"\nWARNING: {a}")
     return "\n".join(L)
 
 
@@ -367,12 +367,12 @@ def export(res: Amorfo, outdir: str = ".") -> list:
     dat = out / "AMORFO.dat"
     p = res.protocolo
     lineas = [provenance.header(
-        "solido amorfo por fundido y temple",
+        "amorphous solid by melt-quench",
         {"modelo": res.modelo, "densidad_g_cm3": f"{res.densidad:.4f}",
          "T_fundido_K": p.T_fundido, "T_final_K": p.T_final,
          "velocidad_temple_K_s": f"{p.velocidad_temple:.3e}",
          "ps": f"{p.ps_totales:.3f}"}),
-        f"# {'muestra':>8s} {'T(K)':>10s} {'E(eV)':>16s}"]
+        f"# {'sample':>8s} {'T(K)':>10s} {'E(eV)':>16s}"]
     for i, (T, e) in enumerate(zip(res.temperaturas, res.energias), 1):
         lineas.append(f"{i:10d} {T:10.2f} {e:16.6f}")
     dat.write_text("\n".join(lineas) + "\n")

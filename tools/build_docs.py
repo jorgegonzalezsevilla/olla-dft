@@ -56,6 +56,18 @@ TEXTOS = {
         "default": "default",
         "indice": "## Index",
     },
+    "de": {
+        "titulo": "# Olla-DFT-Befehlsreferenz",
+        "intro": "Die {n} Unterbefehle von `olla-dft`, nach Themen gruppiert. "
+                 "Aus dem Programmcode erzeugt mit `python tools/build_docs.py`. "
+                 "Hilfe: `olla-dft COMMAND --help --language de`; "
+                 "HTML-Referenz: `olla-dft docs --language de`. "
+                 "Wissenschaftliche Berichte und die ausführliche Theorie sind auf Englisch.",
+        "uso": "Verwendung", "argumentos": "Argumente", "opciones": "Optionen",
+        "teoria": "Wissenschaftliche Grundlagen (Englisch)", "ninguno": "(keine)",
+        "col": "| Option | Beschreibung |\n|---|---|",
+        "default": "Standard", "indice": "## Inhalt",
+    },
 }
 
 
@@ -127,6 +139,8 @@ NOMBRES = {"es": ("TEORIA.md", "COMANDOS.md"), "en": ("THEORY.md", "COMMANDS.md"
 
 
 def salidas(language: str) -> dict:
+    if language == "de":
+        return {DOCS / "BEFEHLE.md": comandos_md(language)}
     teoria, comandos = NOMBRES[language]
     return {DOCS / teoria: theory.documento(language),
             DOCS / comandos: comandos_md(language)}
@@ -135,7 +149,7 @@ def salidas(language: str) -> dict:
 def main(argv=None) -> int:
     import sys
     argv = sys.argv[1:] if argv is None else argv
-    idiomas = ("es", "en")
+    idiomas = ("es", "en", "de")
     DOCS.mkdir(parents=True, exist_ok=True)
     todas = {}
     for lang in idiomas:

@@ -176,11 +176,11 @@ def descriptores_de_input(ruta) -> dict:
                 d["nk"] = max(1, int(resto[0].split()[0]))
             except (ValueError, IndexError):
                 d["nk"] = 1
-    d["nk_fuente"] = "simetría estimada (spglib)"
+    d["nk_fuente"] = "symmetry estimate (spglib)"
     real = nk_de_salida(ruta.parent)
     if real:
         d["nk"] = real
-        d["nk_fuente"] = "el que usó pw.x"
+        d["nk_fuente"] = "the one pw.x used"
     d["npw"] = n_ondas_planas(d["volumen"], d["ecutwfc"])
     return d
 
@@ -486,19 +486,19 @@ def estimar_barrido(jobs: list, modelo: Modelo, paralelo: int = 1,
     # estimación por simetría, que es la parte más floja del modelo.
     if db_path:
         for _, d in descs:
-            if d.get("nk_fuente", "").startswith("el que"):
+            if d.get("nk_fuente", "").startswith(("the one", "el que")):
                 continue
             n = nk_de_historial(db_path, d.get("formula"), d.get("malla"))
             if n:
                 d["nk"] = n
-                d["nk_fuente"] = "el que usó pw.x en un cálculo igual anterior"
-    reales = [d["nk"] for _, d in descs if d.get("nk_fuente", "").startswith("el que")]
+                d["nk_fuente"] = "the one pw.x used in an identical earlier calculation"
+    reales = [d["nk"] for _, d in descs if d.get("nk_fuente", "").startswith(("the one", "el que"))]
     if reales:
         real = int(statistics.median(reales))
         for _, d in descs:
-            if not d.get("nk_fuente", "").startswith("el que"):
+            if not d.get("nk_fuente", "").startswith(("the one", "el que")):
                 d["nk"] = real
-                d["nk_fuente"] = "el que usó pw.x en otro punto del barrido"
+                d["nk_fuente"] = "the one pw.x used at another point of the sweep"
     for job, d in descs:
         e = estimar(d, modelo)
         detalle.append((job, d, e))
@@ -519,121 +519,121 @@ def humano(segundos) -> str:
         return f"{s / 60:.0f} min"
     if s < 172800:
         return f"{s / 3600:.1f} h"
-    return f"{s / 86400:.1f} días"
+    return f"{s / 86400:.1f} days"
 
 
 def report(est: dict, modelo: Modelo) -> str:
     det = est["detalle"]
-    L = ["--- Coste estimado ---"]
+    L = ["--- Estimated cost ---"]
     if not det:
-        return "No pude leer los inputs del barrido para estimar su coste."
+        return "Could not read the sweep inputs to estimate its cost."
     if not modelo.calibrado:
         n_at = det[0][1].get("nat", 0)
-        L += [f"{len(det)} cálculos, el primero de {n_at} átomos, "
-              f"{det[0][1].get('nk', 1)} puntos k irreducibles y "
-              f"{det[0][1].get('npw', 0):.0f} ondas planas.",
+        L += [f"{len(det)} calculations, the first one with {n_at} atoms, "
+              f"{det[0][1].get('nk', 1)} irreducible k-points and "
+              f"{det[0][1].get('npw', 0):.0f} plane waves.",
               "",
-              "No hay con qué calibrar: la base de cálculos está vacía o no "
-              "guarda tiempos.",
-              "  El modelo sabe la FORMA del coste pero no la velocidad de "
-              "esta máquina.",
-              "  Corre un barrido pequeño, indéxalo con  olla-dft db CARPETA  y "
-              "vuelve a preguntar:",
-              "  a partir de ahí las estimaciones son tuyas, no de una tabla "
-              "genérica."]
+              "Nothing to calibrate with: the calculation database is empty or does not "
+              "store timings.",
+              "  The model knows the SHAPE of the cost but not the speed of "
+              "this machine.",
+              "  Run a small sweep, index it with  olla-dft db FOLDER  and "
+              "ask again:",
+              "  from then on the estimates are yours, not from a generic "
+              "table."]
         return "\n".join(L)
 
     peor = max(det, key=lambda t: t[2]["segundos"] or 0)
     fuentes = {d.get("nk_fuente", "?") for _, d, _ in det}
     det[0][1].get("calculation", "scf")
     ion = det[0][2].get("pasos_ionicos") or 1.0
-    L += [f"{len(det)} cálculos.  Calibrado con {modelo.n} cálculos tuyos "
-          f"anteriores.",
-          f"Puntos k: {det[0][1].get('nk', 1)} ({'; '.join(sorted(fuentes))}).",
-          f"Se suponen {modelo.n_scf_mediana:.0f} iteraciones scf"
-          + (f" por cada uno de {ion:.0f} pasos iónicos" if ion > 1 else "")
-          + " (medianas de tu historial).",
+    L += [f"{len(det)} calculations.  Calibrated with {modelo.n} of your earlier "
+          f"calculations.",
+          f"k-points: {det[0][1].get('nk', 1)} ({'; '.join(sorted(fuentes))}).",
+          f"Assuming {modelo.n_scf_mediana:.0f} scf iterations"
+          + (f" for each of {ion:.0f} ionic steps" if ion > 1 else "")
+          + " (medians of your history).",
           ""]
-    L.append(f"  {'tiempo total en serie':<26s} {humano(est['serie_s']):>10s}")
+    L.append(f"  {'total time in series':<26s} {humano(est['serie_s']):>10s}")
     if est["paralelo"] > 1:
-        L.append(f"  {'con ' + str(est['paralelo']) + ' a la vez':<26s} "
+        L.append(f"  {'with ' + str(est['paralelo']) + ' at a time':<26s} "
                  f"{humano(est['pared_s']):>10s}")
-    L.append(f"  {'el más caro':<26s} "
+    L.append(f"  {'the most expensive':<26s} "
              f"{humano(peor[2]['segundos']):>10s}   ({peor[0].name})")
     if modelo.dispersion:
         lo = est["serie_s"] / modelo.dispersion / est["paralelo"]
         hi = est["serie_s"] * modelo.dispersion / est["paralelo"]
-        origen = ("medida dejando fuera cada uno de tus "
-                  f"{modelo.n_sistemas} sistemas y prediciéndolo con los demás"
+        origen = ("measured by leaving out each of your "
+                  f"{modelo.n_sistemas} systems and predicting it with the rest"
                   if modelo.validado else
-                  "residuo del ajuste, que es optimista: no hay bastantes "
-                  "sistemas distintos\n  para validarlo dejando uno fuera")
+                  "residual of the fit, which is optimistic: there are not enough "
+                  "distinct systems\n  to validate it by leaving one out")
         L += ["",
-              f"Rango razonable: de {humano(lo)} a {humano(hi)}  "
-              f"(dispersión x{modelo.dispersion:.1f}).",
+              f"Reasonable range: from {humano(lo)} to {humano(hi)}  "
+              f"(spread x{modelo.dispersion:.1f}).",
               f"  {origen}.",
-              "  Esta herramienta distingue diez minutos de seis horas, que es "
-              "la decisión que\n  de verdad se toma. No es un cronómetro."]
+              "  This tool tells ten minutes from six hours, which is "
+              "the decision that\n  is actually made. It is not a stopwatch."]
     if not modelo.extrapola_bien:
-        L.append("\nTu historial es poco variado (los cálculos indexados se "
-                 "parecen entre sí: el más\n  caro trabaja "
-                 f"{modelo.rango:.0f} veces más que el más barato). La "
-                 "constante está bien ajustada,\n  pero predecir un sistema "
-                 "de otro tamaño puede irse por un factor dos. Indexa\n"
-                 "  cálculos de tamaños distintos y esto mejora solo.")
+        L.append("\nYour history has little variety (the indexed calculations "
+                 "resemble each other: the most\n  expensive does "
+                 f"{modelo.rango:.0f} times more work than the cheapest). The "
+                 "constant is well fitted,\n  but predicting a system "
+                 "of another size may be off by a factor of two. Index\n"
+                 "  calculations of different sizes and this improves by itself.")
     if any("spglib" in f for f in fuentes):
-        L.append("\nLos puntos k son una estimación por simetría. pw.x no "
-                 "siempre encuentra las\n  mismas operaciones que spglib, y "
-                 "ahí se va un factor dos o tres. En cuanto\n  corras el "
-                 "primer punto, la estimación del resto usa su número real.")
+        L.append("\nThe k-points are a symmetry estimate. pw.x does not "
+                 "always find the\n  same operations as spglib, and "
+                 "a factor of two or three goes there. As soon as\n  you run the "
+                 "first point, the estimate for the rest uses its real number.")
     if modelo.n < 8:
-        L.append(f"\nSolo hay {modelo.n} cálculos en la base: la calibración "
-                 "es floja. Con quince o veinte\n  cálculos indexados la "
-                 "estimación se estrecha bastante.")
+        L.append(f"\nThere are only {modelo.n} calculations in the database: the calibration "
+                 "is weak. With fifteen or twenty\n  indexed calculations the "
+                 "estimate narrows considerably.")
     return "\n".join(L)
 
 
 def report_modelo(m: Modelo) -> str:
     """Qué sabe el modelo de esta máquina y cuánto se equivoca."""
-    L = ["--- Modelo de coste ---", f"Base: {m.fuente}"]
+    L = ["--- Cost model ---", f"Database: {m.fuente}"]
     if not m.calibrado:
         return "\n".join(L + [
             "",
-            "Sin calibrar: la base no tiene cálculos con tiempo de pared.",
-            "  Indexa carpetas ya corridas con  olla-dft db CARPETA...  y vuelve.",
+            "Not calibrated: the database has no calculations with wall time.",
+            "  Index folders that have already run with  olla-dft db FOLDER...  and come back.",
         ])
-    L += [f"Calibrado con {m.n} cálculos de {m.n_sistemas} sistemas distintos.",
-          f"El más caro trabaja {m.rango:.0f} veces más que el más barato.",
+    L += [f"Calibrated with {m.n} calculations from {m.n_sistemas} distinct systems.",
+          f"The most expensive does {m.rango:.0f} times more work than the cheapest.",
           "",
-          "Coeficientes (t = t0 + C1·w1 + C2·w2, por iteración):",
-          f"  t0 = {m.t0:8.2f} s      arrancar, leer pseudos, simetría, escribir",
-          f"  C1 = {m.C1:8.2e}      FFT, una por banda",
-          f"  C2 = {m.C2 or 0.0:8.2e}      ortogonalizar, va con bandas²",
+          "Coefficients (t = t0 + C1·w1 + C2·w2, per iteration):",
+          f"  t0 = {m.t0:8.2f} s      startup, reading pseudos, symmetry, writing",
+          f"  C1 = {m.C1:8.2e}      FFT, one per band",
+          f"  C2 = {m.C2 or 0.0:8.2e}      orthogonalization, scales as bands²",
           "",
-          f"Iteraciones scf típicas: {m.n_scf_mediana:.0f}"]
+          f"Typical scf iterations: {m.n_scf_mediana:.0f}"]
     ion = {k: v for k, v in sorted(m.pasos_ionicos.items()) if v > 1}
     if ion:
-        L.append("Pasos iónicos aprendidos: "
+        L.append("Learned ionic steps: "
                  + ", ".join(f"{k} = {v:.0f}" for k, v in ion.items()))
-    L += ["", "Precisión:"]
+    L += ["", "Accuracy:"]
     if m.validado:
-        L += [f"  dispersión  x{m.dispersion:.2f}   sesgo  x{m.sesgo:.2f}",
-              f"  Medida dejando fuera cada uno de los {m.n_sistemas} sistemas "
-              "y prediciéndolo con\n  los demás. Es la pregunta real: cuánto "
-              "me equivocaré con algo que aún no he hecho."]
+        L += [f"  spread  x{m.dispersion:.2f}   bias  x{m.sesgo:.2f}",
+              f"  Measured by leaving out each of the {m.n_sistemas} systems "
+              "and predicting it with\n  the rest. It is the real question: how much "
+              "will I be off on something I have not done yet."]
         if m.sesgo and abs(math.log(m.sesgo)) > 0.15:
-            direccion = "corto" if m.sesgo < 1 else "largo"
-            L.append(f"  El modelo se queda {direccion} de media un "
-                     f"{abs(1 - m.sesgo) * 100:.0f} %. Es el pesimismo normal "
-                     f"de dejar\n  un sistema fuera; con más variedad en la "
-                     f"base se encoge.")
+            direccion = "short" if m.sesgo < 1 else "long"
+            L.append(f"  The model falls {direccion} on average by "
+                     f"{abs(1 - m.sesgo) * 100:.0f} %. It is the normal pessimism "
+                     f"of leaving\n  a system out; with more variety in the "
+                     f"database it shrinks.")
     else:
-        L += [f"  dispersión  x{m.dispersion:.2f}  (residuo del ajuste)",
-              f"  Solo hay {m.n_sistemas} sistema(s) distinto(s): no da para "
-              "validar dejando uno fuera,\n  así que este número es "
-              "optimista. Indexa cálculos más variados."]
+        L += [f"  spread  x{m.dispersion:.2f}  (residual of the fit)",
+              f"  There are only {m.n_sistemas} distinct system(s): not enough to "
+              "validate by leaving one out,\n  so this number is "
+              "optimistic. Index more varied calculations."]
     if not m.extrapola_bien:
-        L.append("\n  Aviso: el historial es poco variado. La escala está "
-                 "bien ajustada, pero\n  predecir un sistema de otro tamaño "
-                 "puede irse por un factor dos.")
+        L.append("\n  Warning: the history has little variety. The scale is "
+                 "well fitted, but\n  predicting a system of another size "
+                 "may be off by a factor of two.")
     return "\n".join(L)

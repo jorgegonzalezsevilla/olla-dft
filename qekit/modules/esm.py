@@ -64,9 +64,9 @@ from qekit.core.errors import ErrorDeUso, FaltanDatos
 from qekit.core import style as qstyle
 
 BC = {
-    "bc1": "vacío / vacío — losas neutras",
-    "bc2": "metal / metal — condensador, admite campo aplicado",
-    "bc3": "vacío / metal — electrodo, para superficies cargadas",
+    "bc1": "vacuum / vacuum — neutral slabs",
+    "bc2": "metal / metal — capacitor, admits an applied field",
+    "bc3": "vacuum / metal — electrode, for charged surfaces",
 }
 # margen (Å) desde el borde de la losa al empezar a promediar el vacío
 MARGEN_VACIO = 2.0
@@ -104,48 +104,48 @@ def comprobar(atoms, bc="bc1", cargas=(0.0,), eje=2):
     bc = str(bc).lower()
     if bc not in BC:
         raise ErrorDeUso(
-            f"condición de contorno '{bc}' desconocida. Las que hay:\n  "
+            f"unknown boundary condition '{bc}'. Available:\n  "
             + "\n  ".join(f"{k}: {v}" for k, v in BC.items()))
     cargas = [float(q) for q in cargas]
     if bc == "bc1" and any(abs(q) > 1e-12 for q in cargas):
         raise ErrorDeUso(
-            "bc1 es vacío por los dos lados, y una losa cargada rodeada de "
-            "vacío tiene un campo\nque llega al infinito: la energía diverge "
-            "y el problema no está bien planteado.\npw.x calcula algo de "
-            "todas formas (salieron −379 y −677 Ry para la misma losa con "
-            "dos\nvacíos distintos). Para una superficie cargada usa "
-            "--bc bc3, que pone un electrodo\nmetálico al otro lado y le da "
-            "la contracarga.")
+            "bc1 is vacuum on both sides, and a charged slab surrounded by "
+            "vacuum has a field\nthat extends to infinity: the energy diverges "
+            "and the problem is not well posed.\npw.x computes something "
+            "anyway (−379 and −677 Ry came out for the same slab with "
+            "two\ndifferent vacuums). For a charged surface use "
+            "--bc bc3, which places a metallic electrode\non the other side and gives it "
+            "the countercharge.")
 
     cell = np.array(atoms.cell.array, float)
     otros = [i for i in range(3) if i != int(eje)]
     for i in otros:
         if abs(cell[i, int(eje)]) > 1e-6:
             raise ErrorDeUso(
-                "ESM exige que la celda sea ortogonal en z: los vectores a y "
-                "b tienen que estar\nen el plano xy. El tuyo tiene componente "
-                "z. Reorienta la celda antes.")
+                "ESM requires the cell to be orthogonal along z: vectors a and "
+                "b have to lie\nin the xy plane. Yours has a z "
+                "component. Reorient the cell first.")
     esp, vac = espesor_y_vacio(atoms, eje)
     if vac < VACIO_MINIMO:
         avisos.append(
-            f"Solo quedan {vac:.1f} Å de vacío. Con ESM no hace falta mucho, "
-            f"pero sí lo bastante\n  para que la densidad electrónica llegue "
-            f"a cero antes de la frontera: {VACIO_MINIMO:.0f} Å es el mínimo "
-            f"razonable.")
+            f"Only {vac:.1f} Å of vacuum remain. With ESM not much is needed, "
+            f"but enough\n  for the electron density to reach "
+            f"zero before the boundary: {VACIO_MINIMO:.0f} Å is the reasonable "
+            f"minimum.")
     z = atoms.get_positions()[:, int(eje)]
     if abs(0.5 * (z.min() + z.max())) > 0.05:
         avisos.append(
-            "La losa no estaba centrada en z = 0 y se ha centrado. ESM mide z "
-            "desde el CENTRO\n  de la celda, no desde el origen: una losa "
-            "dejada en c/2 (lo que hace ASE) cae\n  sobre la frontera de ESM "
-            "y el resultado es basura sin ningún mensaje de error.")
+            "The slab was not centred at z = 0 and has been centred. ESM measures z "
+            "from the CENTRE\n  of the cell, not from the origin: a slab "
+            "left at c/2 (what ASE does) falls\n  on the ESM boundary "
+            "and the result is garbage without any error message.")
     if bc in ("bc2", "bc3") and any(abs(q) > 1e-12 for q in cargas):
         avisos.append(
-            f"Con {bc} y carga neta, el vacío NO es un parámetro de "
-            f"convergencia: es la distancia\n  al contraelectrodo, y entra en "
-            f"la respuesta. La energía y E_F crecen linealmente\n  con él "
-            f"(medido en Al(111): 0.15 Ry y 20 eV por cada 4 Å). Elige la "
-            f"distancia y\n  dila; no la 'converjas'.")
+            f"With {bc} and net charge, the vacuum is NOT a convergence "
+            f"parameter: it is the distance\n  to the counter-electrode, and it enters "
+            f"the answer. The energy and E_F grow linearly\n  with it "
+            f"(measured in Al(111): 0.15 Ry and 20 eV per 4 Å). Choose the "
+            f"distance and\n  state it; do not 'converge' it.")
     return avisos
 
 
@@ -156,9 +156,9 @@ def leer_esm1(ruta):
         cand = sorted(p.rglob("*.esm1"))
         if not cand:
             raise FaltanDatos(
-                f"en {p} no hay ningún archivo .esm1. Lo escribe pw.x cuando "
-                f"corre con\n  assume_isolated = 'esm'; si no está, el "
-                f"cálculo no usó ESM.")
+                f"in {p} there is no .esm1 file. pw.x writes it when "
+                f"it runs with\n  assume_isolated = 'esm'; if it is missing, the "
+                f"calculation did not use ESM.")
         p = cand[0]
     d = np.loadtxt(p)
     return {"z": d[:, 0], "carga": d[:, 1], "v_hartree": d[:, 2],
@@ -206,9 +206,9 @@ def nivel_vacio(perfil, espesor=None, margen=MARGEN_VACIO, lado=None,
     m = mejor
     if m is None:
         raise FaltanDatos(
-            "no queda región de vacío suficiente para promediar el "
-            "potencial: la losa llena\n  casi toda la celda. Con ESM basta "
-            "poco vacío, pero hace falta ALGO: unos 6 Å.")
+            "not enough vacuum region left to average the "
+            "potential: the slab fills\n  almost the whole cell. With ESM little "
+            "vacuum is enough, but SOME is needed: about 6 Å.")
     return float(v[m].mean()), float(v[m].std()), int(m.sum())
 
 
@@ -350,25 +350,25 @@ def prepare(atoms, outdir="esm", bc="bc1", cargas=(0.0,), campo=0.0,
                             meta={"carga": q}))
 
     sweep.write_run_script(run.jobs, out / "run.sh")
-    rep = [f"--- Superficie con ESM: {run.formula} ---",
-           f"Condición de contorno: {run.bc} — {BC[run.bc]}",
-           f"Losa de {esp:.2f} Å con {vac:.2f} Å de vacío   |   "
-           f"área {area:.3f} Å²",
-           f"Cargas: {', '.join(f'{q:+g}' for q in cargas)} e",
+    rep = [f"--- Surface with ESM: {run.formula} ---",
+           f"Boundary condition: {run.bc} — {BC[run.bc]}",
+           f"Slab of {esp:.2f} Å with {vac:.2f} Å of vacuum   |   "
+           f"area {area:.3f} Å²",
+           f"Charges: {', '.join(f'{q:+g}' for q in cargas)} e",
            ""]
     if run.bc == "bc1":
-        rep += ["Con bc1 el nivel de vacío vale CERO por construcción: la "
-                "función trabajo es",
-                "directamente −E_F, sin ajustar ninguna meseta. Y deja de "
-                "depender del vacío:",
-                "en Al(111) la energía cambia 6·10⁻⁶ Ry entre 8 y 16 Å, así "
-                "que se puede usar",
-                "media celda y ahorrarse la mitad del cálculo.", ""]
-    rep += [f"Archivos en '{out.resolve()}':",
-            f"  q00..q{len(cargas) - 1:02d}/   un scf por carga",
-            "  ./run.sh        los lanza todos",
+        rep += ["With bc1 the vacuum level is ZERO by construction: the "
+                "work function is",
+                "directly −E_F, with no plateau to fit. And it stops "
+                "depending on the vacuum:",
+                "in Al(111) the energy changes by 6·10⁻⁶ Ry between 8 and 16 Å, so "
+                "one can use",
+                "half a cell and save half the calculation.", ""]
+    rep += [f"Files in '{out.resolve()}':",
+            f"  q00..q{len(cargas) - 1:02d}/   one scf per charge",
+            "  ./run.sh        launches them all",
             "",
-            f"Luego: olla-dft esm <losa> --collect -o {out}"]
+            f"Then: olla-dft esm <slab> --collect -o {out}"]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -382,16 +382,16 @@ def collect(run, outdir="esm"):
     dirs = [Path(j.directory) for j in run.jobs] if run.jobs else \
         sorted(p for p in out.glob("q[0-9][0-9]") if p.is_dir())
     if not dirs:
-        raise FaltanDatos(f"en {out} no hay carpetas q00, q01...")
+        raise FaltanDatos(f"in {out} there are no folders q00, q01...")
     run.energias, run.fermis, run.perfiles, run.vac, run.phi = [], [], [], [], []
     for d in dirs:
         try:
             res = qeout.read_xml(str(d))
         except Exception as exc:                            # noqa: BLE001
             raise FaltanDatos(
-                f"no puedo leer el resultado de {d.name}: {exc}.\n  ¿Corriste "
-                f"los cálculos? `bash run.sh` dentro de la carpeta, o el "
-                f"mismo comando con --run.") from None
+                f"cannot read the result of {d.name}: {exc}.\n  Did you run "
+                f"the calculations? `bash run.sh` inside the folder, or the "
+                f"same command with --run.") from None
         run.energias.append(float(res.total_energy)
                             if res.total_energy is not None else float("nan"))
         run.fermis.append(float(res.fermi) if res.fermi is not None
@@ -411,14 +411,14 @@ def collect(run, outdir="esm"):
 
 
 def report(run) -> str:
-    L = [f"--- Superficie con ESM: {run.formula} ---",
-         f"Condición de contorno: {run.bc} — {BC.get(run.bc, '')}",
-         f"Losa de {run.espesor:.2f} Å con {run.vacio:.2f} Å de vacío   |   "
-         f"área {run.area:.3f} Å²"]
+    L = [f"--- Surface with ESM: {run.formula} ---",
+         f"Boundary condition: {run.bc} — {BC.get(run.bc, '')}",
+         f"Slab of {run.espesor:.2f} Å with {run.vacio:.2f} Å of vacuum   |   "
+         f"area {run.area:.3f} Å²"]
     if run.bc == "bc2" and run.campo:
-        L.append(f"Campo aplicado: {run.campo:g} Ry/u.a.")
+        L.append(f"Applied field: {run.campo:g} Ry/a.u.")
     if not run.energias:
-        L += ["", "Todavía no hay resultados."]
+        L += ["", "No results yet."]
     else:
         L += ["", "   q (e)     E (eV)        E_F (eV)   V_vac (eV)   "
                   "Φ (eV)"]
@@ -428,12 +428,12 @@ def report(run) -> str:
                      f"{p:9.4f}")
         if run.bc == "bc1":
             peor = max(abs(v) for v in run.vac)
-            L += ["", f"Nivel de vacío: |V| ≤ {peor:.1e} eV"
-                      + ("  ✓ (bc1 lo fija a cero; que salga cero quiere "
-                         "decir que la losa no toca la frontera)"
+            L += ["", f"Vacuum level: |V| ≤ {peor:.1e} eV"
+                      + ("  ✓ (bc1 fixes it to zero; getting zero means "
+                         "the slab does not touch the boundary)"
                          if peor < 1e-3 else
-                         "  ← no es cero: la losa está tocando la frontera "
-                         "de ESM")]
+                         "  ← not zero: the slab is touching the ESM "
+                         "boundary")]
         if len(run.cargas) > 1:
             # La capacitancia sale del VOLTAJE de la celda (el nivel de vacío
             # respecto de la frontera de ESM), no de la función trabajo. Φ
@@ -443,57 +443,57 @@ def report(run) -> str:
             okv, desvv = linealidad(run.cargas, run.vac)
             if okv:
                 Cv, r2v = capacitancia(run.cargas, run.vac, run.area)
-                L += ["", "Voltaje de la celda (nivel de vacío respecto de "
-                          "la frontera de ESM):",
+                L += ["", "Cell voltage (vacuum level relative to "
+                          "the ESM boundary):",
                       f"  C = dq/dV = {abs(Cv):.3f} µF/cm²"
-                      + (f"   (ajuste lineal, R² = {r2v:.6f})"
+                      + (f"   (linear fit, R² = {r2v:.6f})"
                          if r2v is not None else ""),
-                      "  Es la capacitancia DE ESTE MONTAJE —losa más hueco "
-                      "hasta el electrodo—, no una",
-                      "  propiedad del material: cambia si cambias el vacío. "
-                      "Compárala con ε₀/d antes",
-                      "  de creértela."]
+                      "  This is the capacitance OF THIS SETUP —slab plus gap "
+                      "up to the electrode—, not a",
+                      "  property of the material: it changes if you change the vacuum. "
+                      "Compare it with ε₀/d before",
+                      "  trusting it."]
             ok, desv = linealidad(run.cargas, run.phi)
             if ok:
                 C, r2 = capacitancia(run.cargas, run.phi, run.area)
                 pzc = potencial_de_carga_cero(run.cargas, run.phi)
-                L += ["", f"Capacitancia  C = dq/dΦ = {C:.2f} µF/cm²"
-                          + (f"   (ajuste lineal, R² = {r2:.6f})"
+                L += ["", f"Capacitance  C = dq/dΦ = {C:.2f} µF/cm²"
+                          + (f"   (linear fit, R² = {r2:.6f})"
                              if r2 is not None else ""),
-                      f"Potencial de carga cero: Φ = {pzc:.4f} eV",
-                      "  Con bc2 o bc3 la capacitancia depende de la "
-                      "distancia al contraelectrodo:",
-                      "  es una capacitancia DE ESTE MONTAJE, no una "
-                      "propiedad del material."]
+                      f"Potential of zero charge: Φ = {pzc:.4f} eV",
+                      "  With bc2 or bc3 the capacitance depends on the "
+                      "distance to the counter-electrode:",
+                      "  it is a capacitance OF THIS SETUP, not a "
+                      "property of the material."]
             elif ok is not None:
                 run.avisos.append(
-                    f"Φ(q) = V_vac − E_F NO es una recta: se desvía un "
-                    f"{desv * 100:.0f} % del ajuste lineal, así que\n  no doy "
-                    f"un potencial de carga cero sobre ella. Φ mezcla el "
-                    f"voltaje de la celda con el\n  cambio del dipolo de "
-                    f"superficie al cargarla, y no tiene por qué ser lineal; "
-                    f"la que sí\n  lo es, y de la que sale la capacitancia, "
-                    f"es V_vac.")
+                    f"Φ(q) = V_vac − E_F is NOT a straight line: it deviates by "
+                    f"{desv * 100:.0f} % from the linear fit, so\n  no "
+                    f"potential of zero charge is given from it. Φ mixes the "
+                    f"cell voltage with the\n  change of the surface dipole "
+                    f"on charging, and need not be linear; "
+                    f"the one that is,\n  and from which the capacitance comes, "
+                    f"is V_vac.")
             run.avisos.append(
-                "La capacitancia de arriba es la de ESTE montaje. Se "
-                "comprobó que obedece la ley\n  del condensador plano: en "
-                "Al(111), 1/C frente a la distancia al electrodo sale una "
-                "recta\n  de pendiente 1/ε₀ con un 0.4 % de error y "
-                "R² = 0.99998 entre 4 y 11 Å. Eso valida la\n  fórmula y la "
-                "condición de contorno; NO valida que tu montaje represente "
-                "la\n  interfaz que te interesa, que es otra cosa y "
-                "depende de ti.")
-            L += ["", "Sobre las ENERGÍAS de estas filas: con carga neta no "
-                      "son comparables entre sí.",
-                  "Cada una tiene distinto número de electrones, y además la "
-                  "energía de ESM incluye",
-                  "la interacción con la carga imagen del electrodo, que "
-                  "crece como q². Este módulo",
-                  "da el perfil de potencial y Φ(q), que sí están bien "
-                  "definidos; no lo uses para",
-                  "restar energías de superficies con cargas distintas."]
+                "The capacitance above is that of THIS setup. It was "
+                "verified to obey the\n  parallel-plate capacitor law: in "
+                "Al(111), 1/C versus the distance to the electrode is a "
+                "straight line\n  of slope 1/ε₀ with 0.4 % error and "
+                "R² = 0.99998 between 4 and 11 Å. That validates the\n  "
+                "formula and the boundary condition; it does NOT validate that your setup represents "
+                "the\n  interface you care about, which is another matter and "
+                "depends on you.")
+            L += ["", "About the ENERGIES in these rows: with net charge they "
+                      "are not comparable with each other.",
+                  "Each one has a different number of electrons, and moreover the "
+                  "ESM energy includes",
+                  "the interaction with the image charge of the electrode, which "
+                  "grows as q². This module",
+                  "gives the potential profile and Φ(q), which are well "
+                  "defined; do not use it to",
+                  "subtract energies of surfaces with different charges."]
     for a in run.avisos:
-        L += ["", f"AVISO: {a}"]
+        L += ["", f"WARNING: {a}"]
     return "\n".join(L)
 
 
@@ -509,7 +509,7 @@ def export(run, outdir="esm") -> list:
     for i, p in enumerate(run.perfiles):
         f = out / f"ESM_perfil_q{i:02d}.dat"
         np.savetxt(f, np.column_stack([p["z"], p["carga"], p["v_total"]]),
-                   fmt="%14.6f", header="z(A)   carga(e/A)   v_tot(eV)")
+                   fmt="%14.6f", header="z(A)   charge(e/A)   v_tot(eV)")
         escritos.append(str(f))
     f = out / "ESM.txt"
     f.write_text(report(run) + "\n", encoding="utf-8")
@@ -526,9 +526,9 @@ def plot(run, outfile="esm", formats="pdf,png", theme=None, size=None,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     if not run.perfiles:
-        raise FaltanDatos("no hay perfiles que dibujar.")
+        raise FaltanDatos("there are no profiles to draw.")
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
     cols = qstyle.palette(max(3, len(run.perfiles)), mono=mono)
@@ -539,8 +539,8 @@ def plot(run, outfile="esm", formats="pdf,png", theme=None, size=None,
     zs = run.perfiles[0]["z"]
     ax.axvspan(-run.espesor / 2, run.espesor / 2, color="0.5", alpha=0.12,
                lw=0, zorder=0)
-    ax.set_xlabel("z (Å)   —   la losa está en la banda gris")
-    ax.set_ylabel("potencial promediado en el plano (eV)")
+    ax.set_xlabel("z (Å)   —   the slab is in the grey band")
+    ax.set_ylabel("plane-averaged potential (eV)")
     ax.set_xlim(float(zs.min()), float(zs.max()))
     if len(run.perfiles) > 1:
         ax.legend(frameon=False, fontsize=st["legend"])
@@ -559,7 +559,7 @@ def plot(run, outfile="esm", formats="pdf,png", theme=None, size=None,
                          textcoords="offset points", xytext=(6, 6),
                          fontsize=st["legend"], color=cols[1])
         ax2.set_xlabel(r"$\Phi$ (eV)")
-        ax2.set_ylabel("q (e por celda)")
+        ax2.set_ylabel("q (e per cell)")
         escritos += qstyle.save(fig2, str(outfile) + "_carga", formats,
                                 dpi=dpi, modulo="esm")
         plt.close(fig2)

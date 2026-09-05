@@ -160,10 +160,10 @@ def kpath_card(kpath: KPath, points_per_segment: int = 20) -> tuple:
 def kpath_text(kpath: KPath) -> str:
     """Resumen legible del k-path para mostrar al usuario."""
     lines = [
-        "--- Camino de alta simetría (seekpath) ---",
-        f"Grupo espacial: {kpath.spacegroup} (N.º {kpath.spacegroup_number})",
+        "--- High-symmetry path (seekpath) ---",
+        f"Space group: {kpath.spacegroup} (No. {kpath.spacegroup_number})",
         "",
-        "Camino:",
+        "Path:",
     ]
     # compactar: G-X-U | K-G-L ...
     chunks = []
@@ -180,7 +180,7 @@ def kpath_text(kpath: KPath) -> str:
         chunks.append(current)
     for chunk in chunks:
         lines.append("  " + " — ".join(pretty_label(p) for p in chunk))
-    lines += ["", "Puntos especiales (coordenadas fraccionarias de la celda primitiva):"]
+    lines += ["", "Special points (fractional coordinates of the primitive cell):"]
     seen = []
     for start, end in kpath.path:
         for label in (start, end):
@@ -192,8 +192,8 @@ def kpath_text(kpath: KPath) -> str:
     if kpath.cell_changed:
         lines += [
             "",
-            "AVISO: el k-path está referido a la celda primitiva estandarizada,",
-            "que difiere de la celda de entrada. Usa esa celda primitiva en el",
-            "cálculo de bandas (Olla-DFT lo hace automáticamente con 'olla-dft gen').",
+            "WARNING: the k-path refers to the standardized primitive cell,",
+            "which differs from the input cell. Use that primitive cell in the",
+            "band-structure calculation (Olla-DFT does it automatically with 'olla-dft gen').",
         ]
     return "\n".join(lines)

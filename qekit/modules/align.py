@@ -54,13 +54,13 @@ from qekit.core import style as qstyle
 TOL_ALINEADOS = 0.05
 
 TIPOS = {
-    "I": "tipo I (anidado): los dos portadores caen en el mismo material",
-    "II": "tipo II (escalonado): electrón y hueco se separan en materiales "
-          "distintos",
-    "III": "tipo III (roto): los gaps no se solapan; es un semimetal de "
-           "interfaz",
-    "=": "sin offset apreciable: los dos quedan, a efectos prácticos, "
-         "en el mismo sitio",
+    "I": "type I (straddling): both carriers end up in the same material",
+    "II": "type II (staggered): electron and hole separate into different "
+          "materials",
+    "III": "type III (broken): the gaps do not overlap; it is an interface "
+           "semimetal",
+    "=": "no appreciable offset: for practical purposes the two sit "
+         "at the same position",
 }
 
 
@@ -128,7 +128,7 @@ def leer_lado(ruta, nombre: str = None, modo: str = "vacio", eje: int = 2,
         qe = qeout.read_xml(str(ruta))
     except Exception as exc:                                # noqa: BLE001
         raise ErrorDeUso(
-            f"no pude leer un resultado de QE en '{ruta}': {exc}") from None
+            f"could not read a QE result in '{ruta}': {exc}") from None
 
     lado = Lado(nombre=nombre or ruta.name, ruta=str(ruta),
                 vbm=qe.homo, cbm=qe.lumo, fermi=qe.fermi)
@@ -136,9 +136,9 @@ def leer_lado(ruta, nombre: str = None, modo: str = "vacio", eje: int = 2,
         lado.gap = qe.lumo - qe.homo
     if qe.homo is None:
         raise ErrorDeUso(
-            f"'{ruta}' no da un VBM. En un metal no hay banda de valencia que "
-            f"alinear; y si es un aislante, al cálculo le faltan bandas "
-            f"vacías (nbnd) o no usó occupations='fixed'.")
+            f"'{ruta}' does not provide a VBM. In a metal there is no valence "
+            f"band to align; and if it is an insulator, the calculation lacks "
+            f"empty bands (nbnd) or did not use occupations='fixed'.")
     if lado.cbm is None:
         lado.es_metal = True
 
@@ -148,12 +148,12 @@ def leer_lado(ruta, nombre: str = None, modo: str = "vacio", eje: int = 2,
                                   else qe.homo, axis=eje,
                                   positions=qe.positions)
         lado.referencia = wf.v_vacuum
-        lado.ref_tipo = "nivel de vacío"
+        lado.ref_tipo = "vacuum level"
         lado.planitud = wf.flatness
     else:
         z, prof = fields.planar_average(cube, axis=eje)
         lado.referencia = float(np.mean(prof)) * fields.RY_EV
-        lado.ref_tipo = "potencial medio de la celda"
+        lado.ref_tipo = "cell-averaged potential"
         lado.planitud = None
     return lado
 
@@ -194,8 +194,8 @@ def alinear(a: Lado, b: Lado, modo: str = "vacio",
             puente: float = None) -> Alineamiento:
     al = Alineamiento(a=a, b=b, modo=modo, puente=puente)
     if a.vbm_rel is None or b.vbm_rel is None:
-        raise FaltanDatos("falta la referencia de energías de alguno de los "
-                          "dos lados.")
+        raise FaltanDatos("the energy reference of one of the two sides is "
+                          "missing.")
     al.delta_v = a.vbm_rel - b.vbm_rel + (puente or 0.0)
     if a.cbm_rel is not None and b.cbm_rel is not None:
         al.delta_c = a.cbm_rel - b.cbm_rel + (puente or 0.0)
@@ -221,30 +221,30 @@ def alinear(a: Lado, b: Lado, modo: str = "vacio",
     for lado in (a, b):
         if lado.planitud is not None and lado.planitud > 0.05:
             al.avisos.append(
-                f"la meseta de vacío de {lado.nombre} varía "
-                f"{lado.planitud:.3f} eV. O falta vacío, o la losa tiene "
-                f"dipolo neto: usa --dipole al generarla. El nivel de vacío "
-                f"es la referencia de todo esto, así que ese error entra "
-                f"entero en el offset.")
+                f"the vacuum plateau of {lado.nombre} varies by "
+                f"{lado.planitud:.3f} eV. Either the vacuum is insufficient, "
+                f"or the slab has a net dipole: use --dipole when generating "
+                f"it. The vacuum level is the reference for all of this, so "
+                f"that error goes entirely into the offset.")
         if lado.es_metal:
             al.avisos.append(
-                f"{lado.nombre} no tiene CBM: es un metal, o le faltan bandas "
-                f"vacías. Solo se puede dar el offset de valencia.")
+                f"{lado.nombre} has no CBM: it is a metal, or it lacks empty "
+                f"bands. Only the valence offset can be given.")
     if modo == "vacio":
         al.avisos.append(
-            "Modo vacío: son las dos superficies AISLADAS. Al ponerlas en "
-            "contacto se transfiere carga y aparece un dipolo de interfaz que "
-            "desplaza el offset, típicamente entre 0.1 y 0.5 eV. Para incluirlo "
-            "hace falta calcular la interfaz (--mode interfaz).")
+            "Vacuum mode: these are the two ISOLATED surfaces. When brought "
+            "into contact, charge is transferred and an interface dipole "
+            "appears that shifts the offset, typically by 0.1 to 0.5 eV. To "
+            "include it, the interface must be calculated (--mode interfaz).")
     return al
 
 
 def report(al: Alineamiento) -> str:
     a, b = al.a, al.b
-    L = ["--- Alineamiento de bandas ---",
-         f"Modo: {'nivel de vacío' if al.modo == 'vacio' else 'potencial de la interfaz'}",
+    L = ["--- Band alignment ---",
+         f"Mode: {'vacuum level' if al.modo == 'vacio' else 'interface potential'}",
          "",
-         f"  {'':14s} {'VBM':>10s} {'CBM':>10s} {'gap':>9s}   referencia",
+         f"  {'':14s} {'VBM':>10s} {'CBM':>10s} {'gap':>9s}   reference",
          "  " + "-" * 62]
     for lado in (a, b):
         cbm = (f"{lado.cbm_rel:10.4f}" if lado.cbm_rel is not None
@@ -252,39 +252,39 @@ def report(al: Alineamiento) -> str:
         gap = f"{lado.gap:9.4f}" if lado.gap else f"{'—':>9s}"
         L.append(f"  {lado.nombre:14s} {lado.vbm_rel:10.4f} {cbm} {gap}   "
                  f"{lado.ref_tipo}")
-    L.append("  (eV respecto a la referencia de cada lado)")
+    L.append("  (eV relative to the reference of each side)")
 
     if al.puente is not None:
-        L += ["", f"Puente de la interfaz V̄_A − V̄_B = {al.puente:+.4f} eV"]
+        L += ["", f"Interface bridge V̄_A − V̄_B = {al.puente:+.4f} eV"]
 
-    L += ["", f"Offset de valencia   ΔE_v = {al.delta_v:+.4f} eV"]
+    L += ["", f"Valence offset     ΔE_v = {al.delta_v:+.4f} eV"]
     if al.delta_c is not None:
-        L.append(f"Offset de conducción ΔE_c = {al.delta_c:+.4f} eV")
-    L.append(f"  Positivo quiere decir que la banda de {a.nombre} queda por "
-             f"ENCIMA de la de {b.nombre}.")
+        L.append(f"Conduction offset  ΔE_c = {al.delta_c:+.4f} eV")
+    L.append(f"  Positive means that the band of {a.nombre} lies "
+             f"ABOVE that of {b.nombre}.")
 
     if al.tipo:
-        L += ["", f"Alineamiento {TIPOS[al.tipo]}"]
+        L += ["", f"Alignment {TIPOS[al.tipo]}"]
         if al.tipo == "II":
             # el electrón cae al CBM más bajo y el hueco sube al VBM más alto
             quien_e = a.nombre if (al.delta_c or 0) < 0 else b.nombre
             quien_h = a.nombre if (al.delta_v or 0) > 0 else b.nombre
-            L.append(f"  El electrón se va a {quien_e} y el hueco a "
-                     f"{quien_h}: es el alineamiento que sirve para separar "
-                     f"cargas\n  (fotovoltaica, fotocatálisis).")
+            L.append(f"  The electron goes to {quien_e} and the hole to "
+                     f"{quien_h}: this is the alignment useful for separating "
+                     f"charges\n  (photovoltaics, photocatalysis).")
         elif al.tipo == "I":
-            L.append("  Los dos portadores acaban en el mismo material: sirve "
-                     "para confinar\n  y emitir luz, no para separar cargas.")
+            L.append("  Both carriers end up in the same material: useful "
+                     "for confinement\n  and light emission, not for charge separation.")
         elif al.tipo == "=":
-            L.append(f"  Los dos offsets son menores que "
-                     f"{TOL_ALINEADOS:g} eV. Decir de qué tipo es esta unión\n"
-                     f"  sería leer ruido: con funcionales semilocales el "
-                     f"error frente al\n  experimento es de varias décimas.")
+            L.append(f"  Both offsets are smaller than "
+                     f"{TOL_ALINEADOS:g} eV. Assigning a type to this junction\n"
+                     f"  would be reading noise: with semilocal functionals the "
+                     f"error against\n  experiment is several tenths of an eV.")
 
     if al.avisos:
         L.append("")
         for aviso in al.avisos:
-            L.append(f"AVISO: {aviso}")
+            L.append(f"WARNING: {aviso}")
     return "\n".join(L)
 
 
@@ -294,10 +294,10 @@ def export(al: Alineamiento, outdir: str = ".") -> list:
     f.write_text(report(al) + "\n")
     d = out / "ALINEAMIENTO.dat"
     lines = [provenance.header(
-        "alineamiento de bandas",
+        "band alignment",
         {"modo": al.modo, "dEv_eV": al.delta_v, "dEc_eV": al.delta_c,
          "tipo": al.tipo, "puente_eV": al.puente}),
-        f"# {'lado':>14s} {'VBM_rel':>12s} {'CBM_rel':>12s} {'gap':>10s}"]
+        f"# {'side':>14s} {'VBM_rel':>12s} {'CBM_rel':>12s} {'gap':>10s}"]
     for lado in (al.a, al.b):
         lines.append(
             f"{lado.nombre:>16s} {lado.vbm_rel:12.5f} "
@@ -340,9 +340,9 @@ def plot(al: Alineamiento, outfile: str = "alineamiento", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     if al.delta_v is None:
-        raise FaltanDatos("no hay offsets que graficar.")
+        raise FaltanDatos("there are no offsets to plot.")
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -375,12 +375,12 @@ def plot(al: Alineamiento, outfile: str = "alineamiento", formats="pdf,png",
     ax.set_ylim(lo, hi)
     ax.set_xlim(-0.25, 2.45)
     ax.set_xticks([])
-    ax.set_ylabel("energía respecto al VBM de "
+    ax.set_ylabel("energy relative to the VBM of "
                   + qstyle.tex_safe(al.b.nombre) + " (eV)")
     ax.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"],
                dashes=[3.5, 2.0])
     if al.tipo:
-        ax.set_title(f"alineamiento tipo {al.tipo}", fontsize=st["legend"])
+        ax.set_title(f"type {al.tipo} alignment", fontsize=st["legend"])
     written = qstyle.save(fig, outfile, formats, dpi=dpi, modulo="alineamiento")
     plt.close(fig)
     return written

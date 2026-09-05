@@ -28,7 +28,7 @@ def test_reparto_respeta_un_nproc_explicito(monkeypatch):
 def test_reparto_avisa_de_la_sobresuscripcion(monkeypatch):
     monkeypatch.setattr(runner, "nucleos", lambda: 4)
     _, _, aviso = runner.reparto(4, nproc=4)
-    assert aviso and "16" in aviso and "4 hilo" in aviso
+    assert aviso and "16" in aviso and "4 threads" in aviso
 
 
 def test_reparto_nunca_baja_de_un_proceso(monkeypatch):
@@ -146,14 +146,14 @@ def test_codigo_no_cero_siempre_es_fallo_aunque_haya_job_done(
     res = _run_one_simulado(tmp_path, monkeypatch, returncode=7,
                             converged=True)
     assert not res.ok
-    assert "código 7" in res.error
+    assert "code 7" in res.error
 
 
 def test_run_one_rechaza_convergencia_desconocida(tmp_path, monkeypatch):
     res = _run_one_simulado(tmp_path, monkeypatch, returncode=0,
                             converged=None)
     assert not res.ok
-    assert "no confirma la convergencia" in res.error
+    assert "does not confirm convergence" in res.error
 
 
 # ----------------------------------------------------------------------
@@ -207,7 +207,7 @@ def test_el_presupuesto_deja_de_lanzar(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "check_available", lambda *a, **k: "pw.x")
     res = runner.run_all(jobs, paralelo=1, verbose=False, presupuesto=0.25)
     lanzados = [r for r in res if r.ok]
-    sin_lanzar = [r for r in res if "presupuesto" in (r.error or "")]
+    sin_lanzar = [r for r in res if "time budget" in (r.error or "")]
     assert lanzados, "alguno tiene que haberse lanzado"
     assert sin_lanzar, "y el resto tiene que quedarse sin lanzar"
     assert len(lanzados) + len(sin_lanzar) == 6

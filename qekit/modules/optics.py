@@ -69,16 +69,16 @@ def prepare(atoms, outdir: str = "opticas", pseudo_dir: str = None,
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho,
                                   insulator, tarea="optics")
 
-    no_nc = [f"{s} ({p['type'] or 'desconocido'}: {p['filename']})"
+    no_nc = [f"{s} ({p['type'] or 'unknown'}: {p['filename']})"
              for s, p in common["pseudos"].items()
              if p["found"] and p["type"] != "NC"]
     if no_nc:
         raise ErrorDeUso(
-            "epsilon.x solo funciona con pseudopotenciales de NORMA CONSERVADA\n"
-            "(los elementos de matriz dipolares no están implementados para "
-            "USPP/PAW).\nNo cumplen: " + ", ".join(no_nc) + "\n"
-            "Descarga pseudos NC (por ejemplo de PseudoDojo o SG15) y apunta\n"
-            "--pseudo-dir a esa carpeta."
+            "epsilon.x only works with NORM-CONSERVING pseudopotentials\n"
+            "(the dipole matrix elements are not implemented for "
+            "USPP/PAW).\nNot compliant: " + ", ".join(no_nc) + "\n"
+            "Download NC pseudos (for example from PseudoDojo or SG15) and point\n"
+            "--pseudo-dir to that folder."
         )
 
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
@@ -114,7 +114,7 @@ def prepare(atoms, outdir: str = "opticas", pseudo_dir: str = None,
                            input_file="nscf.in", output_file="nscf.out")
     run.jobs = [job_scf, job_nscf]
 
-    sweep.write_input(out / "epsilon.in", 
+    sweep.write_input(out / "epsilon.in",
         "&INPUTPP\n"
         f"  prefix      = '{common['prefix']}'\n"
         "  outdir      = './out'\n"
@@ -129,22 +129,22 @@ def prepare(atoms, outdir: str = "opticas", pseudo_dir: str = None,
         "/\n"
     )
 
-    report = ["--- Propiedades ópticas (epsilon.x) ---",
-              f"Estructura: {atoms.get_chemical_formula()}  |  "
-              f"pseudos de norma conservada verificados",
-              f"Mallas k: scf {grid_scf[0]}x{grid_scf[1]}x{grid_scf[2]}, "
+    report = ["--- Optical properties (epsilon.x) ---",
+              f"Structure: {atoms.get_chemical_formula()}  |  "
+              f"norm-conserving pseudopotentials verified",
+              f"k-meshes: scf {grid_scf[0]}x{grid_scf[1]}x{grid_scf[2]}, "
               f"nscf {grid_nscf[0]}x{grid_nscf[1]}x{grid_nscf[2]} "
-              "(sin simetría, como exige epsilon.x)",
-              f"Bandas: {nbnd or 'automáticas'}  |  ventana 0–{wmax:g} eV, "
-              f"{nw} puntos, ensanchamiento {intersmear:g} eV",
+              "(no symmetry, as epsilon.x requires)",
+              f"Bands: {nbnd or 'automatic'}  |  window 0–{wmax:g} eV, "
+              f"{nw} points, broadening {intersmear:g} eV",
               "",
-              f"Archivos escritos en '{out.resolve()}': scf.in, nscf.in, "
+              f"Files written to '{out.resolve()}': scf.in, nscf.in, "
               "epsilon.in",
-              "Orden: pw.x scf -> pw.x nscf -> epsilon.x",
+              "Order: pw.x scf -> pw.x nscf -> epsilon.x",
               "",
-              "Nota física: respuesta de partícula independiente (RPA sin "
-              "campos locales\nni excitones); el gap hereda la subestimación "
-              "del funcional."]
+              "Physical note: independent-particle response (RPA without "
+              "local fields\nor excitons); the gap inherits the underestimation "
+              "of the functional."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
@@ -158,15 +158,15 @@ def run_epsilon(run: OpticsRun, pw_cmd: str = None, nproc: int = None) -> str:
     eps_cmd = cmd[:-1] + [str(exe)]
     if not shutil.which(str(exe)) and not Path(exe).exists():
         raise FileNotFoundError(
-            f"no se encontró epsilon.x junto a pw.x ('{exe}'). Compila el "
-            "paquete PP de Quantum ESPRESSO (make pp)."
+            f"epsilon.x was not found next to pw.x ('{exe}'). Compile the "
+            "PP package of Quantum ESPRESSO (make pp)."
         )
     with open(run.outdir / "epsilon.in") as fin, \
          open(run.outdir / "epsilon.out", "w") as fout:
         proc = subprocess.run(eps_cmd, stdin=fin, stdout=fout,
                               stderr=subprocess.STDOUT, cwd=str(run.outdir))
     if proc.returncode != 0:
-        raise RuntimeError("epsilon.x terminó con error; revisa epsilon.out")
+        raise RuntimeError("epsilon.x finished with an error; check epsilon.out")
     return str(run.outdir / "epsilon.out")
 
 
@@ -176,8 +176,8 @@ def collect(run: OpticsRun) -> OpticsRun:
         candidates = sorted(Path(run.outdir).glob(f"{stem}_*.dat"))
         if not candidates:
             raise FileNotFoundError(
-                f"no se encontró {stem}_*.dat en {run.outdir}; "
-                "¿corrió epsilon.x?"
+                f"{stem}_*.dat was not found in {run.outdir}; "
+                "did epsilon.x run?"
             )
         data = np.loadtxt(candidates[0], comments="#")
         return data
@@ -356,30 +356,30 @@ def report(run: OpticsRun) -> str:
     i2 = int(np.argmax(run.eps2))
     gd, *_ = tauc_gap(run, "direct")
     gi, *_ = tauc_gap(run, "indirect")
-    lines = ["--- Funciones ópticas ---"]
+    lines = ["--- Optical functions ---"]
     if run.scissor:
-        lines.append(f"Scissor aplicado: +{run.scissor:.2f} eV "
-                     "(ε₁ rehecho por Kramers-Kronig)")
-    lines += [f"ε₁(0) (constante dieléctrica electrónica): {e1_0:.2f}",
+        lines.append(f"Scissor applied: +{run.scissor:.2f} eV "
+                     "(ε₁ recomputed by Kramers-Kronig)")
+    lines += [f"ε₁(0) (electronic dielectric constant): {e1_0:.2f}",
              f"n(0) = {float(d['n'][1]):.3f}",
-             f"máximo de ε₂ en {run.energies[i2]:.2f} eV "
+             f"maximum of ε₂ at {run.energies[i2]:.2f} eV "
              f"(ε₂ = {run.eps2[i2]:.1f})",
              "",
-             "Gap óptico por Tauc:",
-             f"  directa   (αhν)²   : {gd:.2f} eV" if gd else
-             "  directa   (αhν)²   : no se pudo ajustar",
-             f"  indirecta (αhν)^½  : {gi:.2f} eV" if gi else
-             "  indirecta (αhν)^½  : no se pudo ajustar",
+             "Tauc optical gap:",
+             f"  direct    (αhν)²   : {gd:.2f} eV" if gd else
+             "  direct    (αhν)²   : could not be fitted",
+             f"  indirect  (αhν)^½  : {gi:.2f} eV" if gi else
+             "  indirect  (αhν)^½  : could not be fitted",
              ""]
     if run.scissor:
-        lines.append("Recuerda: sigue siendo RPA de partícula independiente "
-                     "(sin campos locales\nni excitones); el scissor solo "
-                     "corrige la posición del gap.")
+        lines.append("Remember: this is still independent-particle RPA "
+                     "(no local fields\nor excitons); the scissor only "
+                     "corrects the position of the gap.")
     else:
-        lines.append("Recuerda: RPA de partícula independiente y gap del "
-                     "funcional. Para comparar\ncon UV-Vis conviene "
-                     "'--scissor Δ' con Δ = gap experimental (o GW) − gap "
-                     "del\ncálculo; Olla-DFT desplaza ε₂ y rehace ε₁ por "
+        lines.append("Remember: independent-particle RPA and the functional's "
+                     "gap. To compare\nwith UV-Vis it is advisable to use "
+                     "'--scissor Δ' with Δ = experimental (or GW) gap − gap "
+                     "of the\ncalculation; Olla-DFT shifts ε₂ and recomputes ε₁ by "
                      "Kramers-Kronig.")
     return "\n".join(lines)
 
@@ -396,11 +396,11 @@ def export(run: OpticsRun, outdir: str = ".") -> list:
     f = out / "OPTICS.dat"
     anchos = (10, 12, 12, 10, 10, 14, 10)
     header = (provenance.header_plain(
-                  "propiedades ópticas",
+                  "optical properties",
                   {"scissor_eV": run.scissor or 0.0,
                    "intersmear_eV": run.intersmear,
-                   "promedio": "isótropo (x,y,z)"},
-                  titulo="Funciones ópticas") + "\n"
+                   "promedio": "isotropic (x,y,z)"},
+                  titulo="Optical functions") + "\n"
               + " ".join(f"{c:>{w}s}" for c, w in zip(OPTICS_COLUMNS, anchos)))
     np.savetxt(f, np.column_stack([run.energies, run.eps1, run.eps2,
                                    d["n"], d["k"], d["alpha"], d["R"]]),
@@ -431,8 +431,8 @@ def read_optics_dat(path) -> dict:
         nombres = list(OPTICS_COLUMNS[:datos.shape[1]])
     if datos.shape[1] < 2:
         raise ErrorDeUso(
-            f"'{path}' no parece un OPTICS.dat: tiene {datos.shape[1]} "
-            "columna(s) y hacen falta al menos E y α.")
+            f"'{path}' does not look like an OPTICS.dat: it has {datos.shape[1]} "
+            "column(s) and at least E and α are needed.")
     return {n: datos[:, i] for i, n in enumerate(nombres)}
 
 
@@ -493,7 +493,7 @@ def plot(run: OpticsRun, outfile: str = "opticas", formats="pdf,png",
     else:
         ax.set_xlim(0, E.max())
     ax.set_xlabel(r"$h\nu$ (eV)")
-    ax.set_ylabel(rf"$(\alpha h\nu)^{{{exp_txt}}}$ (u. arb.)")
+    ax.set_ylabel(rf"$(\alpha h\nu)^{{{exp_txt}}}$ (arb. u.)")
     ax.set_yticks([])
     qstyle.panel_label(ax, "(c)")
 

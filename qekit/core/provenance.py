@@ -75,15 +75,15 @@ def header(modulo: str = "", params: dict = None, titulo: str = "") -> str:
     lines = []
     if titulo:
         lines.append(f"# {titulo}")
-    lines.append(f"# {__product_name__} {d['qekit_version']} — generado {d['generado']}")
+    lines.append(f"# {__product_name__} {d['qekit_version']} — generated {d['generado']}")
     if "comando" in d:
-        lines.append(f"# comando: {d['comando']}")
+        lines.append(f"# command: {d['comando']}")
     resto = {k: v for k, v in d.items()
              if k not in ("qekit_version", "generado", "comando", "modulo")}
     if resto:
         partes = [f"{k} = {v}" for k, v in resto.items()]
         # partir en líneas de ~76 caracteres para que no se desborde
-        linea = "# parámetros:"
+        linea = "# parameters:"
         for parte in partes:
             if len(linea) + len(parte) + 2 > 76:
                 lines.append(linea)
@@ -122,7 +122,7 @@ def figure_metadata(modulo: str = "", params: dict = None,
     meta = {
         "Creator": f"{__product_name__} {d['qekit_version']}",
         "Producer": f"{__product_name__} {d['qekit_version']}",
-        "Title": (modulo or f"figura {__product_name__}"),
+        "Title": (modulo or f"{__product_name__} figure"),
     }
     if d.get("comando"):
         meta["Author"] = d["comando"]

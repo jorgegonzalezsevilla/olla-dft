@@ -484,7 +484,7 @@ def test_proyecciones_automaticas_avisan(tmp_path):
     run, _, _ = W.prepare(_si(), outdir=str(tmp_path), malla=(2, 2, 2),
                           proy="auto",
                           pseudo_dir="/usr/share/espresso/pseudo")
-    assert any("automáticas" in a for a in run.avisos)
+    assert any("Automatic" in a for a in run.avisos)
 
 
 def test_el_win_declara_las_mismas_funciones_que_el_nnkp(tmp_path):
@@ -627,7 +627,7 @@ def test_una_ventana_exterior_demasiado_estrecha_es_error_de_uso():
     with pytest.raises(ErrorDeUso) as e:
         W.gauge_desenredo(M, A, idx, wb, E=E,
                           exterior=(float(E.min()) - 1, float(E.min()) - 0.5))
-    assert "ventana" in str(e.value)
+    assert 'window' in str(e.value)
 
 
 def test_congelar_mas_bandas_que_funciones_de_wannier_es_error_de_uso():
@@ -636,7 +636,7 @@ def test_congelar_mas_bandas_que_funciones_de_wannier_es_error_de_uso():
         W.gauge_desenredo(M, A, idx, wb, E=E,
                           exterior=(float(E.min()) - 1, float(E.max()) + 1),
                           congelada=(float(E.min()) - 1, float(E.max()) + 1))
-    assert "congelada" in str(e.value)
+    assert 'frozen' in str(e.value)
 
 
 def test_el_desenredado_deja_un_gauge_de_partida_suave():

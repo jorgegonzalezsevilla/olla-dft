@@ -72,7 +72,7 @@ RY_EV = 13.605693122994
 #: Ensanchamiento por omisión (eV) de spectrum.in / davidson.in.
 BROADENING_DEFAULT = 0.05
 #: Nombres de la polarización por índice de ipol.
-EJES = {1: "xx", 2: "yy", 3: "zz", 4: "tensor completo"}
+EJES = {1: "xx", 2: "yy", 3: "zz", 4: "full tensor"}
 
 
 @dataclass
@@ -151,7 +151,7 @@ def build_spectrum_input(prefix: str, itermax: int = 500,
     """Input de turbo_spectrum.x. Las energías en eV (units = 1)."""
     if extrapolation not in ("no", "constant", "osc"):
         raise ErrorDeUso(
-            f"extrapolación '{extrapolation}' desconocida. Opciones: no, "
+            f"unknown extrapolation '{extrapolation}'. Options: no, "
             "constant, osc.")
     lineas = [" &lr_input",
               f"   prefix = '{prefix}',", "   outdir = './out',",
@@ -224,17 +224,17 @@ def prepare(atoms, outdir: str = "tddft", metodo: str = "lanczos",
 
     if metodo not in ("lanczos", "davidson"):
         raise ErrorDeUso(
-            f"método '{metodo}' desconocido. Opciones: lanczos (espectro "
-            "completo), davidson (las primeras excitaciones una a una).")
+            f"unknown method '{metodo}'. Options: lanczos (full "
+            "spectrum), davidson (the first excitations one by one).")
     scissor = float(scissor or 0.0)
     if scissor < 0:
         raise ErrorDeUso(
-            f"--scissor {scissor} no tiene sentido: el corrimiento abre el "
-            "gap, así que es cero o positivo.")
+            f"--scissor {scissor} makes no sense: the shift opens the "
+            "gap, so it is zero or positive.")
     if scissor and metodo != "lanczos":
         raise ErrorDeUso(
-            "--scissor solo existe en turbo_lanczos.x; turbo_davidson.x no "
-            "lo admite. Usa --method lanczos o quita --scissor.")
+            "--scissor only exists in turbo_lanczos.x; turbo_davidson.x does not "
+            "accept it. Use --method lanczos or remove --scissor.")
 
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho,
                                   insulator)
@@ -284,48 +284,48 @@ def prepare(atoms, outdir: str = "tddft", metodo: str = "lanczos",
         orden = "pw.x -in scf.in  ->  turbo_davidson.x -in davidson.in"
 
     vac = _vacio_minimo(atoms)
-    rep = ["--- Absorción óptica con TDDFPT ---",
-           f"Estructura: {atoms.get_chemical_formula()} "
-           f"({len(atoms)} átomos)",
-           f"Método: {metodo}"
-           + (f"   iteraciones de Lanczos: {itermax}"
+    rep = ["--- Optical absorption with TDDFPT ---",
+           f"Structure: {atoms.get_chemical_formula()} "
+           f"({len(atoms)} atoms)",
+           f"Method: {metodo}"
+           + (f"   Lanczos iterations: {itermax}"
               if metodo == "lanczos" else
-              f"   excitaciones pedidas: {n_estados}"),
-           f"Polarización: ipol = {ipol} ({EJES.get(ipol, '?')})",
-           f"Ventana: {emin} a {emax} eV   ensanchamiento "
+              f"   requested excitations: {n_estados}"),
+           f"Polarization: ipol = {ipol} ({EJES.get(ipol, '?')})",
+           f"Window: {emin} to {emax} eV   broadening "
            f"{broadening * 1000:.0f} meV"
            + (f"   scissor {scissor:.3f} eV" if scissor else ""),
-           ("Puntos k: solo GAMMA (es lo unico que TDDFPT implementa)"
+           ("k-points: GAMMA only (the only case TDDFPT implements)"
             if gamma else
-            f"Malla k: {grid[0]}x{grid[1]}x{grid[2]}  -- OJO: TDDFPT solo "
-            "tiene implementado\nel caso gamma y se plantara al leer el "
+            f"k-grid: {grid[0]}x{grid[1]}x{grid[2]}  -- CAUTION: TDDFPT only "
+            "implements\nthe gamma case and will stop when reading the "
             "input"),
            "",
-           f"Archivos en '{out.resolve()}':",
-           f"Orden:  {orden}",
+           f"Files in '{out.resolve()}':",
+           f"Order:  {orden}",
            ""]
     if ltammd:
-        rep += ["Aproximación de Tamm-Dancoff activada: se desprecian los "
-                "términos de\ndesexcitación. Abarata el cálculo y suele "
-                "corregir poco las energías, pero\nNO es exacta.", ""]
+        rep += ["Tamm-Dancoff approximation enabled: the de-excitation "
+                "terms are\nneglected. It makes the calculation cheaper and usually "
+                "changes the energies little, but\nit is NOT exact.", ""]
     if lrpa:
-        rep += ["RPA: se apaga el kernel de intercambio-correlación. Sirve "
-                "para VER cuánto\naporta ese kernel, comparando contra el "
-                "cálculo completo.", ""]
+        rep += ["RPA: the exchange-correlation kernel is switched off. It serves "
+                "to SEE how much\nthat kernel contributes, by comparing against the "
+                "full calculation.", ""]
     if vac < 6.0 and len(atoms) < 30:
-        rep += [f"AVISO: solo hay {vac:.1f} Å de vacío. Si esto es una "
-                "molécula, sus imágenes\nperiódicas se ven entre sí y el "
-                "espectro sale contaminado: para una molécula\nhacen falta "
-                "al menos 8-10 Å por todos lados.", ""]
-    rep += ["Recuerda para qué sirve esto: `olla-dft optics` da el espectro de "
-            "PARTÍCULAS\nINDEPENDIENTES; TDDFPT deja que el electrón "
-            "excitado y su hueco se vean. La\ndiferencia entre los dos "
-            "espectros ES el efecto de esa interacción.",
+        rep += [f"WARNING: there is only {vac:.1f} Å of vacuum. If this is a "
+                "molecule, its periodic\nimages see each other and the "
+                "spectrum comes out contaminated: a molecule\nneeds "
+                "at least 8-10 Å on all sides.", ""]
+    rep += ["Remember what this is for: `olla-dft optics` gives the "
+            "INDEPENDENT-PARTICLE\nspectrum; TDDFPT lets the excited "
+            "electron and its hole see each other. The\ndifference between the two "
+            "spectra IS the effect of that interaction.",
             "",
-            "Y una advertencia honesta: con LDA o GGA el kernel adiabático "
-            "NO liga\nexcitones en un SÓLIDO, así que el espectro se "
-            "parecerá mucho al de\nepsilon.x. En MOLÉCULAS sí mejora. Para "
-            "excitones en cristales hace falta un\nhíbrido o Bethe-Salpeter."]
+            "And an honest warning: with LDA or GGA the adiabatic kernel "
+            "does NOT bind\nexcitons in a SOLID, so the spectrum will "
+            "look very much like that of\nepsilon.x. In MOLECULES it does improve. For "
+            "excitons in crystals a\nhybrid or Bethe-Salpeter is needed."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -377,8 +377,8 @@ def collect(path, metodo: str = "lanczos", gap_ip: float = None,
     dats = sorted(p.glob("*plot*.dat")) + sorted(p.glob("*.plot_chi.dat"))
     if not dats:
         raise ErrorDeUso(
-            f"no hay ningún archivo de espectro en {p}. turbo_spectrum.x lo "
-            "escribe como\n<prefix>.plot.dat; si no está, revisa "
+            f"there is no spectrum file in {p}. turbo_spectrum.x "
+            "writes it as\n<prefix>.plot.dat; if it is not there, check "
             "spectrum.out.")
     d = np.loadtxt(dats[0], comments="#")
     if d.ndim == 1:
@@ -414,9 +414,9 @@ def _collect_davidson(p: Path, run: TddftRun) -> TddftRun:
     eig = sorted(p.glob("*.eigen"))
     if not eig:
         raise ErrorDeUso(
-            f"no hay ningun archivo .eigen en {p}. turbo_davidson.x lo "
-            "escribe al terminar\ncon las excitaciones que encontro; si no "
-            "esta, revisa davidson.out.")
+            f"there is no .eigen file in {p}. turbo_davidson.x "
+            "writes it when it finishes\nwith the excitations it found; if it is not "
+            "there, check davidson.out.")
     d = np.loadtxt(eig[0], comments="#")
     if d.ndim == 1:
         d = d.reshape(1, -1)
@@ -431,8 +431,8 @@ def _collect_davidson(p: Path, run: TddftRun) -> TddftRun:
             run.polarizaciones.append(tuple(float(x) for x in fila[2:5]))
     if not run.excitaciones:
         raise ErrorDeUso(
-            f"{eig[0].name} esta vacio: turbo_davidson.x no convergio "
-            "ninguna excitacion.")
+            f"{eig[0].name} is empty: turbo_davidson.x did not converge "
+            "any excitation.")
 
     dats = sorted(p.glob("*plot*.dat"))
     if dats:
@@ -466,26 +466,26 @@ def _avisar(run: TddftRun) -> None:
         umbral = max(UMBRAL_EXCITON, 2.0 * (run.broadening or 0.0))
         if d < -umbral:
             run.avisos.append(
-                f"El borde de absorción cae {abs(d):.2f} eV POR DEBAJO del "
-                f"gap de partículas\nindependientes ({run.gap_ip:.2f} eV). "
-                "Eso es exactamente la firma de un excitón\nligado: el par "
-                "electrón-hueco tiene menos energía que los dos por "
-                "separado.")
+                f"The absorption edge falls {abs(d):.2f} eV BELOW the "
+                f"independent-particle\ngap ({run.gap_ip:.2f} eV). "
+                "That is exactly the signature of a bound\nexciton: the "
+                "electron-hole pair has less energy than the two "
+                "separately.")
         elif abs(d) < umbral:
             run.avisos.append(
-                f"El borde cae a {umbral:.2f} eV o menos del gap de "
-                "partículas independientes,\nque es el limite de lo que se "
-                "puede distinguir con este ensanchamiento. Con\nLDA o GGA "
-                "en un sólido es lo esperable: el kernel adiabático no liga "
-                "excitones,\ny la diferencia con 'olla-dft optics' será "
-                "pequeña.")
+                f"The edge falls within {umbral:.2f} eV of the "
+                "independent-particle gap,\nwhich is the limit of what can be "
+                "distinguished with this broadening. With\nLDA or GGA "
+                "in a solid this is expected: the adiabatic kernel does not bind "
+                "excitons,\nand the difference with 'olla-dft optics' will be "
+                "small.")
 
 
 def report(run: TddftRun) -> str:
-    lines = ["--- Absorción óptica con TDDFPT ---",
-             f"Método: {run.metodo}"]
+    lines = ["--- Optical absorption with TDDFPT ---",
+             f"Method: {run.metodo}"]
     if run.itermax:
-        lines.append(f"Iteraciones de Lanczos: {run.itermax}")
+        lines.append(f"Lanczos iterations: {run.itermax}")
 
     if run.metodo == "davidson" and run.excitaciones:
         hay_pol = len(run.polarizaciones) == len(run.excitaciones)
@@ -504,45 +504,45 @@ def report(run: TddftRun) -> str:
         if brillantes:
             e0, f0 = brillantes[0]
             lines += ["",
-                      f"Primera excitación con fuerza apreciable: "
+                      f"First excitation with appreciable strength: "
                       f"{e0:.3f} eV ({1239.84 / e0:.0f} nm)."]
         oscuras = len(run.excitaciones) - len(brillantes)
         if oscuras:
             lines.append(
-                f"  {oscuras} de {len(run.excitaciones)} son OSCURAS "
-                "(fuerza de oscilador casi cero):\n  existen, pero no se ven "
-                "en un espectro de absorción.")
+                f"  {oscuras} of {len(run.excitaciones)} are DARK "
+                "(oscillator strength almost zero):\n  they exist, but are not seen "
+                "in an absorption spectrum.")
 
     if run.total is not None:
         lines += ["",
-                  f"Rango: {run.energias[0]:.2f} a {run.energias[-1]:.2f} eV "
-                  f"({len(run.energias)} puntos)",
-                  f"Borde de absorción (punto de inflexión): "
+                  f"Range: {run.energias[0]:.2f} to {run.energias[-1]:.2f} eV "
+                  f"({len(run.energias)} points)",
+                  f"Absorption edge (inflection point): "
                   f"{run.onset:.3f} eV "
                   f"({1239.84 / run.onset:.0f} nm)"
                   if np.isfinite(run.onset) and run.onset > 0 else ""]
         if run.picos:
-            lines += ["", "Picos (energía y altura relativa):"]
+            lines += ["", "Peaks (energy and relative height):"]
             for e, h in run.picos[:6]:
                 lines.append(f"  {e:8.3f} eV  ({1239.84 / e:6.0f} nm)   "
                              f"{h:.2f}")
     if run.componentes:
-        lines += ["", f"Componentes: {', '.join(run.componentes)}"]
+        lines += ["", f"Components: {', '.join(run.componentes)}"]
         anis = _anisotropia(run)
         if anis is not None:
-            lines.append(f"Anisotropía entre direcciones: {anis * 100:.1f} % "
-                         "del máximo")
+            lines.append(f"Anisotropy between directions: {anis * 100:.1f} % "
+                         "of the maximum")
 
     for a in run.avisos:
         lines += ["", a]
     lines += ["",
-              "Para ver qué aporta la interacción electrón-hueco, compara "
-              "este espectro con\nel de 'olla-dft optics' del MISMO cálculo: "
-              "esa diferencia es el efecto.",
+              "To see what the electron-hole interaction contributes, compare "
+              "this spectrum with\nthat of 'olla-dft optics' from the SAME calculation: "
+              "that difference is the effect.",
               "",
-              "Y la resolución la manda el número de iteraciones de Lanczos. "
-              "Si los picos se\nmueven al subirlo, todavía no está "
-              "convergido."]
+              "And the resolution is set by the number of Lanczos iterations. "
+              "If the peaks\nmove when raising it, it is not yet "
+              "converged."]
     return "\n".join(lines)
 
 
@@ -560,7 +560,7 @@ def export(run: TddftRun, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     escritos = []
     cab = provenance.header_plain(
-        "absorcion optica con TDDFPT",
+        "optical absorption with TDDFPT",
         {"metodo": run.metodo, "itermax": run.itermax,
          "gap_particulas_indep_eV": run.gap_ip},
         titulo="TDDFPT")
@@ -577,7 +577,7 @@ def export(run: TddftRun, outdir: str = ".") -> list:
     if run.excitaciones:
         f = out / "TDDFT_EXCITACIONES.dat"
         np.savetxt(f, np.array(run.excitaciones), fmt="%14.6f",
-                   header=cab + "\n       E(eV)        fuerza_oscilador",
+                   header=cab + "\n       E(eV)        oscillator_strength",
                    comments="# ")
         escritos.append(str(f))
     txt = out / "TDDFT.txt"
@@ -601,7 +601,7 @@ def plot(run: TddftRun, outfile: str = "tddft", formats="pdf,png",
         import matplotlib
         matplotlib.use("Agg")
     except ImportError as exc:                          # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     qstyle.apply(theme, family=family, background=background,
                  palette=palette, usetex=usetex, mono=mono)
@@ -614,7 +614,7 @@ def plot(run: TddftRun, outfile: str = "tddft", formats="pdf,png",
         if a2.max() > 0 and run.total is not None and run.total.max() > 0:
             a2 = a2 / a2.max() * float(np.max(run.total))
         ax.plot(e2, a2, lw=1.1, color=qstyle.INK_FAINT, dashes=[4, 2],
-                label="partículas independientes")
+                label="independent particles")
 
     if run.total is not None:
         ax.plot(run.energias, run.total, lw=1.5, color=colores[0],
@@ -632,7 +632,7 @@ def plot(run: TddftRun, outfile: str = "tddft", formats="pdf,png",
         ax.text(run.gap_ip, ax.get_ylim()[1] * 0.95,
                 " gap IP", fontsize="small", va="top")
     ax.set_xlabel("E (eV)")
-    ax.set_ylabel("absorción (u. arb.)")
+    ax.set_ylabel("absorption (arb. u.)")
     ax.set_ylim(bottom=0)
     if run.energias is not None:
         ax.set_xlim(run.energias[0], run.energias[-1])

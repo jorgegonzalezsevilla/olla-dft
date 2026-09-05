@@ -57,7 +57,7 @@ class Prueba:
     # necesita un potencial aprendido (torch + mace): no es "rápida" aunque
     # no toque pw.x, así que se queda fuera del juego rápido
     necesita_mlip: bool = False
-    coste: str = "instantánea"
+    coste: str = "instant"
     fn: object = None
 
 
@@ -108,20 +108,20 @@ def prueba(**kw):
 # ----------------------------------------------------------------------
 # Sin Quantum ESPRESSO: constantes, integrales y límites analíticos
 # ----------------------------------------------------------------------
-@prueba(clave="madelung", titulo="Constante de Madelung, red cúbica simple",
+@prueba(clave="madelung", titulo="Madelung constant, simple cubic lattice",
         magnitud="α_M", referencia=2.8372974, unidad="",
         tolerancia=1e-5,
-        fuente="valor clásico de la suma de Ewald para una carga puntual en "
-               "un fondo neutralizante")
+        fuente="classic value of the Ewald sum for a point charge in "
+               "a neutralizing background")
 def _madelung(ctx):
     from qekit.modules import defects
     return defects.constante_madelung(np.eye(3) * 7.3)
 
 
-@prueba(clave="lorenz", titulo="Número de Lorenz de un gas de electrones libres",
+@prueba(clave="lorenz", titulo="Lorenz number of a free-electron gas",
         magnitud="L/L₀", referencia=1.0, unidad="",
         tolerancia=0.12,
-        fuente="límite de Sommerfeld, L₀ = (π²/3)(k_B/e)² = 2.44e-8 W·Ω/K²")
+        fuente="Sommerfeld limit, L₀ = (π²/3)(k_B/e)² = 2.44e-8 W·Ω/K²")
 def _lorenz(ctx):
     from qekit.modules import transport as tr
     HBAR, ME = 6.582119569e-16, 0.51099895e6 / (2.99792458e8) ** 2
@@ -139,56 +139,56 @@ def _lorenz(ctx):
     return float(tr.lorenz(run, 0)[0]) / tr.L0_SOMMERFELD
 
 
-@prueba(clave="npw", titulo="Ondas planas de Si a 30 Ry",
+@prueba(clave="npw", titulo="Plane waves of Si at 30 Ry",
         magnitud="N_PW", referencia=725.0, unidad="",
         tolerancia=0.06,
-        fuente="lo que reporta pw.x para la celda primitiva de Si "
-               "(V = 39.5 Å³) a 30 Ry")
+        fuente="what pw.x reports for the primitive cell of Si "
+               "(V = 39.5 Å³) at 30 Ry")
 def _npw(ctx):
     from qekit.modules import cost
     return cost.n_ondas_planas(39.53, 30.0)
 
 
-@prueba(clave="sackur", titulo="Entropía traslacional del N₂ a 298 K",
+@prueba(clave="sackur", titulo="Translational entropy of N₂ at 298 K",
         magnitud="S_trans", referencia=150.4, unidad="J/(mol·K)",
         tolerancia=0.01,
-        fuente="Sackur-Tetrode a 1 bar; tablas NIST-JANAF dan 150.4 para el "
-               "término traslacional")
+        fuente="Sackur-Tetrode at 1 bar; NIST-JANAF tables give 150.4 for the "
+               "translational term")
 def _sackur(ctx):
     from qekit.modules import thermochem
     s_ev = thermochem.S_traslacional(28.0134, 298.15, 100000.0)
     return s_ev * 96485.33212        # eV/(K·partícula) -> J/(mol·K)
 
 
-@prueba(clave="allen_dynes", titulo="Tc de Allen-Dynes para el aluminio",
+@prueba(clave="allen_dynes", titulo="Allen-Dynes Tc for aluminium",
         magnitud="Tc", referencia=1.18, unidad="K",
         tolerancia=0.12,
-        fuente="Tc experimental del Al = 1.18 K, con λ = 0.44 y "
-               "ω_log = 270 K (Allen-Dynes 1975) y µ* = 0.12. OJO: µ* es un "
-               "parámetro AJUSTADO, no calculado; con µ* = 0.10 la misma "
-               "fórmula da 1.9 K y no está mal por ello")
+        fuente="experimental Tc of Al = 1.18 K, with λ = 0.44 and "
+               "ω_log = 270 K (Allen-Dynes 1975) and µ* = 0.12. NOTE: µ* is a "
+               "FITTED parameter, not a computed one; with µ* = 0.10 the same "
+               "formula gives 1.9 K and is not wrong for that")
 def _allen(ctx):
     from qekit.modules import elph
     return elph.allen_dynes(0.44, 270.0, mustar=0.12)
 
 
 @prueba(clave="allen_dynes_mu",
-        titulo="Sensibilidad de Allen-Dynes a µ*",
+        titulo="Sensitivity of Allen-Dynes to µ*",
         magnitud="Tc(µ*=0.10) / Tc(µ*=0.12)", referencia=1.56, unidad="",
         tolerancia=0.05,
-        fuente="la fórmula es exponencial en µ*: subirlo de 0.10 a 0.12 "
-               "baja Tc a dos tercios. Se comprueba para que nadie cite un "
-               "Tc sin decir qué µ* usó")
+        fuente="the formula is exponential in µ*: raising it from 0.10 to 0.12 "
+               "lowers Tc to two thirds. It is checked so that nobody cites a "
+               "Tc without saying which µ* was used")
 def _allen_mu(ctx):
     from qekit.modules import elph
     return (elph.allen_dynes(0.44, 270.0, mustar=0.10)
             / elph.allen_dynes(0.44, 270.0, mustar=0.12))
 
 
-@prueba(clave="born2d", titulo="Módulos de lámina de una hoja isótropa",
+@prueba(clave="born2d", titulo="Sheet moduli of an isotropic sheet",
         magnitud="Y_2D", referencia=341.8, unidad="N/m",
         tolerancia=0.01,
-        fuente="con C11 = 352 y C12 = 60 N/m (grafeno, DFT), "
+        fuente="with C11 = 352 and C12 = 60 N/m (graphene, DFT), "
                "Y = C11 − C12²/C11")
 def _born2d(ctx):
     from qekit.modules import elastic
@@ -199,11 +199,11 @@ def _born2d(ctx):
 
 
 @prueba(clave="gap_invariante",
-        titulo="El alineamiento quita el cero arbitrario",
-        magnitud="ΔE_v de un material consigo mismo", referencia=0.0,
+        titulo="The alignment removes the arbitrary zero",
+        magnitud="ΔE_v of a material with itself", referencia=0.0,
         unidad="eV", tolerancia=1e-9,
-        fuente="identidad exacta: dos cálculos del mismo material no pueden "
-               "tener offset")
+        fuente="exact identity: two calculations of the same material cannot "
+               "have an offset")
 def _alineamiento(ctx):
     from qekit.modules import align
     a = align.Lado(nombre="A", vbm=-5.81, cbm=-1.18, gap=4.63, referencia=0.0)
@@ -213,11 +213,11 @@ def _alineamiento(ctx):
 
 
 @prueba(clave="ewald_escala",
-        titulo="La constante de Madelung no depende de la escala",
+        titulo="The Madelung constant does not depend on the scale",
         magnitud="|α(L=3) − α(L=30)|", referencia=0.0, unidad="",
         tolerancia=1e-6,
-        fuente="invariancia exacta de la suma de Ewald bajo un cambio de "
-               "unidades")
+        fuente="exact invariance of the Ewald sum under a change of "
+               "units")
 def _ewald_escala(ctx):
     from qekit.modules import defects
     return abs(defects.constante_madelung(np.eye(3) * 3.0)
@@ -225,12 +225,12 @@ def _ewald_escala(ctx):
 
 
 @prueba(clave="chern_qwz",
-        titulo="Chern del aislante de Qi-Wu-Zhang",
-        magnitud="C (banda inferior, m=-1)", referencia=-1.0, unidad="",
+        titulo="Chern number of the Qi-Wu-Zhang insulator",
+        magnitud="C (lower band, m=-1)", referencia=-1.0, unidad="",
         tolerancia=1e-10,
-        fuente="Qi, Wu y Zhang, Phys. Rev. B 74, 085308 (2006): el modelo "
-               "de dos bandas está en una fase |C|=1 para -2<m<0; la señal "
-               "aquí fija la orientación kx,ky de Olla-DFT")
+        fuente="Qi, Wu and Zhang, Phys. Rev. B 74, 085308 (2006): the "
+               "two-band model is in a |C|=1 phase for -2<m<0; the sign "
+               "here fixes the kx,ky orientation of Olla-DFT")
 def _chern_qwz(ctx):
     from qekit.modules import topology
 
@@ -252,14 +252,14 @@ def _chern_qwz(ctx):
 
 
 @prueba(clave="umklapp",
-        titulo="κ_L del silicio decae como 1/T",
-        magnitud="n en κ ∝ T^−n", referencia=1.0, unidad="",
+        titulo="κ_L of silicon decays as 1/T",
+        magnitud="n in κ ∝ T^−n", referencia=1.0, unidad="",
         tolerancia=0.25, necesita_mlip=True, coste="~25 s",
-        fuente="por encima de la temperatura de Debye la población de "
-               "fonones crece como T y los procesos Umklapp son proporcionales "
-               "a ella, así que κ ∝ 1/T. Es una ley, no un ajuste, y no "
-               "depende de lo bueno que sea el potencial: por eso se "
-               "comprueba el EXPONENTE y no el valor de κ")
+        fuente="above the Debye temperature the phonon population "
+               "grows as T and Umklapp processes are proportional "
+               "to it, so κ ∝ 1/T. It is a law, not a fit, and does not "
+               "depend on how good the potential is: that is why the "
+               "EXPONENT is checked and not the value of κ")
 def _umklapp(ctx):
     from ase.build import bulk
     from qekit.modules import kappa as kp
@@ -275,21 +275,21 @@ def _umklapp(ctx):
     return kp.exponente_temperatura(run, T_min=300.0)
 
 
-@prueba(clave="her_pt", titulo="HER: el platino está en la cumbre del volcán",
+@prueba(clave="her_pt", titulo="HER: platinum sits at the top of the volcano",
         magnitud="ΔG_H*", referencia=-0.09, unidad="eV",
         tolerancia=0.05,
-        fuente="Nørskov y col. 2005: Pt(111) tiene ΔG_H* = −0.09 eV, que es "
-               "por lo que es el mejor catalizador de HER")
+        fuente="Nørskov et al. 2005: Pt(111) has ΔG_H* = −0.09 eV, which is "
+               "why it is the best HER catalyst")
 def _her_pt(ctx):
     from qekit.modules import echem
     return echem.her(-0.33).dG_H
 
 
-@prueba(clave="oer_ruo2", titulo="OER: sobrepotencial del RuO₂(110)",
+@prueba(clave="oer_ruo2", titulo="OER: overpotential of RuO₂(110)",
         magnitud="η", referencia=0.48, unidad="V",
         tolerancia=0.10,
-        fuente="Man et al. 2011 (ChemCatChem): con ΔG(OH) = 0.77, "
-               "ΔG(O) = 2.16 y ΔG(OOH) = 3.87 eV, el RuO₂(110) da η ≈ 0.48 V")
+        fuente="Man et al. 2011 (ChemCatChem): with ΔG(OH) = 0.77, "
+               "ΔG(O) = 2.16 and ΔG(OOH) = 3.87 eV, RuO₂(110) gives η ≈ 0.48 V")
 def _oer_ruo2(ctx):
     from qekit.modules import echem
     e = echem.oer({"OH": 0.77, "O": 2.16, "OOH": 3.87},
@@ -297,12 +297,12 @@ def _oer_ruo2(ctx):
     return e.sobrepotencial
 
 
-@prueba(clave="escala_oer", titulo="Relación de escala OOH−OH de la OER",
+@prueba(clave="escala_oer", titulo="OOH−OH scaling relation of the OER",
         magnitud="ΔG(OOH) − ΔG(OH)", referencia=3.2, unidad="eV",
         tolerancia=0.10,
-        fuente="la relación universal de escala vale 3.2 ± 0.2 eV en casi "
-               "toda superficie de óxido, y de ella sale el límite de ~0.37 V "
-               "del sobrepotencial de la OER")
+        fuente="the universal scaling relation is 3.2 ± 0.2 eV on almost "
+               "every oxide surface, and from it comes the ~0.37 V limit "
+               "of the OER overpotential")
 def _escala(ctx):
     from qekit.modules import echem
     e = echem.oer({"OH": 0.77, "O": 2.16, "OOH": 3.87},
@@ -310,11 +310,11 @@ def _escala(ctx):
     return echem.escala_ooh_oh(e)
 
 
-@prueba(clave="escala_eta_min", titulo="Límite de escala del sobrepotencial "
-        "de la OER",
+@prueba(clave="escala_eta_min", titulo="Scaling limit of the OER "
+        "overpotential",
         magnitud="η_min", referencia=0.37, unidad="V", tolerancia=0.02,
-        fuente="con ΔG(OOH) − ΔG(OH) = 3.2 eV, el peor de los pasos "
-               "OH*→O*→OOH* no baja de 1.6 eV, y frente a 1.23 V quedan "
+        fuente="with ΔG(OOH) − ΔG(OH) = 3.2 eV, the worst of the steps "
+               "OH*→O*→OOH* is no lower than 1.6 eV, and against 1.23 V that leaves "
                "~0.37 V (Man et al. 2011)")
 def _escala_eta_min(ctx):
     from qekit.modules import echem
@@ -327,14 +327,14 @@ def _escala_eta_min(ctx):
 def _pseudo(ctx, elemento, nombre):
     p = Path(ctx["pseudo_dir"]) / nombre
     if not p.exists():
-        raise ErrorDeUso(f"falta {nombre} en {ctx['pseudo_dir']}")
+        raise ErrorDeUso(f"{nombre} is missing in {ctx['pseudo_dir']}")
     return f"{elemento}={nombre}"
 
 
-@prueba(clave="fonon_si", titulo="Modo óptico del Si en Γ",
+@prueba(clave="fonon_si", titulo="Optical mode of Si at Γ",
         magnitud="ω(Γ)", referencia=520.0, unidad="cm⁻¹",
         tolerancia=0.10, necesita_qe=True, coste="~20 s",
-        fuente="Raman experimental del silicio: 520.7 cm⁻¹ a 300 K")
+        fuente="experimental Raman of silicon: 520.7 cm⁻¹ at 300 K")
 def _fonon_si(ctx):
     from ase.build import bulk
     from ase.io import write
@@ -355,12 +355,12 @@ def _fonon_si(ctx):
 
 
 @prueba(clave="wannier_si",
-        titulo="Centro de Wannier del enlace Si–Si",
+        titulo="Wannier centre of the Si–Si bond",
         magnitud="|r̄|", referencia=1.17563, unidad="Å",
         tolerancia=0.02, necesita_qe=True, coste="~30 s",
-        fuente="el centro del enlace de la estructura diamante está a "
-               "√3·a/8 del átomo; con a = 5.43 Å son 1.17563 Å. Es geometría "
-               "pura: si la fase de Berry está bien, tiene que salir eso")
+        fuente="the bond centre of the diamond structure is at "
+               "√3·a/8 from the atom; with a = 5.43 Å that is 1.17563 Å. It is pure "
+               "geometry: if the Berry phase is right, that must come out")
 def _wannier_si(ctx):
     from ase.build import bulk
     from qekit.modules import wannier as wn
@@ -378,21 +378,21 @@ def _wannier_si(ctx):
     run = wn.collect(str(d), atoms=si)
     if run.error_malla > wn.TOL_EXACTA:
         raise RuntimeError(
-            f"la interpolación no reproduce su propia malla "
-            f"({run.error_malla:.1e} eV): hay un error de índices")
+            f"the interpolation does not reproduce its own grid "
+            f"({run.error_malla:.1e} eV): there is an indexing error")
     return float(np.mean([np.linalg.norm(c) for c in run.disp.centros]))
 
 
 @prueba(clave="condensador",
-        titulo="ESM cargado: 1/C frente a la distancia da 1/ε₀",
-        magnitud="pendiente medida / (1/ε₀)", referencia=1.0, unidad="",
+        titulo="Charged ESM: 1/C versus distance gives 1/ε₀",
+        magnitud="measured slope / (1/ε₀)", referencia=1.0, unidad="",
         tolerancia=0.06, necesita_qe=True, coste="~90 s",
-        fuente="electrostática pura: para un condensador plano 1/C = d/ε₀. "
-               "La pendiente NO depende del material, del pseudopotencial ni "
-               "del funcional, así que si la capacitancia que reporta Olla-DFT "
-               "es una capacitancia de verdad, tiene que salir 1/ε₀ y nada "
-               "más. Valida a la vez la fórmula, el área y la conversión de "
-               "unidades")
+        fuente="pure electrostatics: for a parallel-plate capacitor 1/C = d/ε₀. "
+               "The slope does NOT depend on the material, the pseudopotential or "
+               "the functional, so if the capacitance reported by Olla-DFT "
+               "is a real capacitance, it must give 1/ε₀ and nothing "
+               "else. It validates the formula, the area and the unit "
+               "conversion at once")
 def _condensador(ctx):
     from ase.build import fcc111
     from qekit.modules import esm as em
@@ -418,14 +418,14 @@ def _condensador(ctx):
     return pend / pend_ideal
 
 
-@prueba(clave="born_si", titulo="Carga efectiva de Born del silicio",
+@prueba(clave="born_si", titulo="Born effective charge of silicon",
         magnitud="Z*", referencia=0.0, unidad="e",
         tolerancia=0.05, necesita_qe=True, coste="~60 s",
-        fuente="en un cristal homopolar Z* vale CERO exactamente, por "
-               "simetría: los dos átomos son equivalentes y la regla de suma "
-               "acústica obliga a Z*₁ + Z*₂ = 0. Que salga cero exige que la "
-               "parte iónica y la electrónica se cancelen, y cada una por "
-               "separado se mueve 0.2 al desplazar el átomo")
+        fuente="in a homopolar crystal Z* is exactly ZERO, by "
+               "symmetry: the two atoms are equivalent and the acoustic sum "
+               "rule forces Z*₁ + Z*₂ = 0. Getting zero requires the "
+               "ionic and electronic parts to cancel, and each one "
+               "separately moves by 0.2 when the atom is displaced")
 def _born_si(ctx):
     from ase.build import bulk
     from qekit.modules import berry as bp
@@ -441,16 +441,16 @@ def _born_si(ctx):
     comp = bp.comprobar_ionica(run)
     if comp and max(c[2] for c in comp) > 1e-4:
         raise RuntimeError(
-            "la fase iónica no cuadra con Σ Z_a·f_a: la geometría o las "
-            "valencias no son las que cree el módulo")
+            "the ionic phase does not match Σ Z_a·f_a: the geometry or the "
+            "valences are not what the module believes")
     return bp.analizar(run)["zeff"]
 
 
-@prueba(clave="gamma_al", titulo="Energía de superficie de Al(111)",
+@prueba(clave="gamma_al", titulo="Surface energy of Al(111)",
         magnitud="γ", referencia=1.10, unidad="J/m²",
         tolerancia=0.25, necesita_qe=True, coste="~60 s",
-        fuente="LDA de potencial completo (Vitos et al. 1998) da 1.20 J/m²; "
-               "el experimento policristalino, 1.14")
+        fuente="full-potential LDA (Vitos et al. 1998) gives 1.20 J/m²; "
+               "the polycrystalline experiment, 1.14")
 def _gamma_al(ctx):
     from ase.build import bulk
     from qekit.modules import surfen
@@ -463,14 +463,14 @@ def _gamma_al(ctx):
     ctx["correr"](run.jobs)
     surfen.collect(run)
     if run.gamma_ajuste is None:
-        raise RuntimeError("el ajuste no salió")
+        raise RuntimeError("the fit did not work out")
     return run.gamma_ajuste * surfen.EV_A2_A_J_M2
 
 
-@prueba(clave="bulk_si", titulo="Módulo de bulto del Si por deformación",
+@prueba(clave="bulk_si", titulo="Bulk modulus of Si by strain",
         magnitud="B", referencia=95.0, unidad="GPa",
         tolerancia=0.15, necesita_qe=True, coste="~50 s",
-        fuente="LDA da 93-97 GPa (Nielsen & Martin 1985); el experimento, 98")
+        fuente="LDA gives 93-97 GPa (Nielsen & Martin 1985); the experiment, 98")
 def _bulk_si(ctx):
     from ase.build import bulk
     from qekit.modules import strain
@@ -484,18 +484,18 @@ def _bulk_si(ctx):
     strain.collect(run)
     idx = [i for i in run.ok if run.energies[i] is not None]
     if len(idx) < 3:
-        raise RuntimeError("no salieron bastantes puntos")
+        raise RuntimeError("not enough points came out")
     x = np.array([run.strains[i] for i in idx])
     y = np.array([run.energies[i] for i in idx])
     a2 = np.polyfit(x, y, 2)[0]
     return 2 * a2 / (9 * run.volume0) * 160.21766
 
 
-@prueba(clave="sitio_h_al", titulo="H sobre Al(111): el hueco gana al top",
-        magnitud="E_ads(top) − E_ads(hueco)", referencia=5.6, unidad="eV",
+@prueba(clave="sitio_h_al", titulo="H on Al(111): the hollow beats the top",
+        magnitud="E_ads(top) − E_ads(hollow)", referencia=5.6, unidad="eV",
         tolerancia=0.60, necesita_qe=True, coste="~60 s",
-        fuente="el hidrógeno quimisorbe en el hueco de fcc(111), no encima "
-               "de un átomo; el orden hueco < puente < top es de manual")
+        fuente="hydrogen chemisorbs in the hollow of fcc(111), not on top "
+               "of an atom; the order hollow < bridge < top is textbook")
 def _sitio_h(ctx):
     from ase.build import fcc111
     from qekit.modules import adsorb
@@ -514,7 +514,7 @@ def _sitio_h(ctx):
         if e[i] is not None:
             por_tipo.setdefault(s.tipo, []).append(e[i])
     if "top" not in por_tipo or "hollow" not in por_tipo:
-        raise RuntimeError("faltan sitios")
+        raise RuntimeError("sites are missing")
     return min(por_tipo["top"]) - min(por_tipo["hollow"])
 
 
@@ -535,7 +535,7 @@ def ejecutar(claves=None, con_qe: bool = False, con_mlip: bool = False,
     ]
     if not seleccion:
         raise ErrorDeUso(
-            "ninguna prueba encaja. Las que hay: "
+            "no test matches. The available ones: "
             + ", ".join(p.clave for p in PRUEBAS))
 
     tmp = Path(carpeta) if carpeta else Path(tempfile.mkdtemp(prefix="qekit_st_"))
@@ -546,8 +546,8 @@ def ejecutar(claves=None, con_qe: bool = False, con_mlip: bool = False,
                               paralelo=paralelo, verbose=False)
         malos = [r for r in res if not r.ok]
         if malos:
-            raise RuntimeError(f"{len(malos)} de {len(jobs)} cálculos "
-                               f"fallaron: {malos[0].error}")
+            raise RuntimeError(f"{len(malos)} of {len(jobs)} calculations "
+                               f"failed: {malos[0].error}")
         return res
 
     def _correr_scf(jobs, d):
@@ -572,10 +572,10 @@ def ejecutar(claves=None, con_qe: bool = False, con_mlip: bool = False,
             if r.error:
                 print(f"ERROR  ({r.error[:60]})")
             else:
-                marca = "ok " if r.bien else "MAL"
-                detalle = (f"({r.desviacion * 100:5.2f} % de {p.referencia:g})"
+                marca = "ok " if r.bien else "BAD"
+                detalle = (f"({r.desviacion * 100:5.2f} % of {p.referencia:g})"
                            if r.relativa
-                           else f"(debe ser 0; sale {r.desviacion:.1e})")
+                           else f"(must be 0; gives {r.desviacion:.1e})")
                 print(f"{marca}  {r.valor:12.5g} {p.unidad:8s} {detalle}")
     if carpeta is None:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -586,34 +586,34 @@ def report(resultados: list) -> str:
     bien = [r for r in resultados if r.bien]
     mal = [r for r in resultados if not r.bien and not r.error]
     err = [r for r in resultados if r.error]
-    L = ["--- Validación contra la física conocida ---",
-         f"{len(resultados)} pruebas: {len(bien)} bien, {len(mal)} fuera de "
-         f"tolerancia, {len(err)} con error",
+    L = ["--- Validation against known physics ---",
+         f"{len(resultados)} tests: {len(bien)} passed, {len(mal)} out of "
+         f"tolerance, {len(err)} with error",
          ""]
     for r in resultados:
         p = r.prueba
-        estado = "ERROR" if r.error else ("ok" if r.bien else "MAL")
+        estado = "ERROR" if r.error else ("ok" if r.bien else "BAD")
         L.append(f"[{estado:^5s}] {p.titulo}")
         if r.error:
             L.append(f"          {r.error}")
         else:
             if r.relativa:
                 L.append(f"          {p.magnitud} = {r.valor:.5g} {p.unidad}"
-                         f"   referencia {p.referencia:g} {p.unidad}"
-                         f"   ({r.desviacion * 100:.2f} %, tolerancia "
+                         f"   reference {p.referencia:g} {p.unidad}"
+                         f"   ({r.desviacion * 100:.2f} %, tolerance "
                          f"{p.tolerancia * 100:.0f} %)")
             else:
                 L.append(f"          {p.magnitud} = {r.valor:.3e} {p.unidad}"
-                         f"   tiene que ser 0 (tolerancia "
+                         f"   must be 0 (tolerance "
                          f"{p.tolerancia:g})")
-        L.append(f"          fuente: {p.fuente}")
+        L.append(f"          source: {p.fuente}")
         L.append("")
     if mal:
-        L += ["Las que salen MAL no siempre son un fallo del código: una "
-              "tolerancia\n  ajustada, un pseudopotencial distinto o un "
-              "cutoff bajo también las mueven.\n  Lo que sí quieren decir es "
-              "que ese número ha cambiado y hay que mirar por qué.", ""]
+        L += ["Those that come out BAD are not always a code failure: a "
+              "tight\n  tolerance, a different pseudopotential or a "
+              "low cutoff also move them.\n  What they do mean is "
+              "that this number has changed and one has to look at why.", ""]
     if err:
-        L += ["Las que dan ERROR no llegaron a producir un número: falta un "
-              "pseudopotencial,\n  pw.x no está, o el cálculo no convergió.", ""]
+        L += ["Those that give ERROR did not manage to produce a number: a "
+              "pseudopotential is missing,\n  pw.x is not there, or the calculation did not converge.", ""]
     return "\n".join(L)

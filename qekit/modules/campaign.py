@@ -33,7 +33,7 @@ _AXIS_NAME = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,31}$")
 def _value(text: str):
     text = str(text).strip()
     if not text:
-        raise ErrorDeUso("un eje de campaña no puede tener valores vacíos.")
+        raise ErrorDeUso("a campaign axis cannot have empty values.")
     try:
         if re.fullmatch(r"[+-]?\d+", text):
             return int(text)
@@ -48,19 +48,19 @@ def parse_axes(specs) -> dict:
     axes = {}
     for spec in specs or []:
         if "=" not in spec:
-            raise ErrorDeUso(f"eje inválido '{spec}'; usa nombre=v1,v2,v3.")
+            raise ErrorDeUso(f"invalid axis '{spec}'; use name=v1,v2,v3.")
         name, raw_values = spec.split("=", 1)
         name = name.strip()
         if not _AXIS_NAME.fullmatch(name):
-            raise ErrorDeUso(f"nombre de eje inválido '{name}'.")
+            raise ErrorDeUso(f"invalid axis name '{name}'.")
         values = [_value(item) for item in raw_values.split(",")]
         if not values or len(values) > 256:
-            raise ErrorDeUso(f"el eje '{name}' debe tener entre 1 y 256 valores.")
+            raise ErrorDeUso(f"axis '{name}' must have between 1 and 256 values.")
         if name in axes:
-            raise ErrorDeUso(f"el eje '{name}' aparece más de una vez.")
+            raise ErrorDeUso(f"axis '{name}' appears more than once.")
         axes[name] = values
     if not axes:
-        raise ErrorDeUso("campaign create necesita al menos un --axis nombre=v1,v2.")
+        raise ErrorDeUso("campaign create needs at least one --axis name=v1,v2.")
     return axes
 
 
@@ -72,9 +72,9 @@ def _format(template: str, parameters: dict, index: int, total: int,
     try:
         command = template.format(**values)
     except KeyError as exc:
-        raise ErrorDeUso(f"la plantilla usa el campo desconocido '{exc.args[0]}'.") from None
+        raise ErrorDeUso(f"the template uses the unknown field '{exc.args[0]}'.") from None
     except ValueError as exc:
-        raise ErrorDeUso(f"plantilla de campaña inválida: {exc}") from None
+        raise ErrorDeUso(f"invalid campaign template: {exc}") from None
     # La validación final la hace el mismo contrato que el Project Hub.
     project._valid_command(command)
     return command
@@ -83,13 +83,13 @@ def _format(template: str, parameters: dict, index: int, total: int,
 def create(root, data, name, command, axis_specs, goal=None,
            convergence_file=None, adaptive=False) -> dict:
     if not name or not str(name).strip():
-        raise ErrorDeUso("campaign create necesita un nombre.")
+        raise ErrorDeUso("campaign create needs a name.")
     if not command or not str(command).strip():
-        raise ErrorDeUso("campaign create necesita --command.")
+        raise ErrorDeUso("campaign create needs --command.")
     axes = parse_axes(axis_specs)
     campaign_id = project._slug(name)
     if any(item.get("id") == campaign_id for item in data.get("campaigns", [])):
-        raise ErrorDeUso(f"ya existe la campaña '{campaign_id}'.")
+        raise ErrorDeUso(f"campaign '{campaign_id}' already exists.")
     recommendation = None
     if convergence_file and adaptive:
         from qekit.modules import tuning
@@ -97,7 +97,7 @@ def create(root, data, name, command, axis_specs, goal=None,
         candidate = next((key for key in axes
                           if key.lower() in ("ecutwfc", "ecutrho", "kmesh")), None)
         if candidate is None:
-            raise ErrorDeUso("--adaptive necesita un eje ecutwfc, ecutrho o kmesh.")
+            raise ErrorDeUso("--adaptive needs an ecutwfc, ecutrho or kmesh axis.")
         if recommendation not in axes[candidate]:
             axes[candidate].append(recommendation)
 
@@ -106,7 +106,7 @@ def create(root, data, name, command, axis_specs, goal=None,
     combinations = [dict(zip(keys, values))
                     for values in itertools.product(*(axes[key] for key in keys))]
     if len(combinations) > 1024:
-        raise ErrorDeUso("la campaña produciría más de 1024 puntos; reduce los ejes.")
+        raise ErrorDeUso("the campaign would produce more than 1024 points; reduce the axes.")
     commands = [_format(command, params, index, len(combinations), source)
                 for index, params in enumerate(combinations, 1)]
     tasks = project.plan(root, data, goal or f"campaign:{campaign_id}", commands,
@@ -120,7 +120,7 @@ def create(root, data, name, command, axis_specs, goal=None,
         task["depends_on"] = []
         task["campaign_id"] = campaign_id
         task["parameters"] = params
-        task["label"] = f"{name} · punto {index}/{len(combinations)}"
+        task["label"] = f"{name} · point {index}/{len(combinations)}"
         # Si la plantilla declara un destino estándar, registrarlo para que
         # Project Hub pueda calcular hashes e ingerir XML al terminar.
         tokens = project._valid_command(task["command"])
@@ -152,7 +152,7 @@ def get(data: dict, campaign_id: str) -> dict:
     for item in data.get("campaigns", []):
         if item.get("id") == wanted:
             return item
-    raise ErrorDeUso(f"no encuentro la campaña '{campaign_id}'.")
+    raise ErrorDeUso(f"campaign '{campaign_id}' not found.")
 
 
 def run(root, data, campaign_id, execute=False, force=False, parallel=1,
@@ -175,10 +175,10 @@ def extend(root, data, campaign_id, convergence_file, threshold=None) -> dict:
     candidate = next((key for key in item.get("axes", {})
                       if key.lower() in ("ecutwfc", "ecutrho", "kmesh")), None)
     if candidate is None:
-        raise ErrorDeUso("la campaña no tiene un eje ecutwfc, ecutrho o kmesh.")
+        raise ErrorDeUso("the campaign has no ecutwfc, ecutrho or kmesh axis.")
     values = item["axes"][candidate]
     if any(abs(float(recommendation) - float(value)) < 1e-12 for value in values):
-        return {"extended": False, "reason": "el valor recomendado ya está en la campaña",
+        return {"extended": False, "reason": "the recommended value is already in the campaign",
                 "recommended_value": recommendation, "campaign": item}
     values.append(recommendation)
     keys = list(item["axes"])
@@ -204,7 +204,7 @@ def extend(root, data, campaign_id, convergence_file, threshold=None) -> dict:
         record["depends_on"] = []
         record["campaign_id"] = campaign_id
         record["parameters"] = params
-        record["label"] = f"{item['name']} · punto {index}/{total}"
+        record["label"] = f"{item['name']} · point {index}/{total}"
         tokens = project._valid_command(record["command"])
         for flag in ("--outdir", "-o"):
             if flag in tokens and tokens.index(flag) + 1 < len(tokens):
@@ -239,8 +239,8 @@ def report(data: dict, campaign_id=None) -> str:
     else:
         items = campaigns
     if not items:
-        return "--- Campañas ---\nNo hay campañas registradas."
-    lines = ["--- Campañas reproducibles ---"]
+        return "--- Campaigns ---\nNo campaigns registered."
+    lines = ["--- Reproducible campaigns ---"]
     tasks = {task.get("id"): task for task in data.get("tasks", [])}
     for item in items:
         counts = {}
@@ -248,13 +248,13 @@ def report(data: dict, campaign_id=None) -> str:
             state = tasks.get(task_id, {}).get("status", "missing")
             counts[state] = counts.get(state, 0) + 1
         state = ", ".join(f"{key}={value}" for key, value in sorted(counts.items()))
-        lines.append(f"{item['id']}: {item['name']} · puntos={item['points']} · {state}")
-        lines.append(f"  plantilla: {item['command_template']}")
+        lines.append(f"{item['id']}: {item['name']} · points={item['points']} · {state}")
+        lines.append(f"  template: {item['command_template']}")
         if item.get("output_isolation") == "review_required":
-            lines.append("  AVISO: la plantilla no incluye {id} o {index}; revisa posibles colisiones de salida.")
+            lines.append("  WARNING: the template does not include {id} or {index}; check for possible output collisions.")
         if item.get("adaptive_recommendation") is not None:
-            lines.append(f"  adaptación: último valor sugerido {item['adaptive_recommendation']:g}")
-        lines.append("  ejes: " + ", ".join(
+            lines.append(f"  adaptive: last suggested value {item['adaptive_recommendation']:g}")
+        lines.append("  axes: " + ", ".join(
             f"{key}={','.join(map(str, values))}" for key, values in item["axes"].items()))
     return "\n".join(lines)
 

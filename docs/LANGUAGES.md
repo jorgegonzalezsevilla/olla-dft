@@ -1,14 +1,14 @@
-# One application, two interface languages
+# One application, three interface languages
 
-[English README](../README.md) · [README en español](../README.es.md)
+[English README](../README.md) · [README en español](../README.es.md) · [Deutsch](../README.de.md)
 
 From **1.4.0**, `olla-dft` is the only maintained repository and package.
-English and Spanish share the same commands, scientific implementation and releases.
+German joins in **1.5.0**. English, Spanish and German share the same commands, scientific implementation and releases.
 The former Spanish repository is retained as a read-only historical archive.
 
 ## Choose a language
 
-Run `olla-dft` in a terminal. Choose **1 — English** or **2 — Español**.
+Run `olla-dft` in a terminal. Choose **1 — English**, **2 — Español** or **3 — Deutsch**.
 Press Enter to keep the suggested language. The menu remembers the choice;
 press **l** to change it without restarting. Choosing a language changes only
 interface text, not units, calculation settings or result data. If preferences
@@ -17,6 +17,7 @@ cannot be saved, the selected language still works for the current session.
 | Use | Command |
 |---|---|
 | Open directly in Spanish | `olla-dft --language es` |
+| Open directly in German | `olla-dft --language de` |
 | Open directly in English | `olla-dft --language en` |
 | Save Spanish as the default | `olla-dft config set language es` |
 | Help in Spanish | `olla-dft eos --help --language es` |
@@ -29,16 +30,22 @@ commands, even when the environment has a different language. An explicit
 With no command and no interactive terminal, Olla-DFT prints help and exits.
 Direct commands, `--help` and `--version` never show the selector.
 This changes older heredoc-driven menu sessions: replace them with direct
-commands in batch scripts. Language codes are `en` and `es`; the environment
+commands in batch scripts. Language codes are `en`, `es` and `de`; the environment
 also accepts uppercase codes. Other environment values fall back to the saved
 preference (or English); unsupported `--language` values are usage errors.
 Saving preferences is atomic, but simultaneous edits by multiple sessions
 are not merged. On POSIX systems, the configuration file is written with owner-only permissions.
 
 Translated surfaces include command help, menus, guided setup, recipes,
-theory, the dashboard, reference HTML and the result explorer. **Some scientific
-reports and error messages remain in Spanish.** Raw Quantum ESPRESSO output,
-command names, file formats and scientific identifiers are preserved.
+theory, the dashboard, reference HTML and the result explorer. **Scientific reports use English in all interface languages.**
+The German interface also uses the shared English detailed theory; its
+menus, help, guides and explorer controls are translated into German. Raw Quantum ESPRESSO output,
+command names, file formats and scientific identifiers are preserved. Some legacy identifiers inside data tables remain Spanish for compatibility. Human-readable report headings and descriptive column labels change to English; scripts that parse those labels need updating.
+Use `olla-dft docs --all-languages` or `olla-dft project dashboard --all-languages`
+to generate all three language pages. The existing `--both` option still generates
+the English/Spanish pair. A single dashboard does not link to pages that were
+not generated.
+
 The explorer also has its own language selector; it does not change the
 terminal preference.
 
@@ -49,7 +56,7 @@ en el mismo entorno. Activa el entorno de Python que quieres actualizar e
 instala la versión unificada desde el repositorio principal:
 
 ```bash
-python -m pip install --upgrade "olla-dft @ git+https://github.com/jorgegonzalezsevilla/olla-dft.git@v1.4.0"
+python -m pip install --upgrade "olla-dft @ git+https://github.com/jorgegonzalezsevilla/olla-dft.git@v1.5.0"
 olla-dft config set language es
 olla-dft --version
 olla-dft

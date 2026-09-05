@@ -25,15 +25,15 @@ def propagate(function, values, uncertainties, relative_step=1e-6) -> dict:
     values = [float(value) for value in values]
     sigmas = [float(value) for value in uncertainties]
     if len(values) != len(sigmas) or not values:
-        raise ErrorDeUso("values y uncertainties deben tener la misma longitud no vacía.")
+        raise ErrorDeUso("values and uncertainties must have the same non-empty length.")
     if any(not math.isfinite(x) or x < 0 for x in sigmas):
-        raise ErrorDeUso("las incertidumbres deben ser finitas y no negativas.")
+        raise ErrorDeUso("the uncertainties must be finite and non-negative.")
     try:
         central = float(function(values))
     except Exception as exc:  # noqa: BLE001
-        raise ErrorDeUso(f"no se pudo evaluar la función: {exc}") from None
+        raise ErrorDeUso(f"could not evaluate the function: {exc}") from None
     if not math.isfinite(central):
-        raise ErrorDeUso("la función produjo un valor no finito.")
+        raise ErrorDeUso("the function produced a non-finite value.")
     derivatives = []
     variance = 0.0
     for index, (value, sigma) in enumerate(zip(values, sigmas)):
@@ -44,13 +44,13 @@ def propagate(function, values, uncertainties, relative_step=1e-6) -> dict:
         try:
             derivative = (float(function(plus)) - float(function(minus))) / (2 * step)
         except Exception as exc:  # noqa: BLE001
-            raise ErrorDeUso(f"no se pudo derivar la entrada {index}: {exc}") from None
+            raise ErrorDeUso(f"could not differentiate input {index}: {exc}") from None
         if not math.isfinite(derivative):
-            raise ErrorDeUso(f"la derivada de la entrada {index} no es finita.")
+            raise ErrorDeUso(f"the derivative of input {index} is not finite.")
         derivatives.append(derivative)
         variance += (derivative * sigma) ** 2
     return {"value": central, "uncertainty": math.sqrt(variance),
-            "derivatives": derivatives, "assumption": "entradas independientes"}
+            "derivatives": derivatives, "assumption": "independent inputs"}
 
 
 def weighted_mean(values, uncertainties) -> dict:
@@ -58,9 +58,9 @@ def weighted_mean(values, uncertainties) -> dict:
     values = [float(value) for value in values]
     sigmas = [float(value) for value in uncertainties]
     if len(values) != len(sigmas) or not values:
-        raise ErrorDeUso("values y uncertainties deben tener la misma longitud no vacía.")
+        raise ErrorDeUso("values and uncertainties must have the same non-empty length.")
     if any(not math.isfinite(x) or x <= 0 for x in sigmas):
-        raise ErrorDeUso("las incertidumbres deben ser finitas y positivas.")
+        raise ErrorDeUso("the uncertainties must be finite and positive.")
     weights = [1.0 / sigma ** 2 for sigma in sigmas]
     total = sum(weights)
     return {"value": sum(w * value for w, value in zip(weights, values)) / total,

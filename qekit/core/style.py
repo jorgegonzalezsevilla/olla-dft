@@ -198,12 +198,12 @@ def apply(theme=None, size: str = None, family: str = None,
     size_key = t.get("size", "paper")
     if size_key not in STYLES:
         raise ErrorDeUso(
-            f"escala desconocida '{size_key}'. Opciones: {', '.join(STYLES)}"
+            f"unknown scale '{size_key}'. Options: {', '.join(STYLES)}"
         )
     fam = t.get("family", "sans")
     if fam not in FAMILIES:
         raise ErrorDeUso(
-            f"familia desconocida '{fam}'. Opciones: {', '.join(FAMILIES)}"
+            f"unknown font family '{fam}'. Options: {', '.join(FAMILIES)}"
         )
 
     s = STYLES[size_key]
@@ -373,12 +373,12 @@ def width_mm(width="single", journal: str = "generic") -> float:
         return float(w)
     if journal not in JOURNALS:
         raise ErrorDeUso(
-            f"revista desconocida '{journal}'. Opciones: {', '.join(JOURNALS)}"
+            f"unknown journal '{journal}'. Options: {', '.join(JOURNALS)}"
         )
     if w not in WIDTH_KEYS:
         raise ErrorDeUso(
-            f"ancho desconocido '{width}'. Usa single/onehalf/double "
-            "o un número en mm."
+            f"unknown width '{width}'. Use single/onehalf/double "
+            "or a number in mm."
         )
     return JOURNALS[journal][WIDTH_KEYS[w]]
 

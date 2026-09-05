@@ -21,7 +21,7 @@ The 80 `olla-dft` subcommands, grouped by area, with their options. Generated fr
 
 guided start to create a project without knowing the CLI
 
-**Usage:** `olla-dft start [-h] [--project PROJECT] [--structure STRUCTURE] [--goal GOAL] [--name NAME] [--non-interactive] [--no-validate] [--language {es,en}]`
+**Usage:** `olla-dft start [-h] [--project PROJECT] [--structure STRUCTURE] [--goal GOAL] [--name NAME] [--non-interactive] [--no-validate] [--language {es,en,de}]`
 
 **Options:**
 
@@ -33,7 +33,7 @@ guided start to create a project without knowing the CLI
 | `--name` | display name of the project |
 | `--non-interactive` | do not ask; requires --structure in a new project |
 | `--no-validate` | do not run the initial validation |
-| `--language {es,en}` | language of the guided start (default: es) |
+| `--language {es,en,de}` | interface language (en, es, de; follows --language) |
 
 ### `wizard`
 
@@ -50,7 +50,7 @@ assistant: tell me WHAT you want to know and I tell you what to run, in order an
 | Option | Description |
 |---|---|
 | `--goal` | goal key; they are listed with --list |
-| `--ask TEXTO` | describe it in your own words (in Spanish, which is what the matcher understands), e.g. 'quiero saber si absorbe luz' |
+| `--ask TEXTO` | describe your goal in English, Spanish or German, for example 'does it absorb light' |
 | `--list` | list everything the assistant knows how to do |
 | `--term` | what a term means |
 | `--no-glossary` | do not explain the technical terms at the end of the answer |
@@ -95,7 +95,7 @@ the physics behind a command: what it answers, the formulas it implements, which
 
 browsable reference of all subcommands, generated from the code itself
 
-**Usage:** `olla-dft docs [-h] [-o OUTPUT] [--open] [--language {es,en}] [--both]`
+**Usage:** `olla-dft docs [-h] [-o OUTPUT] [--open] [--language {es,en,de}] [--both] [--all-languages]`
 
 **Options:**
 
@@ -103,8 +103,9 @@ browsable reference of all subcommands, generated from the code itself
 |---|---|
 | `-o, --output` | output HTML file (default: `olla-dft-docs.html`) |
 | `--open` | open it in the browser when done |
-| `--language {es,en}` | language of the reference interface (default: es) |
+| `--language {es,en,de}` | interface language (en, es, de; follows --language) |
 | `--both` | generate separate Spanish and English references |
+| `--all-languages` | generate English, Spanish and German interfaces |
 
 ### `sistema`
 
@@ -2466,7 +2467,7 @@ compare the available pseudopotentials and choose on merit, not alphabetically
 
 manage a reproducible project: sources, workflow, quality and dashboard
 
-**Usage:** `olla-dft project [-h] [--project PROJECT] [--name NAME] [--command TASK_COMMANDS] [--execute] [--force] [--parallel PARALLEL] [--retries RETRIES] [--timeout TIMEOUT] [--cancel-file CANCEL_FILE] [--reason REASON] [--selftest] [--advanced] [-o OUTPUT] [--pdf] [--theme {auto,light,dark}] [--language {es,en}] [--both] [--verify-environment] [--other OTHER] [--json] {init,add,plan,show,status,validate,run,dashboard,report,export,ingest,environment,diff,cancel,resume} [target]`
+**Usage:** `olla-dft project [-h] [--project PROJECT] [--name NAME] [--command TASK_COMMANDS] [--execute] [--force] [--parallel PARALLEL] [--retries RETRIES] [--timeout TIMEOUT] [--cancel-file CANCEL_FILE] [--reason REASON] [--selftest] [--advanced] [-o OUTPUT] [--pdf] [--theme {auto,light,dark}] [--language {es,en,de}] [--both] [--all-languages] [--verify-environment] [--other OTHER] [--json] {init,add,plan,show,status,validate,run,dashboard,report,export,ingest,environment,diff,cancel,resume} [target]`
 
 **Arguments:**
 
@@ -2492,8 +2493,9 @@ manage a reproducible project: sources, workflow, quality and dashboard
 | `-o, --output` | output for dashboard, report or export |
 | `--pdf` | in report, generate a self-contained PDF report |
 | `--theme {auto,light,dark}` | dashboard theme (default: auto) |
-| `--language {es,en}` | dashboard language (default: es) |
+| `--language {es,en,de}` | interface language (en, es, de; follows --language) |
 | `--both` | generate Spanish and English dashboards in separate files |
+| `--all-languages` | generate English, Spanish and German interfaces |
 | `--verify-environment` | in environment, check the saved lock |
 | `--other` | in diff, snapshot or project to compare against |
 | `--json` | in diff, print JSON |
@@ -2559,4 +2561,4 @@ view or change the configuration
 
 ---
 
-*Olla-DFT 1.4.0*
+*Olla-DFT 1.5.0*

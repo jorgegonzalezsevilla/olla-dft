@@ -105,16 +105,16 @@ _GROUP_KEYS = (
 
 def _labels(language="es") -> dict:
     """Carga la capa de presentación de la referencia sin traducir la física."""
-    if language not in ("es", "en"):
-        raise ValueError("language debe ser es o en")
-    if language == "en":
-        target = _I18N_DIR / "docs_en.json"
+    if language not in ("es", "en", "de"):
+        raise ValueError("language must be en, es or de")
+    if language != "es":
+        target = _I18N_DIR / f"docs_{language}.json"
         try:
             value = json.loads(target.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"no se pudo cargar la traducción {target}: {exc}") from None
+            raise RuntimeError(f"could not load translation {target}: {exc}") from None
         if not isinstance(value, dict):
-            raise RuntimeError(f"la traducción {target} no es un objeto JSON")
+            raise RuntimeError(f"translation {target} is not a JSON object")
         return value
     return {
         "lang": "es",
@@ -172,11 +172,14 @@ def _limpio(t):
     return " ".join(str(t or "").split())
 
 
-def extraer() -> list:
+def extraer(language=None) -> list:
     """Recorre el árbol de argparse y devuelve los comandos con sus banderas."""
     from qekit.cli import build_parser
+    from qekit.core import i18n
+    from qekit.modules import theory
 
-    parser = build_parser()
+    language = language or i18n.get_language()
+    parser = build_parser(language)
     sub = None
     for a in parser._actions:
         choices = getattr(a, "choices", None)
@@ -215,7 +218,11 @@ def extraer() -> list:
         if mod:
             try:
                 m = __import__(f"qekit.modules.{mod}", fromlist=["x"])
-                c.fisica = inspect.getdoc(m) or ""
+                if language == "es":
+                    c.fisica = inspect.getdoc(m) or ""
+                else:
+                    section = theory.buscar(nombre, "en")
+                    c.fisica = section.texto if section else ""
             except Exception:                               # noqa: BLE001
                 c.fisica = ""
         fuera.append(c)
@@ -321,7 +328,7 @@ def _tabla(banderas: list, labels=None) -> str:
             + "".join(filas) + "</tbody></table></div>")
 
 
-def _html_recetas(labels=None, language="es") -> str:
+def _html_recetas(labels=None, language="en") -> str:
     """Las mismas recetas del CLI, en la página. Una sola fuente.
 
     Si aquí hubiera una copia escrita a mano, se desincronizaría con el CLI
@@ -377,9 +384,9 @@ def _html_recetas(labels=None, language="es") -> str:
     return "".join(B)
 
 
-def generar(destino: str = "olla-dft-docs.html", language="es") -> str:
+def generar(destino: str = "olla-dft-docs.html", language="en") -> str:
     labels = _labels(language)
-    comandos = {c.nombre: c for c in extraer()}
+    comandos = {c.nombre: c for c in extraer(language)}
     cortas = ayudas_cortas()
 
     sueltos = [n for n in comandos
@@ -398,7 +405,7 @@ def generar(destino: str = "olla-dft-docs.html", language="es") -> str:
         presentes = [n for n in nombres if n in comandos]
         if not presentes:
             continue
-        if language == "en":
+        if language != "es":
             if group_index < len(_GROUP_KEYS):
                 titulo, lema = labels["groups"][_GROUP_KEYS[group_index]]
             else:
@@ -412,7 +419,7 @@ def generar(destino: str = "olla-dft-docs.html", language="es") -> str:
         for n in presentes:
             c = comandos[n]
             corta = (labels.get("command_summaries", {}).get(n)
-                     if language == "en" else None) or cortas.get(n) or c.ayuda
+                     if language != "es" else None) or cortas.get(n) or c.ayuda
             fisica = _parrafos(c.fisica)
             cuerpo.append(
                 f'<article class="cmd" id="c-{E(n)}" data-buscar="{E(n)} '
@@ -425,7 +432,7 @@ def generar(destino: str = "olla-dft-docs.html", language="es") -> str:
                    f'{E(labels["options"])}</summary>{_tabla(c.banderas, labels)}</details>'
                    if c.banderas else "")
                 + (f'<details class="fisica"><summary>{E(labels["physics"])}</summary>'
-                   f'<div class="fis">{fisica}</div></details>'
+                   f'<div class="fis" lang="{"es" if language == "es" else "en"}">{fisica}</div></details>'
                    if fisica else "")
                 + "</article>")
         cuerpo.append("</section>")

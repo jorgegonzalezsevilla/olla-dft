@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "olla-dft"
-version = "1.4.0"
+version = "1.5.0"
 description = "Command-line toolkit for Quantum ESPRESSO: input generation, post-processing, materials properties and quality control"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -18,6 +18,7 @@ classifiers = [
     "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Natural Language :: Spanish",
     "Natural Language :: English",
+    "Natural Language :: German",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",

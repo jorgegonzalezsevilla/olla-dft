@@ -73,7 +73,7 @@ def surface(atoms: Atoms, miller=(1, 0, 0), layers: int = 4,
     base = struct_mod.conventional(atoms)
     miller = tuple(int(m) for m in miller)
     if all(m == 0 for m in miller):
-        raise ErrorDeUso("los índices de Miller no pueden ser (0,0,0)")
+        raise ErrorDeUso("the Miller indices cannot be (0,0,0)")
 
     slab = ase_surface(base, miller, layers, vacuum=vacuum / 2.0,
                        periodic=True)
@@ -93,11 +93,11 @@ def surface(atoms: Atoms, miller=(1, 0, 0), layers: int = 4,
     por_plano = len(slab) / max(len(_planos_z(slab, tol)), 1)
     if por_plano > 1.5:
         info.warnings.append(
-            f"la celda superficial tiene {por_plano:.0f} átomos por plano. "
-            "El corte se hace sobre la celda convencional (que es la "
-            "referencia de los índices hkl) y eso puede dar un múltiplo de "
-            "la celda superficial mínima. Si solo necesitas la superficie "
-            "limpia, una celda menor sale más barata.")
+            f"the surface cell has {por_plano:.0f} atoms per plane. "
+            "The cut is made on the conventional cell (which is the "
+            "reference for the hkl indices) and that can give a multiple of "
+            "the minimal surface cell. If you only need the clean surface, "
+            "a smaller cell is cheaper.")
 
     # ¿es simétrica? se compara el perfil de z con su reflejo
     zc = np.sort(z - z.mean())
@@ -113,26 +113,26 @@ def surface(atoms: Atoms, miller=(1, 0, 0), layers: int = 4,
         info.planos_fijos = min(fix_layers, info.planos)
         if fix_layers >= info.planos:
             info.warnings.append(
-                f"pediste congelar {fix_layers} planos y la losa solo tiene "
-                f"{info.planos}: quedaría entera fija y no habría relajación "
-                "de superficie, que es justo lo que se quiere calcular.")
+                f"you asked to freeze {fix_layers} planes and the slab only has "
+                f"{info.planos}: it would be entirely fixed and there would be "
+                "no surface relaxation, which is exactly what one wants to compute.")
 
     if vac_real < 10.0:
         info.warnings.append(
-            f"el vacío REAL entre superficies atómicas es {vac_real:.1f} Å "
-            f"(pediste {vacuum:.1f} de celda). Por debajo de ~10 Å las dos "
-            "caras se ven entre sí y la energía de superficie y la función "
-            "trabajo salen mal.")
+            f"the REAL vacuum between atomic surfaces is {vac_real:.1f} Å "
+            f"(you asked for {vacuum:.1f} of cell). Below ~10 Å the two "
+            "faces see each other and the surface energy and work function "
+            "come out wrong.")
     if info.polar:
         info.warnings.append(
-            "la losa es POLAR (las dos caras no son equivalentes): las "
-            "condiciones periódicas crean un dipolo artificial a través del "
-            "vacío. Añade 'dipfield = .true.' y 'edir = 3' al input, o corta "
-            "una losa simétrica.")
+            "the slab is POLAR (the two faces are not equivalent): the "
+            "periodic boundary conditions create an artificial dipole across "
+            "the vacuum. Add 'dipfield = .true.' and 'edir = 3' to the input, "
+            "or cut a symmetric slab.")
     if layers < 4:
         info.warnings.append(
-            f"{layers} capas es poco: el centro de la losa debería parecerse "
-            "al volumen, y con tan pocas capas no llega.")
+            f"{layers} layers is too few: the centre of the slab should "
+            "resemble the bulk, and with so few layers it does not.")
     return info
 
 
@@ -160,7 +160,7 @@ def _planos_z(slab: Atoms, tol: float) -> list:
 #: Formato de estructura que conserva los átomos fijos al exportar. El CIF
 #: no tiene dónde guardarlos; POSCAR sí ("Selective dynamics") y ASE los
 #: lee de vuelta como restricción FixAtoms.
-FORMATO_CON_FIJOS = "POSCAR (o .vasp)"
+FORMATO_CON_FIJOS = "POSCAR (or .vasp)"
 
 
 def _fijar_capas(slab: Atoms, n: int, tol: float) -> int:
@@ -217,17 +217,17 @@ def defect(atoms: Atoms, kind: str = "vacancy", site: int = 0,
 
     if kind == "vacancy":
         if not 0 <= site < len(d):
-            raise ErrorDeUso(f"índice de sitio {site} fuera de rango "
+            raise ErrorDeUso(f"site index {site} out of range "
                              f"(0..{len(d)-1})")
         info.especie_ida = d.get_chemical_symbols()[site]
         info.site = site
         del d[site]
     elif kind == "substitution":
         if not new_element:
-            raise ErrorDeUso("la sustitución necesita --new-element: dime qué "
-                             "especie entra, por ejemplo --new-element P")
+            raise ErrorDeUso("the substitution needs --new-element: specify "
+                             "which species goes in, e.g. --new-element P")
         if not 0 <= site < len(d):
-            raise ErrorDeUso(f"índice de sitio {site} fuera de rango "
+            raise ErrorDeUso(f"site index {site} out of range "
                              f"(0..{len(d)-1})")
         info.especie_ida = d.get_chemical_symbols()[site]
         info.especie_nueva = new_element
@@ -235,11 +235,11 @@ def defect(atoms: Atoms, kind: str = "vacancy", site: int = 0,
         d[site].symbol = new_element
     elif kind == "interstitial":
         if not new_element:
-            raise ErrorDeUso("el intersticial necesita --new-element: dime qué "
-                             "especie se mete, por ejemplo --new-element H")
+            raise ErrorDeUso("the interstitial needs --new-element: specify "
+                             "which species is inserted, e.g. --new-element H")
         if position is None:
-            raise ErrorDeUso("el intersticial necesita --position x,y,z "
-                             "(fraccionarias de la supercelda)")
+            raise ErrorDeUso("the interstitial needs --position x,y,z "
+                             "(fractional coordinates of the supercell)")
         pos_cart = np.asarray(position, dtype=float) @ d.cell.array
         d.append(Atoms(new_element, positions=[pos_cart])[0])
         info.especie_nueva = new_element
@@ -247,18 +247,18 @@ def defect(atoms: Atoms, kind: str = "vacancy", site: int = 0,
         dist = d.get_distances(len(d) - 1, range(len(d) - 1), mic=True)
         if dist.min() < 1.0:
             info.warnings.append(
-                f"el intersticial quedó a {dist.min():.2f} Å del vecino más "
-                "cercano: revisa la posición, eso no converge.")
+                f"the interstitial ended up {dist.min():.2f} Å from its nearest "
+                "neighbour: check the position, that will not converge.")
     else:
-        raise ErrorDeUso("kind debe ser vacancy, substitution o interstitial")
+        raise ErrorDeUso("kind must be vacancy, substitution or interstitial")
 
     info.atoms = d
     lado = min(np.linalg.norm(perfecto.cell.array, axis=1))
     if lado < 10.0:
         info.warnings.append(
-            f"la supercelda mide {lado:.1f} Å en su lado más corto: el "
-            "defecto se ve con sus imágenes periódicas. Para energías de "
-            "formación conviene ≥ 10-12 Å.")
+            f"the supercell measures {lado:.1f} Å along its shortest side: the "
+            "defect sees its periodic images. For formation energies "
+            "≥ 10-12 Å is advisable.")
     return perfecto, info
 
 
@@ -266,58 +266,58 @@ def formation_energy_text(info: DefectInfo) -> str:
     """La fórmula con sus términos, para no aplicarla a ciegas."""
     if info.kind == "vacancy":
         term = f"+ mu({info.especie_ida})"
-        quita = f"se quitó un {info.especie_ida}"
+        quita = f"one {info.especie_ida} was removed"
     elif info.kind == "substitution":
         term = f"+ mu({info.especie_ida}) - mu({info.especie_nueva})"
         quita = f"{info.especie_ida} -> {info.especie_nueva}"
     else:
         term = f"- mu({info.especie_nueva})"
-        quita = f"se añadió un {info.especie_nueva}"
+        quita = f"one {info.especie_nueva} was added"
     return "\n".join([
-        "Energía de formación:",
-        f"  E_f = E(defecto) - E(perfecto) {term}  [+ q(E_F + E_v) + E_corr]",
+        "Formation energy:",
+        f"  E_f = E(defect) - E(perfect) {term}  [+ q(E_F + E_v) + E_corr]",
         f"  ({quita})",
         "",
-        "  mu = potencial químico del reservorio. NO hay un valor universal:",
-        "  depende de las condiciones de síntesis (rica o pobre en cada",
-        "  especie) y acota E_f entre dos límites, no la fija en un número.",
-        "  Los términos entre corchetes solo aplican a defectos CARGADOS.",
+        "  mu = chemical potential of the reservoir. There is NO universal value:",
+        "  it depends on the synthesis conditions (rich or poor in each",
+        "  species) and bounds E_f between two limits instead of fixing a number.",
+        "  The terms in brackets only apply to CHARGED defects.",
     ])
 
 
 def report_slab(info: SlabInfo) -> str:
     a = info.atoms
-    lines = ["--- Superficie ---",
-             f"Índices de Miller: ({info.miller[0]}{info.miller[1]}"
-             f"{info.miller[2]})  |  {info.layers} capas  |  "
-             f"{len(a)} átomos",
-             f"Fórmula: {a.get_chemical_formula()}",
-             f"Grosor de la losa: {info.thickness:.2f} Å",
-             f"Vacío real entre superficies: {info.vacuum_real:.2f} Å",
-             f"Planos atómicos en z: {info.planos}",
-             f"Losa simétrica: {'sí' if info.simetrica else 'no'}  |  "
-             f"polar: {'sí' if info.polar else 'no'}"]
+    lines = ["--- Surface ---",
+             f"Miller indices: ({info.miller[0]}{info.miller[1]}"
+             f"{info.miller[2]})  |  {info.layers} layers  |  "
+             f"{len(a)} atoms",
+             f"Formula: {a.get_chemical_formula()}",
+             f"Slab thickness: {info.thickness:.2f} Å",
+             f"Real vacuum between surfaces: {info.vacuum_real:.2f} Å",
+             f"Atomic planes along z: {info.planos}",
+             f"Symmetric slab: {'yes' if info.simetrica else 'no'}  |  "
+             f"polar: {'yes' if info.polar else 'no'}"]
     if info.fijados:
-        lines.append(f"Congelados: {info.planos_fijos} planos del fondo "
-                     f"({info.fijados} átomos de {len(a)})")
+        lines.append(f"Frozen: {info.planos_fijos} bottom planes "
+                     f"({info.fijados} atoms of {len(a)})")
     for w in info.warnings:
-        lines.append(f"\nAVISO: {w}")
+        lines.append(f"\nWARNING: {w}")
     return "\n".join(lines)
 
 
 def report_defect(info: DefectInfo) -> str:
     a = info.atoms
-    lines = ["--- Defecto puntual ---",
-             f"Tipo: {info.kind}  |  supercelda "
+    lines = ["--- Point defect ---",
+             f"Type: {info.kind}  |  supercell "
              f"{info.supercell[0]}x{info.supercell[1]}x{info.supercell[2]}",
-             f"Perfecto: {info.n_perfecto} átomos  ->  con defecto: "
-             f"{len(a)} átomos ({a.get_chemical_formula()})"]
+             f"Perfect: {info.n_perfecto} atoms  ->  with defect: "
+             f"{len(a)} atoms ({a.get_chemical_formula()})"]
     if info.site is not None:
-        lines.append(f"Sitio afectado: índice {info.site} "
+        lines.append(f"Affected site: index {info.site} "
                      f"({info.especie_ida})")
     if info.especie_nueva:
-        lines.append(f"Especie introducida: {info.especie_nueva}")
+        lines.append(f"Introduced species: {info.especie_nueva}")
     lines += ["", formation_energy_text(info)]
     for w in info.warnings:
-        lines.append(f"\nAVISO: {w}")
+        lines.append(f"\nWARNING: {w}")
     return "\n".join(lines)

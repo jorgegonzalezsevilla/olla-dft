@@ -104,7 +104,7 @@ def test_cruce_detecta_acuerdo_y_desacuerdo():
 def test_cruce_b0_eos_contra_elasticas():
     from qekit.modules import crosscheck as cc
     r = cc.run(project=None, C=_C_cubica(), b0_eos=94.2)
-    b = [c for c in r.checks if "volumétrico" in c.nombre]
+    b = [c for c in r.checks if "bulk modulus" in c.nombre]
     assert len(b) == 1 and b[0].ok is True
 
 
@@ -116,9 +116,9 @@ def test_cruce_marca_la_transversal_con_malla_pobre():
     f = np.column_stack([q * 170.0, q * 170.0, q * 440.0])
     r = cc.run(project=None, C=_C_cubica(), masas=SI_MASAS, volumen=SI_VOL,
                natoms=SI_NAT, qdist=q, band_freqs=f)
-    tv = [c for c in r.checks if "transversal" in c.nombre][0]
+    tv = [c for c in r.checks if "transverse" in c.nombre][0]
     assert tv.ok is False
-    assert "malla de q" in tv.diagnostico
+    assert 'q-grid' in tv.diagnostico
 
 
 def test_cruce_numero_de_modos_y_dulong_petit():
@@ -127,7 +127,7 @@ def test_cruce_numero_de_modos_y_dulong_petit():
     w = np.linspace(1.0, 500.0, 400)
     dos = np.full_like(w, 6.0 / (500.0 - 1.0))
     r = cc.run(project=None, dos_w=w, dos=dos, natoms=2)
-    modos = [c for c in r.checks if "modos" in c.nombre][0]
+    modos = [c for c in r.checks if "modes" in c.nombre][0]
     assert modos.ok is True
     dp = [c for c in r.checks if "Dulong" in c.ruta_a][0]
     assert dp.ok is True          # a 1500 K con w<500 cm⁻¹ ya es clásico
@@ -137,7 +137,7 @@ def test_cruce_sin_datos_no_inventa():
     from qekit.modules import crosscheck as cc
     r = cc.run(project=None)
     assert r.checks == []
-    assert "dos rutas independientes" in cc.report(r)
+    assert 'two independent routes' in cc.report(r)
 
 
 # ----------------------------------------------------------------------
@@ -203,7 +203,7 @@ def test_qha_avisa_con_pocos_volumenes():
     V = np.array([39.0, 40.0, 41.0])
     F = [_modos_con_gruneisen(v) for v in V]
     r = qha.run(V, 0.02 * (V - 40) ** 2, F, T=np.array([300.0]), natoms=2)
-    assert any("volúmenes" in a for a in r.avisos)
+    assert any("volumes" in a for a in r.avisos)
 
 
 # ----------------------------------------------------------------------
@@ -228,7 +228,7 @@ def test_metodos_usa_los_parametros_reales():
         "ocupaciones": "fixed", "nspin": 1})
     texto = ds.metodos(f)
     assert "PBE" in texto and "60.0" in texto and "8x8x8" in texto
-    assert "Si.upf" in texto and "ocupaciones fijas" in texto
+    assert "Si.upf" in texto and 'fixed occupations' in texto
 
 
 def test_metodos_declara_el_uso_de_mlip():
@@ -236,7 +236,7 @@ def test_metodos_declara_el_uso_de_mlip():
     f = ds.Ficha(parametros={"funcional": "PBE"}, codigos=["qe", "mace"])
     texto = ds.metodos(f)
     assert "MACE" in texto
-    assert "resultados reportados provienen" in texto   # deja claro el rol
+    assert 'reported results come' in texto   # deja claro el rol
 
 
 def test_ficha_escribe_markdown_y_html(tmp_path):
@@ -251,4 +251,4 @@ def test_ficha_escribe_markdown_y_html(tmp_path):
     html = Path(archivos[1]).read_text(encoding="utf-8")
     assert "<!doctype html>" in html.lower()
     assert "159.9" in html
-    assert "borrador" in html          # el aviso sobre el párrafo de métodos
+    assert 'draft' in html          # el aviso sobre el párrafo de métodos

@@ -25,22 +25,27 @@ class Check:
     evidence: str = ""
 
 
+#: English display names of the verdict identifiers (the identifiers
+#: themselves are kept as stored in the result dict).
+VERDICT_EN = {"bloqueado": "BLOCKED", "revisar": "REVIEW", "listo": "READY"}
+
+
 def evaluate(root: Path, data: dict) -> dict:
     checks = []
     state = project.status(root, data)
     if data.get("sources"):
         if state["changed_sources"]:
             checks.append(Check(
-                "sources.changed", "Fuentes reproducibles", "fail",
-                "hay entradas que ya no coinciden con el SHA-256 registrado",
+                "sources.changed", "Reproducible sources", "fail",
+                "there are inputs that no longer match the recorded SHA-256",
                 ", ".join(state["changed_sources"])))
         else:
             checks.append(Check(
-                "sources.locked", "Fuentes reproducibles", "ok",
-                "las fuentes registradas conservan tamaño y SHA-256"))
+                "sources.locked", "Reproducible sources", "ok",
+                "the recorded sources keep their size and SHA-256"))
     else:
-        checks.append(Check("sources.missing", "Fuentes reproducibles", "fail",
-                            "el proyecto no registra ninguna fuente"))
+        checks.append(Check("sources.missing", "Reproducible sources", "fail",
+                            "the project does not record any source"))
 
     # El bloqueo no sustituye a un contenedor ni a una receta de instalación,
     # pero sí hace visible si el equipo que reabre el proyecto cambió de
@@ -51,19 +56,19 @@ def evaluate(root: Path, data: dict) -> dict:
             from qekit.modules import environment
             locked = environment.verify(root)
             checks.append(Check(
-                "environment.locked", "Entorno reproducible",
+                "environment.locked", "Reproducible environment",
                 "ok" if locked["ok"] else "warn",
-                "Python, dependencias y binarios coinciden" if locked["ok"] else
-                "el entorno actual difiere del bloqueo guardado",
+                "Python, dependencies and binaries match" if locked["ok"] else
+                "the current environment differs from the saved lock",
                 ", ".join(locked.get("changed", []))))
         except Exception as exc:  # noqa: BLE001
-            checks.append(Check("environment.unreadable", "Entorno reproducible",
-                                "warn", "no se pudo verificar el bloqueo",
+            checks.append(Check("environment.unreadable", "Reproducible environment",
+                                "warn", "the lock could not be verified",
                                 str(exc)))
     elif data.get("sources"):
         checks.append(Check(
-            "environment.missing", "Entorno reproducible", "warn",
-            "falta environment.lock.json; créalo antes de compartir o publicar",
+            "environment.missing", "Reproducible environment", "warn",
+            "environment.lock.json is missing; create it before sharing or publishing",
             "olla-dft project environment"))
 
     advanced = data.get("metadata", {}).get("advanced_validation")
@@ -71,11 +76,11 @@ def evaluate(root: Path, data: dict) -> dict:
         advanced_level = ("fail" if not advanced.get("passed") else
                           "warn" if advanced.get("warnings") else "ok")
         checks.append(Check(
-            "validation.advanced", "Validación avanzada",
+            "validation.advanced", "Advanced validation",
             advanced_level,
-            "estructura, comandos, unidades y salidas revisados" if advanced_level == "ok"
-            else "la validación avanzada encontró fallos" if advanced_level == "fail"
-            else "validación avanzada completada con avisos",
+            "structure, commands, units and outputs reviewed" if advanced_level == "ok"
+            else "the advanced validation found failures" if advanced_level == "fail"
+            else "advanced validation completed with warnings",
             str(advanced.get("at", ""))))
 
     # La presencia del índice no es una prueba de validez física, pero sí
@@ -86,65 +91,65 @@ def evaluate(root: Path, data: dict) -> dict:
         indexed = results.summary(results.project_db(root))
     except Exception as exc:  # noqa: BLE001
         checks.append(Check(
-            "results.unreadable", "Resultados trazables", "fail",
-            "el índice de resultados existe pero no se puede leer",
+            "results.unreadable", "Traceable results", "fail",
+            "the results index exists but cannot be read",
             str(exc).splitlines()[0]))
         indexed = {"count": 0, "by_status": {}}
     if indexed.get("count"):
         invalid = indexed.get("by_status", {}).get("invalid", 0)
         level = "warn" if invalid else "ok"
-        detail = (f"{indexed['count']} resultado(s) conservan métricas y hashes"
-                  + (f"; {invalid} no se pudieron interpretar" if invalid else ""))
-        checks.append(Check("results.indexed", "Resultados trazables", level, detail,
+        detail = (f"{indexed['count']} result(s) keep metrics and hashes"
+                  + (f"; {invalid} could not be interpreted" if invalid else ""))
+        checks.append(Check("results.indexed", "Traceable results", level, detail,
                             str(results.project_db(root))))
     elif any(x.get("status") == "succeeded" for x in data.get("tasks", [])):
         checks.append(Check(
-            "results.missing", "Resultados trazables", "warn",
-            "hay tareas terminadas pero todavía no se ha ingerido ningún XML"))
+            "results.missing", "Traceable results", "warn",
+            "there are finished tasks but no XML has been ingested yet"))
 
     counts = state["counts"]
     if counts.get("failed"):
         checks.append(Check(
-            "tasks.failed", "Workflow ejecutado", "fail",
-            f"{counts['failed']} tarea(s) terminaron con error"))
+            "tasks.failed", "Workflow executed", "fail",
+            f"{counts['failed']} task(s) finished with an error"))
     elif counts.get("cancelled"):
         checks.append(Check(
-            "tasks.cancelled", "Workflow ejecutado", "warn",
-            f"{counts['cancelled']} tarea(s) quedaron canceladas; reanuda y revisa antes de publicar"))
+            "tasks.cancelled", "Workflow executed", "warn",
+            f"{counts['cancelled']} task(s) were left cancelled; resume and review before publishing"))
     elif data.get("tasks"):
         checks.append(Check(
-            "tasks.state", "Workflow ejecutado",
+            "tasks.state", "Workflow executed",
             "ok" if not counts.get("pending") and not counts.get("blocked")
             else "warn",
-            "todas las tareas terminaron" if not counts.get("pending")
+            "all tasks finished" if not counts.get("pending")
             and not counts.get("blocked") else
-            "hay tareas planificadas que todavía no se han ejecutado"))
+            "there are planned tasks that have not been executed yet"))
     else:
-        checks.append(Check("tasks.empty", "Workflow ejecutado", "warn",
-                            "todavía no hay tareas en el proyecto"))
+        checks.append(Check("tasks.empty", "Workflow executed", "warn",
+                            "there are no tasks in the project yet"))
 
     if any(x.get("status") == "succeeded" for x in data.get("tasks", [])):
         checks.append(Check(
-            "provenance.logs", "Logs y procedencia", "ok",
-            "las tareas ejecutadas tienen estado persistente; exporta el "
-            "snapshot para archivarlo"))
+            "provenance.logs", "Logs and provenance", "ok",
+            "the executed tasks have persistent state; export the "
+            "snapshot to archive it"))
     else:
         checks.append(Check(
-            "provenance.pending", "Logs y procedencia", "warn",
-            "aún no hay tareas ejecutadas para auditar"))
+            "provenance.pending", "Logs and provenance", "warn",
+            "there are no executed tasks to audit yet"))
 
     # No se presenta como aprobación de publicación: solo constata si el
     # proyecto ha pasado explícitamente la suite independiente.
     selftest = data.get("metadata", {}).get("selftest", {})
     if selftest.get("passed"):
-        checks.append(Check("selftest.passed", "Fórmulas independientes", "ok",
-                            "el proyecto registra selftest aprobado",
+        checks.append(Check("selftest.passed", "Independent formulas", "ok",
+                            "the project records a passed selftest",
                             str(selftest.get("at"))))
     else:
         checks.append(Check(
-            "selftest.missing", "Fórmulas independientes", "warn",
-            "no consta una ejecución aprobada de olla-dft selftest; esto no "
-            "invalida una exploración, pero falta evidencia independiente"))
+            "selftest.missing", "Independent formulas", "warn",
+            "no passed run of olla-dft selftest is recorded; this does not "
+            "invalidate an exploration, but independent evidence is missing"))
 
     fails = sum(c.level == "fail" for c in checks)
     warns = sum(c.level == "warn" for c in checks)
@@ -155,14 +160,14 @@ def evaluate(root: Path, data: dict) -> dict:
 
 
 def report(result: dict) -> str:
-    lines = ["--- Puerta de calidad científica ---",
-             f"Veredicto: {result['verdict'].upper()}  |  puntuación orientativa: "
+    lines = ["--- Scientific quality gate ---",
+             f"Verdict: {VERDICT_EN.get(result['verdict'], result['verdict'].upper())}  |  indicative score: "
              f"{result['score']}/100"]
     for check in result["checks"]:
-        mark = {"ok": "OK", "warn": "AVISO", "fail": "FALLO"}[check.level]
+        mark = {"ok": "OK", "warn": "WARN", "fail": "FAIL"}[check.level]
         lines.append(f"  [{mark:5s}] {check.title}: {check.detail}")
         if check.evidence:
-            lines.append(f"         evidencia: {check.evidence}")
-    lines.append("\nEsta puerta organiza evidencia; no sustituye revisión científica ni "
-                 "autoriza publicar automáticamente.")
+            lines.append(f"         evidence: {check.evidence}")
+    lines.append("\nThis gate organizes evidence; it does not replace scientific review nor "
+                 "authorize automatic publication.")
     return "\n".join(lines)

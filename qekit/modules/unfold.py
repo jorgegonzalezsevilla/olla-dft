@@ -76,10 +76,10 @@ class Desdoblado:
 
 def aviso_lsda(spin: str, otro: str) -> str:
     """El texto que va al reporte cuando el cálculo es de espín polarizado."""
-    return (f"AVISO: el cálculo es de espín polarizado (lsda) y aquí solo se "
-            f"ha desdoblado el\ncanal '{spin}' (wfc{spin}<N>.dat y sus "
-            f"energías). El otro canal no se mezcla ni se\nsuma: para verlo "
-            f"repite el desdoblamiento con --spin {otro}.")
+    return (f"WARNING: the calculation is spin-polarized (lsda) and only the "
+            f"'{spin}' channel\nhas been unfolded here (wfc{spin}<N>.dat and its "
+            f"energies). The other channel is neither mixed nor\nadded: to see it "
+            f"repeat the unfolding with --spin {otro}.")
 
 
 # ----------------------------------------------------------------------
@@ -108,12 +108,12 @@ def matriz_supercelda(celda_sc, celda_prim) -> np.ndarray:
         if Mi is not None:
             return Mi
         raise ErrorDeUso(
-            "la celda de la supercelda no es un múltiplo entero de la "
-            f"primitiva (error {err:.4f}).\n"
-            "Puede que una esté relajada y la otra no, o que la primitiva no "
-            "sea la que\ncorresponde. El desdoblamiento necesita la relación "
-            "exacta A = M·a.\n"
-            f"M calculada:\n{np.array2string(M, precision=4)}")
+            "the supercell is not an integer multiple of the "
+            f"primitive cell (error {err:.4f}).\n"
+            "One may be relaxed and the other not, or the primitive cell may not "
+            "be the\ncorresponding one. Unfolding needs the exact relation "
+            "A = M·a.\n"
+            f"Computed M:\n{np.array2string(M, precision=4)}")
     return Mi.astype(int)
 
 
@@ -188,8 +188,8 @@ def pesos_de_k(w, M, k_sc_frac, k_prim_frac) -> np.ndarray:
     unidades escribiera QE nada.
     """
     if w.coef is None:
-        raise ErrorDeUso("el archivo de funciones de onda no trae "
-                         "coeficientes.")
+        raise ErrorDeUso("the wave function file contains no "
+                         "coefficients.")
     Minv_T = np.linalg.inv(M).T
     # desplazamiento entero entre el k pedido y el de la supercelda
     m0 = np.asarray(k_prim_frac, dtype=float) @ np.asarray(M, dtype=float).T \
@@ -242,16 +242,16 @@ def desdoblar(calc_dir, celda_primitiva, kpath_frac=None,
     if not archivos:
         if lsda:
             raise ErrorDeUso(
-                f"no hay ningún wfc{spin}*.dat en {save}.\n"
-                "El cálculo es de espín polarizado (lsda) pero falta el "
-                f"canal '{spin}': revisa\nque pw.x terminó y guardó las "
-                "funciones de onda de los dos canales.")
+                f"there is no wfc{spin}*.dat in {save}.\n"
+                "The calculation is spin-polarized (lsda) but the "
+                f"'{spin}' channel is missing: check\nthat pw.x finished and saved the "
+                "wave functions of both channels.")
         raise ErrorDeUso(
-            f"no hay ningún wfc*.dat en {save}.\n"
-            "El cálculo no guardó las funciones de onda: eso pasa con "
-            "disk_io='nowf' o\n'low'. Hay que repetirlo con disk_io='medium' "
-            "o 'high' — el desdoblamiento\nnecesita los coeficientes de las "
-            "ondas planas, no solo las energías.")
+            f"there is no wfc*.dat in {save}.\n"
+            "The calculation did not save the wave functions: that happens with "
+            "disk_io='nowf' or\n'low'. It must be repeated with disk_io='medium' "
+            "or 'high' — the unfolding\nneeds the plane-wave coefficients, "
+            "not just the energies.")
 
     celda_sc = np.array(res.cell, dtype=float)
     a_prim = np.array(celda_primitiva, dtype=float)
@@ -300,14 +300,14 @@ def desdoblar(calc_dir, celda_primitiva, kpath_frac=None,
 
     suma = d.pesos.sum(axis=1)
     if np.any(suma > len(d.pesos[0]) * 1.001):
-        d.avisos.append("Algún peso salió mayor que 1: revisa la tolerancia.")
+        d.avisos.append("Some weight came out larger than 1: check the tolerance.")
     frac_alta = float(np.mean(d.pesos > 0.9))
     if frac_alta > 0.95:
         d.avisos.append(
-            "Casi todos los pesos valen 1: la supercelda parece PERFECTA "
-            "(sin defecto\nni desorden). En ese caso el desdoblamiento "
-            "reproduce exactamente las bandas\nprimitivas — que es la "
-            "comprobación de que funciona, pero no un resultado nuevo.")
+            "Almost all weights are 1: the supercell looks PERFECT "
+            "(no defect\nor disorder). In that case the unfolding "
+            "reproduces the primitive bands\nexactly — which is the "
+            "check that it works, but not a new result.")
     return d
 
 
@@ -320,7 +320,7 @@ def _carpeta_save(p: Path, prefix: str = None) -> Path:
             saves = [s for s in saves if s.stem == prefix] or saves
         if saves:
             return saves[0]
-    raise ErrorDeUso(f"no se encontró ninguna carpeta .save bajo {p}.")
+    raise ErrorDeUso(f"no .save folder was found under {p}.")
 
 
 def _distancias(kfrac, a_prim) -> np.ndarray:
@@ -341,24 +341,24 @@ def _distancias(kfrac, a_prim) -> np.ndarray:
 # Reporte y figura
 # ----------------------------------------------------------------------
 def report(d: Desdoblado) -> str:
-    lines = ["--- Desdoblamiento de bandas ---",
-             f"Supercelda: {d.ncel} celdas primitivas",
+    lines = ["--- Band unfolding ---",
+             f"Supercell: {d.ncel} primitive cells",
              f"M =\n{np.array2string(d.M, prefix='    ')}",
-             f"Puntos k: {len(d.kpath)}   bandas: {d.energias.shape[1]}"]
+             f"k-points: {len(d.kpath)}   bands: {d.energias.shape[1]}"]
     if d.e_fermi is not None:
-        lines.append(f"Nivel de Fermi: {d.e_fermi:.4f} eV")
+        lines.append(f"Fermi level: {d.e_fermi:.4f} eV")
 
     p = d.pesos
-    lines += ["", "Distribución del peso espectral:",
-              f"  peso medio            {p.mean():.4f}",
-              f"  fracción con peso > 0.9  {np.mean(p > 0.9) * 100:5.1f} %",
-              f"  fracción con peso < 0.1  {np.mean(p < 0.1) * 100:5.1f} %"]
+    lines += ["", "Spectral weight distribution:",
+              f"  mean weight           {p.mean():.4f}",
+              f"  fraction with weight > 0.9  {np.mean(p > 0.9) * 100:5.1f} %",
+              f"  fraction with weight < 0.1  {np.mean(p < 0.1) * 100:5.1f} %"]
     lines += ["",
-              "Un peso de 1 quiere decir que ese estado de la supercelda ES "
-              "un estado de la\ncelda primitiva en ese k. Un peso repartido "
-              "quiere decir que la periodicidad\nprimitiva está rota — y eso, "
-              "no la posición de la banda, es lo que informa\nsobre el "
-              "defecto o el desorden."]
+              "A weight of 1 means that this supercell state IS "
+              "a state of the\nprimitive cell at that k. A spread-out weight "
+              "means that the primitive\nperiodicity is broken — and that, "
+              "not the position of the band, is what informs\nabout the "
+              "defect or the disorder."]
     for a in d.avisos:
         lines += ["", a]
     return "\n".join(lines)
@@ -374,10 +374,10 @@ def export(d: Desdoblado, outdir: str = ".") -> list:
             filas.append([d.distancias[i], e, d.pesos[i, j]])
     np.savetxt(f, np.array(filas), fmt="%14.6f",
                header=provenance.header_plain(
-                   "desdoblamiento de bandas",
+                   "band unfolding",
                    {"celdas": d.ncel, "E_fermi_eV": d.e_fermi},
-                   titulo="Peso espectral desdoblado") +
-               "\n     distancia          E-EF(eV)          peso",
+                   titulo="Unfolded spectral weight") +
+               "\n     distance           E-EF(eV)          weight",
                comments="# ")
     txt = out / "UNFOLD.txt"
     txt.write_text(report(d) + "\n")
@@ -393,7 +393,7 @@ def plot(d: Desdoblado, outfile: str = "unfold", formats="pdf,png",
         import matplotlib
         matplotlib.use("Agg")
     except ImportError as exc:                          # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -425,5 +425,5 @@ def plot(d: Desdoblado, outfile: str = "unfold", formats="pdf,png",
         for t in pos:
             ax.axvline(t, color=qstyle.GRID, lw=st["axis_line"], zorder=0)
     else:
-        ax.set_xlabel("camino en el espacio recíproco")
+        ax.set_xlabel("path in reciprocal space")
     return qstyle.save(fig, outfile, formats, dpi=dpi)

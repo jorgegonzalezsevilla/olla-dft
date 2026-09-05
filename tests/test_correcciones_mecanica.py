@@ -113,7 +113,7 @@ def test_a_de_t_del_aluminio_es_el_parametro_convencional():
                 factor_conv=qha.factor_convencional(al))
     assert r.a_convencional
     assert r.a_T[0] == pytest.approx(4.05, abs=0.02)
-    assert "convencional" in qha.report(r, T_ref=0.0)
+    assert "conventional" in qha.report(r, T_ref=0.0)
 
 
 def test_a_de_t_del_silicio_con_estructura():
@@ -137,8 +137,8 @@ def test_sin_estructura_a_de_t_se_etiqueta_como_primitiva(tmp_path):
                 natoms=2, cubico=True)
     assert not r.a_convencional
     assert r.a_T[0] == pytest.approx(r.V_T[0] ** (1 / 3))
-    assert any("PRIMITIVA" in a for a in r.avisos)
-    assert "NO es el parámetro de red" in qha.report(r, T_ref=0.0)
+    assert any("PRIMITIVE" in a for a in r.avisos)
+    assert "NOT the conventional lattice" in qha.report(r, T_ref=0.0)
     (f,) = qha.export(r, tmp_path)
     assert "Vprim^1/3" in Path(f).read_text()
 
@@ -213,7 +213,7 @@ def test_el_rotulo_de_la_reflexion_basal_lleva_la_radiacion_pedida():
     assert "Mo Kα" in txt and "Cu Kα" not in txt
     assert f"{lam:.4f}" in txt
     txt = layers.report(bl, res, wavelength=0.9, radiation=xrd.wavelength_name(0.9))
-    assert "Cu Kα" not in txt and "λ dada" in txt
+    assert "Cu Kα" not in txt and "given λ" in txt
 
 
 def test_nombre_de_la_radiacion():
@@ -221,7 +221,7 @@ def test_nombre_de_la_radiacion():
     assert xrd.wavelength_name("CuKa") == "Cu Kα"
     assert xrd.wavelength_name("CuKa1") == "Cu Kα1"
     assert xrd.wavelength_name("AgKa") == "Ag Kα"
-    assert xrd.wavelength_name(1.54) == "λ dada"
+    assert xrd.wavelength_name(1.54) == "given λ"
 
 
 # ----------------------------------------------------------------------
@@ -357,7 +357,7 @@ def test_la_muestra_del_aluminio_trae_la_tabla_de_tc():
     assert "lambda.x" in run.Tc_fuente
     # en esta muestra lambda.x dejó omega_log y T_c en NaN, y así se refleja
     assert not np.any(np.isfinite(run.Tc))
-    assert "Tc(K) de la tabla: lambda.x" in elph.report(run)
+    assert 'Tc(K) in the table: lambda.x' in elph.report(run)
 
 
 def test_tc_se_lee_de_la_tabla_de_lambda_x(tmp_path):
@@ -379,9 +379,9 @@ def test_sin_tabla_tc_se_calcula_con_allen_dynes_y_se_dice(tmp_path):
                 elph.allen_dynes(1.55, 55.0, 0.10, correcciones=False)]
     assert run.Tc == pytest.approx(esperado)
     assert run.Tc[0] > 0
-    assert "calculada por Olla-DFT" in run.Tc_fuente
+    assert 'computed by Olla-DFT' in run.Tc_fuente
     txt = elph.report(run)
-    assert "calculada por Olla-DFT" in txt
+    assert 'computed by Olla-DFT' in txt
     assert f"{esperado[0]:8.3f}" in txt
 
 
@@ -457,7 +457,7 @@ def test_el_bloque_cubico_si_se_imprime_para_el_silicio(tmp_path, capsys):
                  str(tmp_path / "C.dat"), "-o", str(tmp_path),
                  "--temp", "500"]) == 0
     out = capsys.readouterr().out
-    assert "En un cristal cúbico" in out
+    assert "In a cubic crystal" in out
     assert "Slack, 500 K" in out
 
 

@@ -26,7 +26,7 @@ jobs:
       - run: olla-dft --version && olla-dft selftest
 
   languages:
-    name: bilingual startup (${{ matrix.os }})
+    name: multilingual startup (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -39,7 +39,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -e ".[test]"
-      - run: python -m pytest -q tests/test_languages.py tests/test_startup.py tests/test_portabilidad.py
+      - run: python -m pytest -q tests/test_german.py tests/test_languages.py tests/test_startup.py tests/test_portabilidad.py
 
   package:
     name: build wheel

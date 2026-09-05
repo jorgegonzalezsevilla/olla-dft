@@ -89,12 +89,12 @@ def validar_borde(borde: str) -> str:
         return b
     if b.startswith("M"):
         raise ErrorDeUso(
-            f"borde '{borde}': xspectra.x solo calcula bordes K y L "
-            f"({', '.join(BORDES_XSPECTRA)}); los bordes M no están "
-            "implementados en QE, aunque 'olla-dft corehole' pueda generar "
-            "el pseudo con ese hueco.")
+            f"edge '{borde}': xspectra.x only computes K and L edges "
+            f"({', '.join(BORDES_XSPECTRA)}); M edges are not "
+            "implemented in QE, even though 'olla-dft corehole' can generate "
+            "the pseudopotential with that hole.")
     raise ErrorDeUso(
-        f"borde '{borde}' desconocido para XANES. Opciones: "
+        f"unknown edge '{borde}' for XANES. Options: "
         f"{', '.join(BORDES_XSPECTRA)}.")
 
 
@@ -207,13 +207,13 @@ def prepare(atoms, elemento: str, core_hole_upf: str, outdir: str = "xanes",
     simbolos = list(atoms.get_chemical_symbols())
     if elemento not in simbolos:
         raise ErrorDeUso(
-            f"'{elemento}' no está en la estructura "
+            f"'{elemento}' is not in the structure "
             f"({', '.join(dict.fromkeys(simbolos))}).")
     indices = [i for i, s in enumerate(simbolos) if s == elemento]
     if sitio >= len(indices):
         raise ErrorDeUso(
-            f"solo hay {len(indices)} átomos de {elemento}; pediste el "
-            f"sitio {sitio} (se cuentan desde 0).")
+            f"there are only {len(indices)} {elemento} atoms; you asked for "
+            f"site {sitio} (counted from 0).")
     iabs = indices[sitio]
 
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
@@ -259,30 +259,30 @@ def prepare(atoms, elemento: str, core_hole_upf: str, outdir: str = "xanes",
 
     dmin = distancia_imagen_minima(marcado, 0)
     rep = ["--- XANES / NEXAFS ---",
-           f"Estructura: {atoms.get_chemical_formula()} ({len(atoms)} átomos)",
-           f"Absorbedor: {elemento} (sitio {sitio}), borde {borde}",
-           f"Especie excitada: {etiqueta} con {Path(core_hole_upf).name}",
-           "Carga total: +1 (falta el electrón de core)",
-           f"Distancia mínima entre imágenes del absorbedor: {dmin:.2f} Å",
+           f"Structure: {atoms.get_chemical_formula()} ({len(atoms)} atoms)",
+           f"Absorber: {elemento} (site {sitio}), {borde} edge",
+           f"Excited species: {etiqueta} with {Path(core_hole_upf).name}",
+           "Total charge: +1 (the core electron is missing)",
+           f"Minimum distance between absorber images: {dmin:.2f} Å",
            ""]
     if dmin < DIST_MINIMA:
-        rep += [f"AVISO: {dmin:.1f} Å es poco. Con condiciones periódicas el "
-                "hueco de core ve sus\npropias imágenes y el espectro puede "
-                "depender del tamaño de la celda. Haz\nuna supercelda "
-                "('olla-dft supercell') y comprueba que el espectro no cambie.",
+        rep += [f"WARNING: {dmin:.1f} Å is short. With periodic boundary conditions the "
+                "core hole sees its\nown images and the spectrum may "
+                "depend on the cell size. Build\na supercell "
+                "('olla-dft supercell') and check that the spectrum does not change.",
                 ""]
-    rep += [f"Archivos en '{out.resolve()}':",
-            "  scf.in           el scf con el hueco de core",
-            f"  {Path(filecore).name:16s} función de onda de core (del UPF)"]
+    rep += [f"Files in '{out.resolve()}':",
+            "  scf.in           the scf with the core hole",
+            f"  {Path(filecore).name:16s} core wavefunction (from the UPF)"]
     for nombre, _ in direcciones:
         rep.append(f"  xspectra_{nombre}.in{'':<3s}"
-                   f"{'promedio de polvo' if promedio else 'polarización'}")
+                   f"{'powder average' if promedio else 'polarization'}")
     rep += ["",
-            "Orden:  pw.x -in scf.in   ->   xspectra.x -in xspectra_*.in",
+            "Order:  pw.x -in scf.in   ->   xspectra.x -in xspectra_*.in",
             "",
-            "El eje de energía sale RELATIVO al nivel de Fermi, no en energía",
-            "de fotón. Para comparar con un experimento se alinea el borde y",
-            "se compara la FORMA."]
+            "The energy axis comes out RELATIVE to the Fermi level, not in photon",
+            "energy. To compare with an experiment the edge is aligned and",
+            "the SHAPE is compared."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -344,7 +344,7 @@ def collect(path, elemento: str = "", borde: str = "K") -> XanesRun:
     archivos = sorted(p.glob("xanes_*.dat"))
     if not archivos:
         raise ErrorDeUso(
-            f"no hay ningún xanes_*.dat en {p}. Corre primero:\n"
+            f"there is no xanes_*.dat in {p}. Run first:\n"
             "  pw.x -in scf.in  &&  xspectra.x -in xspectra_pol.in")
     run = XanesRun(elemento=elemento, borde=borde)
     for f in archivos:
@@ -355,20 +355,20 @@ def collect(path, elemento: str = "", borde: str = "K") -> XanesRun:
             run.energias = e
         elif len(e) != len(run.energias):
             raise ErrorDeUso(
-                f"{f.name} tiene {len(e)} puntos y los otros "
-                f"{len(run.energias)}: no se pueden promediar. Corre las tres "
-                "direcciones con los mismos xemin/xemax/xnepoint.")
+                f"{f.name} has {len(e)} points and the others "
+                f"{len(run.energias)}: they cannot be averaged. Run the three "
+                "directions with the same xemin/xemax/xnepoint.")
     comps = list(run.componentes.values())
     run.sigma = np.mean(comps, axis=0) if len(comps) > 1 else comps[0]
     if len(comps) == 3:
         run.avisos.append(
-            "Promedio de las tres direcciones ortogonales: es lo que "
-            "corresponde a una muestra en polvo o a un cristal cúbico.")
+            "Average of the three orthogonal directions: this is what "
+            "corresponds to a powder sample or a cubic crystal.")
     elif len(comps) == 1 and "pol" in run.componentes:
         run.avisos.append(
-            "UNA sola polarización. En un cristal anisótropo el espectro "
-            "depende de la dirección; para comparar con un polvo hace falta "
-            "el promedio de tres direcciones (--average).")
+            "A SINGLE polarization. In an anisotropic crystal the spectrum "
+            "depends on the direction; to compare with a powder the "
+            "average of three directions is needed (--average).")
     m = re.search(r"Broadening parameter \(in eV\):\s*([\d.]+)",
                   archivos[0].read_text(errors="ignore"))
     if m:
@@ -400,41 +400,41 @@ def onset(run: XanesRun, fraccion: float = 0.5) -> float:
 def report(run: XanesRun) -> str:
     lines = ["--- XANES / NEXAFS ---"]
     if run.elemento:
-        lines.append(f"Absorbedor: {run.elemento}, borde {run.borde}")
+        lines.append(f"Absorber: {run.elemento}, {run.borde} edge")
     if run.energias is not None:
-        lines.append(f"Rango: {run.energias[0]:.1f} a {run.energias[-1]:.1f} "
-                     f"eV respecto del nivel de Fermi "
-                     f"({len(run.energias)} puntos)")
+        lines.append(f"Range: {run.energias[0]:.1f} to {run.energias[-1]:.1f} "
+                     f"eV relative to the Fermi level "
+                     f"({len(run.energias)} points)")
     if run.xgamma is not None:
-        lines.append(f"Ensanchamiento: {run.xgamma:.2f} eV")
+        lines.append(f"Broadening: {run.xgamma:.2f} eV")
     if run.componentes:
-        lines.append(f"Polarizaciones: {', '.join(run.componentes)}")
-    lines += ["", f"Borde (σ al 50 % del máximo): {onset(run):+.2f} eV "
-              "respecto de E_F"]
+        lines.append(f"Polarizations: {', '.join(run.componentes)}")
+    lines += ["", f"Edge (σ at 50 % of the maximum): {onset(run):+.2f} eV "
+              "relative to E_F"]
     if run.sigma is not None:
         i = int(np.argmax(run.sigma))
-        lines.append(f"Máximo principal: {run.energias[i]:+.2f} eV")
+        lines.append(f"Main maximum: {run.energias[i]:+.2f} eV")
         picos = _picos(run)
         if picos:
-            lines.append("Estructuras (máximos locales, en eV desde E_F):")
+            lines.append("Features (local maxima, in eV from E_F):")
             for e, alto in picos[:6]:
-                lines.append(f"  {e:+8.2f}   intensidad relativa {alto:.2f}")
+                lines.append(f"  {e:+8.2f}   relative intensity {alto:.2f}")
     if len(run.componentes) == 3:
         aniso = _anisotropia(run)
-        lines += ["", f"Anisotropía entre direcciones: {aniso * 100:.1f} % "
-                  "del máximo"]
+        lines += ["", f"Anisotropy between directions: {aniso * 100:.1f} % "
+                  "of the maximum"]
         if aniso > 0.1:
             lines.append(
-                "  El espectro DEPENDE de la polarización: un experimento con "
-                "luz\n  polarizada sobre monocristal vería espectros "
-                "distintos según la orientación.")
+                "  The spectrum DEPENDS on the polarization: an experiment with "
+                "polarized\n  light on a single crystal would see different spectra "
+                "depending on the orientation.")
     for a in run.avisos:
         lines += ["", a]
     lines += ["",
-              "El eje es relativo al nivel de Fermi. Para comparar con un "
-              "experimento hay\nque alinear el borde: la información química "
-              "está en la FORMA, no en la\nposición absoluta, que este "
-              "método no da."]
+              "The axis is relative to the Fermi level. To compare with an "
+              "experiment the\nedge must be aligned: the chemical information "
+              "is in the SHAPE, not in the\nabsolute position, which this "
+              "method does not give."]
     return "\n".join(lines)
 
 
@@ -469,7 +469,7 @@ def export(run: XanesRun, outdir: str = ".") -> list:
                header=provenance.header_plain(
                    "XANES", {"elemento": run.elemento, "borde": run.borde,
                              "xgamma_eV": run.xgamma},
-                   titulo="Absorcion de rayos X cerca del borde") +
+                   titulo="X-ray absorption near-edge") +
                "\n" + "  ".join(f"{n:>14s}" for n in nombres),
                comments="# ")
     txt = out / "XANES.txt"
@@ -486,7 +486,7 @@ def plot(run: XanesRun, outfile: str = "xanes", formats="pdf,png",
         import matplotlib
         matplotlib.use("Agg")
     except ImportError as exc:                          # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -499,15 +499,15 @@ def plot(run: XanesRun, outfile: str = "xanes", formats="pdf,png",
             ax.plot(run.energias, s, lw=0.9, alpha=0.75,
                     label=rf"$\varepsilon \parallel {nombre}$", **kw)
     ax.plot(run.energias, run.sigma, lw=1.6, color=colores[0],
-            label="promedio" if len(run.componentes) > 1 else "σ(E)")
+            label="average" if len(run.componentes) > 1 else "σ(E)")
     ax.axvline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"],
                dashes=[3.5, 2.0])
     ax.set_xlabel(r"$E - E_\mathrm{F}$ (eV)")
-    ax.set_ylabel(r"$\sigma$ (u. arb.)")
+    ax.set_ylabel(r"$\sigma$ (arb. u.)")
     ax.set_xlim(run.energias[0], run.energias[-1])
     ax.set_ylim(bottom=0)
     if run.elemento:
-        ax.set_title(f"XANES borde {run.borde} de {run.elemento}")
+        ax.set_title(f"XANES {run.elemento} {run.borde} edge")
     if len(run.componentes) > 1:
         ax.legend(frameon=False)
     return qstyle.save(fig, outfile, formats, dpi=dpi)

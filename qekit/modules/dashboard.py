@@ -28,17 +28,17 @@ def _labels(language: str) -> dict:
     try:
         value = json.loads(target.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"no se pudo cargar la traducción {target}: {exc}") from None
+        raise RuntimeError(f"could not load translation {target}: {exc}") from None
     if not isinstance(value, dict):
-        raise RuntimeError(f"la traducción {target} no es un objeto JSON")
+        raise RuntimeError(f"translation {target} is not a JSON object")
     return value
 
 
-def generate(root: Path, data: dict, destination=None, theme="auto", language="es") -> Path:
+def generate(root: Path, data: dict, destination=None, theme="auto", language="en", _language_links=None) -> Path:
     if theme not in ("auto", "light", "dark"):
-        raise ValueError("theme debe ser auto, light o dark")
-    if language not in ("es", "en"):
-        raise ValueError("language debe ser es o en")
+        raise ValueError("theme must be auto, light or dark")
+    if language not in ("es", "en", "de"):
+        raise ValueError("language must be en, es or de")
     labels = _labels(language)
     target = Path(destination or (root / PROJECT_DIR / "reports" / "dashboard.html"))
     if not target.is_absolute():
@@ -122,13 +122,11 @@ def generate(root: Path, data: dict, destination=None, theme="auto", language="e
                 .replace("<", "\\u003c").replace(">", "\\u003e")
                 .replace("&", "\\u0026"))
     body_theme = "" if theme == "auto" else f' data-theme="{esc(theme)}"'
-    if language == "es":
-        paired_name = f"{target.stem}.en{target.suffix}"
-    else:
-        base_stem = target.stem[:-3] if target.stem.endswith(".en") else target.stem
-        paired_name = f"{base_stem}{target.suffix}"
-    language_link = (f'<a class="language-switch" href="{esc(paired_name)}">'
-                     f'{labels["other_language"]}</a>')
+    language_names = {"en": "English", "es": "Español", "de": "Deutsch"}
+    language_link = "".join(
+        f'<a class="language-switch" hreflang="{code}" href="{esc(path.name)}">'
+        f'{language_names[code]}</a>'
+        for code, path in (_language_links or {}).items() if code != language)
     theme_options = []
     for value, label_key in (("auto", "theme_auto"),
                              ("light", "theme_light"),
@@ -206,9 +204,21 @@ def generate_pair(root: Path, data: dict, destination=None, theme="auto") -> tup
     base = Path(destination or (root / PROJECT_DIR / "reports" / "dashboard.html"))
     if not base.is_absolute():
         base = root / base
-    english = base.with_name(f"{base.stem}.en{base.suffix}")
-    return (generate(root, data, base, theme=theme, language="es"),
-            generate(root, data, english, theme=theme, language="en"))
+    paths = {"es": base, "en": base.with_name(f"{base.stem}.en{base.suffix}")}
+    return tuple(generate(root, data, path, theme=theme, language=code,
+                          _language_links=paths) for code, path in paths.items())
+
+
+def generate_all(root: Path, data: dict, destination=None, theme="auto") -> tuple:
+    """Write three linked language pages; preserve the legacy pair filenames."""
+    base = Path(destination or (root / PROJECT_DIR / "reports" / "dashboard.html"))
+    if not base.is_absolute():
+        base = root / base
+    paths = {"es": base, "en": base.with_name(f"{base.stem}.en{base.suffix}"),
+             "de": base.with_name(f"{base.stem}.de{base.suffix}")}
+    return tuple(generate(root, data, path, theme=theme, language=code,
+                          _language_links=paths) for code, path in paths.items())
+
 
 
 # El nombre se resuelve aquí para no importar constantes privadas del hub.

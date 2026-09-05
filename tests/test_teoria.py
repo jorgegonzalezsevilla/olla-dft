@@ -84,7 +84,7 @@ def test_el_comando_imprime_una_seccion_y_el_indice(capsys):
 
 def test_un_comando_sin_fundamento_da_error_de_uso(capsys):
     assert main(["teoria", "inventado"]) == 2
-    assert "no hay fundamento" in capsys.readouterr().err
+    assert "no scientific background" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("language", ["en", "es"])

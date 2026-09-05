@@ -30,13 +30,13 @@ _TRANSLATION_DIR = Path(__file__).resolve().parent.parent / "data" / "i18n"
 
 
 def _labels(language="es") -> dict:
-    if language not in ("es", "en"):
-        raise ErrorDeUso("language debe ser es o en")
+    if language not in ("es", "en", "de"):
+        raise ErrorDeUso("language must be en, es or de")
     target = _TRANSLATION_DIR / f"onboarding_{language}.json"
     try:
         return json.loads(target.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ErrorDeUso(f"no se pudo cargar el idioma {language}: {exc}") from None
+        raise ErrorDeUso(f"could not load language {language}: {exc}") from None
 
 
 def _ask(prompt, default="", input_fn=None):
@@ -55,12 +55,15 @@ def _goal_from_answer(answer):
                "gap": "gap", "pdos": "dos", "fonones": "phonons",
                "phonons": "phonons", "optica": "optics", "óptica": "optics",
                "optics": "optics", "optical": "optics", "energia": "scf",
-               "energía": "scf", "energy": "scf", "scf": "scf"}
+               "energía": "scf", "energy": "scf", "scf": "scf",
+               "relaxierung": "relax", "bänder": "gap", "baender": "gap",
+               "bandlücke": "gap", "bandluecke": "gap", "phononen": "phonons",
+               "optik": "optics", "energie": "scf", "zustandsdichte": "dos"}
     return aliases.get(text, text if text in {x[0] for x in GOALS} else None)
 
 
 def guide(project_path=".", structure_path=None, goal=None, name=None,
-          interactive=True, validate=True, input_fn=None, language="es") -> dict:
+          interactive=True, validate=True, input_fn=None, language="en") -> dict:
     """Inicializa o abre un proyecto y deja un workflow revisable."""
     labels = _labels(language)
     localized_goals = tuple((key, labels[f"goal_{key}"]) for key, _ in GOALS)
@@ -85,7 +88,7 @@ def guide(project_path=".", structure_path=None, goal=None, name=None,
     if structure_path:
         project.add_source(root, data, structure_path)
     if not data.get("sources"):
-        raise ErrorDeUso("el inicio guiado necesita una estructura; indica --structure.")
+        raise ErrorDeUso("guided setup needs a structure; specify --structure.")
 
     selected_goal = _goal_from_answer(goal)
     if selected_goal is None and interactive:

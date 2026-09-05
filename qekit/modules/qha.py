@@ -158,16 +158,16 @@ def run(volumenes, energias, frecuencias, T=None, natoms: int = 1,
 
     if len(V) < 4:
         res.avisos.append(
-            f"solo {len(V)} volúmenes: hacen falta al menos 4 para ajustar "
-            "F(V,T) con sentido.\nCon menos, el mínimo sale de una "
-            "extrapolación.")
+            f"only {len(V)} volumes: at least 4 are needed to fit "
+            "F(V,T) meaningfully.\nWith fewer, the minimum comes from an "
+            "extrapolation.")
     for i, f in enumerate(frecuencias):
         w = np.asarray(f, dtype=float)
         if np.any(w < -5.0):
             res.avisos.append(
-                f"el volumen {V[i]:.2f} Å³ tiene frecuencias imaginarias: "
-                "ahí la estructura no\nestá en un mínimo y la QHA no aplica. "
-                "Quita ese punto o relaja mejor.")
+                f"the volume {V[i]:.2f} Å³ has imaginary frequencies: "
+                "there the structure is not\nat a minimum and the QHA does not apply. "
+                "Remove that point or relax better.")
 
     V_T, B_T, Cv = [], [], []
     for t in T:
@@ -198,9 +198,9 @@ def run(volumenes, energias, frecuencias, T=None, natoms: int = 1,
     if len(T) < 2:
         res.alpha = np.full_like(res.V_T, np.nan)
         res.avisos.append(
-            "una sola temperatura: la expansion termica es una DERIVADA "
-            "respecto de T y no\nse puede calcular con un punto. Pasa un "
-            "rango de temperaturas.")
+            "a single temperature: the thermal expansion is a DERIVATIVE "
+            "with respect to T and\ncannot be computed from one point. Pass a "
+            "temperature range.")
     else:
         res.alpha = np.gradient(res.V_T, T) / res.V_T
     # C_p = C_v + alpha^2 B V T   (unidades: meV/K)
@@ -215,10 +215,10 @@ def run(volumenes, energias, frecuencias, T=None, natoms: int = 1,
             res.a_T = res.V_T ** (1.0 / 3.0)
             res.a_convencional = False
             res.avisos.append(
-                "a(T) es la raíz cúbica del volumen de la celda PRIMITIVA. "
-                "En fcc, bcc o\ndiamante eso NO es el parámetro de red "
-                "convencional (difieren en 4^(1/3) o\n2^(1/3)). Pasa la "
-                "estructura con --structure para que se convierta.")
+                "a(T) is the cube root of the PRIMITIVE cell volume. "
+                "In fcc, bcc or\ndiamond that is NOT the conventional lattice "
+                "parameter (they differ by 4^(1/3) or\n2^(1/3)). Pass the "
+                "structure with --structure so that it gets converted.")
 
     # Gruneisen medio: -dln<w>/dlnV
     medias = []
@@ -236,47 +236,47 @@ def run(volumenes, energias, frecuencias, T=None, natoms: int = 1,
 
 def report(res: QHAResult, T_ref: float = 300.0) -> str:
     i = int(np.argmin(np.abs(res.T - T_ref)))
-    lines = ["--- Aproximación cuasi-armónica ---",
-             f"{len(res.volumenes)} volúmenes entre "
-             f"{res.volumenes.min():.2f} y {res.volumenes.max():.2f} Å³"]
+    lines = ["--- Quasi-harmonic approximation ---",
+             f"{len(res.volumenes)} volumes between "
+             f"{res.volumenes.min():.2f} and {res.volumenes.max():.2f} Å³"]
     if res.gruneisen is not None:
-        lines.append(f"Parámetro de Grüneisen medio: {res.gruneisen:.3f}")
+        lines.append(f"Mean Grüneisen parameter: {res.gruneisen:.3f}")
     lines += ["",
-              f"A {res.T[i]:.0f} K:",
-              f"  volumen de equilibrio: {res.V_T[i]:.3f} Å³"]
+              f"At {res.T[i]:.0f} K:",
+              f"  equilibrium volume: {res.V_T[i]:.3f} Å³"]
     if np.isfinite(res.alpha[i]):
-        lines += [f"  expansión térmica volumétrica: "
+        lines += [f"  volumetric thermal expansion: "
                   f"{res.alpha[i]*1e6:.2f} × 10⁻⁶ K⁻¹",
-                  f"  lineal (α/3): {res.alpha[i]/3*1e6:.2f} × 10⁻⁶ K⁻¹"]
+                  f"  linear (α/3): {res.alpha[i]/3*1e6:.2f} × 10⁻⁶ K⁻¹"]
     lines += [
               f"  C_v = {res.Cv[i]:.4f} meV/K   C_p = {res.Cp[i]:.4f} meV/K",
               f"  B(T) = {res.B_T[i]:.1f} GPa"]
     if res.a_T is not None:
         if res.a_convencional:
-            lines.append(f"  parámetro de red (celda convencional): "
+            lines.append(f"  lattice parameter (conventional cell): "
                          f"{res.a_T[i]:.4f} Å")
         else:
-            lines.append(f"  V_prim^(1/3) (NO es el parámetro de red "
-                         f"convencional): {res.a_T[i]:.4f} Å")
+            lines.append(f"  V_prim^(1/3) (NOT the conventional lattice "
+                         f"parameter): {res.a_T[i]:.4f} Å")
 
     finita = np.isfinite(res.alpha)
     neg = res.T[finita & (res.alpha < 0) & (res.T > 1)]
     if neg.size:
         lines += ["",
-                  f"Expansión térmica NEGATIVA por debajo de "
+                  f"NEGATIVE thermal expansion below "
                   f"{neg.max():.0f} K.",
-                  "No es un error: en el silicio y otros con estructura "
-                  "tipo diamante ocurre de\nverdad, y viene de que las "
-                  "ramas transversales acústicas tienen Grüneisen\n"
-                  "negativo. Si la implementación no lo reprodujera, sería "
-                  "señal de que algo\nfalla."]
+                  "It is not an error: in silicon and others with the "
+                  "diamond structure it really\nhappens, and it comes from the "
+                  "transverse acoustic branches having negative\n"
+                  "Grüneisen. If the implementation did not reproduce it, that would be "
+                  "a sign that something\nis wrong."]
     for a in res.avisos:
-        lines.append(f"\nAVISO: {a}")
+        lines.append(f"\nWARNING: {a}")
     lines += ["",
-              "La QHA deja que las frecuencias dependan del volumen, pero "
-              "cada modo sigue\nsiendo armónico. Vale hasta ~la mitad de la "
-              "temperatura de fusión; cerca de\nella hace falta "
-              "anarmonicidad explícita."]
+              "The QHA lets the frequencies depend on the volume, but "
+              "each mode remains\nharmonic. It holds up to ~half the "
+              "melting temperature; near\nit explicit "
+              "anharmonicity is needed."]
     return "\n".join(lines)
 
 
@@ -284,10 +284,10 @@ def export(res: QHAResult, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "QHA.dat"
     cab = provenance.header_plain(
-        "cuasi-armónica",
+        "quasi-harmonic",
         {"n_volumenes": len(res.volumenes),
          "gruneisen": round(res.gruneisen, 4) if res.gruneisen else None},
-        titulo="Aproximacion cuasi-armonica")
+        titulo="Quasi-harmonic approximation")
     cols = [res.T, res.V_T, res.alpha, res.Cv, res.Cp, res.B_T]
     nombres = f"{'T(K)':>12s} {'V(A^3)':>14s} {'alpha(1/K)':>14s} " \
               f"{'Cv(meV/K)':>14s} {'Cp(meV/K)':>14s} {'B(GPa)':>12s}"
@@ -333,7 +333,7 @@ def plot(res: QHAResult, outfile: str = "qha", formats="pdf,png",
     ax[2].axhline(3.0 * res.natoms * KB_EV * 1000.0,
                   color=qstyle.INK_FAINT, lw=st["axis_line"],
                   dashes=[2, 2])
-    ax[2].set_xlabel("T (K)"); ax[2].set_ylabel("meV/K por celda")
+    ax[2].set_xlabel("T (K)"); ax[2].set_ylabel("meV/K per cell")
     ax[2].legend()
     qstyle.panel_label(ax[2], "(c)")
 

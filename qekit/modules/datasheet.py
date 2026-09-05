@@ -41,9 +41,12 @@ CITAS = {
             "273002 (2017)"),
     "mace": ("I. Batatia et al., arXiv:2401.00096 (2023) — MACE-MP-0"),
     "epsilon": ("A. Dal Corso, S. Baroni, R. Resta, Phys. Rev. B 49, 5323 "
-                "(1994) — respuesta dieléctrica"),
+                "(1994) — dielectric response"),
 }
 
+
+_SECTION_EN = {'Superficie': 'Surface', 'Estructura': 'Structure', 'Fonones': 'Phonons', 'Ópticas': 'Optical', 'Función trabajo': 'Work function', 'Ecuación de estado': 'Equation of state', 'Elásticas': 'Elastic', 'Masa efectiva': 'Effective mass', 'Derivadas termoelásticas': 'Thermoelastic derived quantities', 'Conductividad térmica de red': 'Lattice thermal conductivity', 'Polarización': 'Polarization', 'Funciones de Wannier': 'Wannier functions', 'Electroquímica': 'Electrochemistry', 'Defectos': 'Defects', 'magnitud': 'valor', 'valor': 'unidad'}
+_PARAMETER_EN = {"funcional": "functional", "malla_k": "k mesh", "ocupaciones": "occupations", "pseudos": "pseudopotentials"}
 
 @dataclass
 class Ficha:
@@ -82,14 +85,14 @@ def recoger(project=".") -> Ficha:
             "nspin": r.nspin,
         }
         f.resultados["Estructura"] = [
-            _fila("volumen de celda", round(r.volume, 4), "Å³"),
-            _fila("átomos por celda", len(r.symbols), ""),
-            _fila("operaciones de simetría", r.n_sym, ""),
+            _fila("cell volume", round(r.volume, 4), "Å³"),
+            _fila("atoms per cell", len(r.symbols), ""),
+            _fila("symmetry operations", r.n_sym, ""),
         ]
         f.procedencia["Estructura"] = str(xml)
         f.codigos.append("qe")
     except Exception as exc:                           # noqa: BLE001
-        f.avisos.append(f"no se pudo leer ningún XML de pw.x: {exc}")
+        f.avisos.append(f"no pw.x XML could be read: {exc}")
 
     # --- resultados de cada módulo, por su archivo característico -----
     def _buscar(patron):
@@ -100,9 +103,9 @@ def recoger(project=".") -> Ficha:
     if eos:
         filas = []
         for linea in Path(eos).read_text(errors="ignore").splitlines():
-            for clave, nombre, unidad in (("B0", "módulo volumétrico B₀", "GPa"),
-                                          ("a0", "parámetro de red a₀", "Å"),
-                                          ("V0", "volumen de equilibrio", "Å³")):
+            for clave, nombre, unidad in (("B0", "bulk modulus B₀", "GPa"),
+                                          ("a0", "lattice parameter a₀", "Å"),
+                                          ("V0", "equilibrium volume", "Å³")):
                 if linea.strip().startswith(clave):
                     tok = [t for t in linea.replace("=", " ").split()
                            if _es_num(t)]
@@ -122,10 +125,10 @@ def recoger(project=".") -> Ficha:
                 _fila("C₁₁", round(float(C[0, 0]), 2), "GPa"),
                 _fila("C₁₂", round(float(C[0, 1]), 2), "GPa"),
                 _fila("C₄₄", round(float(C[3, 3]), 2), "GPa"),
-                _fila("módulo volumétrico (VRH)", round(m.B_hill, 2), "GPa"),
-                _fila("módulo de corte (VRH)", round(m.G_hill, 2), "GPa"),
-                _fila("razón de Poisson", round(m.nu, 4), ""),
-                _fila("estable (Born)", "sí" if m.stable else "NO", ""),
+                _fila("bulk modulus (VRH)", round(m.B_hill, 2), "GPa"),
+                _fila("shear modulus (VRH)", round(m.G_hill, 2), "GPa"),
+                _fila("Poisson ratio", round(m.nu, 4), ""),
+                _fila("stable (Born)", "yes" if m.stable else "NO", ""),
             ]
             f.procedencia["Elásticas"] = str(el)
 
@@ -142,10 +145,10 @@ def recoger(project=".") -> Ficha:
                     zpe = float(tok[0]) * 1000.0
         i300 = int(np.argmin(np.abs(d[:, 0] - 300.0)))
         filas = [_fila("C_v (300 K)", round(d[i300, 4] * 1000, 4),
-                       "meV/K por celda")]
+                       "meV/K per cell")]
         if zpe is not None:
-            filas.insert(0, _fila("energía de punto cero", round(zpe, 2),
-                                  "meV por celda"))
+            filas.insert(0, _fila("zero-point energy", round(zpe, 2),
+                                  "meV per cell"))
         f.resultados["Fonones"] = filas
         f.procedencia["Fonones"] = str(fon)
         f.codigos.append("dfpt")
@@ -205,9 +208,9 @@ def recoger(project=".") -> Ficha:
                         g = float(tok[0])
             if g is not None:
                 f.resultados["Superficie"] = [
-                    _fila("energía de superficie γ", round(g, 4), "J/m²",
-                          "del ajuste de Fiorentini–Methfessel, no de una "
-                          "losa suelta")]
+                    _fila("surface energy γ", round(g, 4), "J/m²",
+                          "from the Fiorentini–Methfessel fit, not from a "
+                          "single slab")]
                 f.procedencia["Superficie"] = str(gam)
         except Exception:                                   # noqa: BLE001
             pass
@@ -218,17 +221,17 @@ def recoger(project=".") -> Ficha:
     if wfd:
         phi = _cab_num(wfd, "Phi_eV")
         if phi is not None:
-            filas_sup.append(_fila("función trabajo Φ", round(phi, 3), "eV",
-                                   "meseta del potencial planar"))
+            filas_sup.append(_fila("work function Φ", round(phi, 3), "eV",
+                                   "plateau of the planar potential"))
     if esm:
         try:
             d = np.loadtxt(esm, comments="#")
             d = d[None, :] if d.ndim == 1 else d
             i = int(np.argmin(np.abs(d[:, 0])))
-            filas_sup.append(_fila("función trabajo Φ (ESM)",
+            filas_sup.append(_fila("work function Φ (ESM)",
                                    round(float(d[i, 4]), 3), "eV",
-                                   "nivel de vacío fijado a cero por la "
-                                   "condición de contorno"))
+                                   "vacuum level fixed to zero by the "
+                                   "boundary condition"))
         except Exception:                                   # noqa: BLE001
             pass
     if filas_sup:
@@ -244,7 +247,7 @@ def recoger(project=".") -> Ficha:
             f.resultados["Conductividad térmica de red"] = [
                 _fila(f"κ_L ({d[i, 0]:.0f} K)", round(float(d[i, -1]), 2),
                       "W/m·K",
-                      "RTA, solo tres fonones: subestima entre un 10 y un "
+                      "RTA, three-phonon only: underestimates by 10 to "
                       "15 %")]
             f.procedencia["Conductividad térmica de red"] = str(kap)
             f.codigos.append("phono3py")
@@ -256,12 +259,12 @@ def recoger(project=".") -> Ficha:
         try:
             d = np.loadtxt(ber, comments="#")
             d = d[None, :] if d.ndim == 1 else d
-            filas = [_fila("P (proyección sobre R)",
+            filas = [_fila("P (projection on R)",
                            round(float(d[-1, -1]), 5), "C/m²",
-                           "definida módulo el cuanto: solo la DIFERENCIA "
-                           "a lo largo de un camino es física")]
+                           "defined modulo the quantum: only the DIFFERENCE "
+                           "along a path is physical")]
             if len(d) > 1:
-                filas.append(_fila("ΔP a lo largo del camino",
+                filas.append(_fila("ΔP along the path",
                                    round(float(d[-1, -1] - d[0, -1]), 5),
                                    "C/m²"))
             f.resultados["Polarización"] = filas
@@ -279,10 +282,10 @@ def recoger(project=".") -> Ficha:
                     om = float(linea.split("Omega =")[1].split()[0])
             d = np.loadtxt(wan, comments="#")
             d = d[None, :] if d.ndim == 1 else d
-            filas = [_fila("funciones de Wannier", len(d), "")]
+            filas = [_fila("Wannier functions", len(d), "")]
             if om is not None:
-                filas.append(_fila("dispersión total Ω", round(om, 4), "Å²"))
-                filas.append(_fila("Ω por función", round(om / len(d), 4),
+                filas.append(_fila("total spread Ω", round(om, 4), "Å²"))
+                filas.append(_fila("Ω per function", round(om / len(d), 4),
                                    "Å²"))
             f.resultados["Funciones de Wannier"] = filas
             f.procedencia["Funciones de Wannier"] = str(wan)
@@ -294,7 +297,7 @@ def recoger(project=".") -> Ficha:
         eta = _cab_num(ech, "sobrepotencial")
         if eta is not None:
             f.resultados["Electroquímica"] = [
-                _fila("sobrepotencial η", round(eta, 3), "V")]
+                _fila("overpotential η", round(eta, 3), "V")]
             f.procedencia["Electroquímica"] = str(ech)
 
     form = _buscar("FORMACION.dat")
@@ -303,9 +306,9 @@ def recoger(project=".") -> Ficha:
             d = np.loadtxt(form, comments="#")
             d = d[None, :] if d.ndim == 1 else d
             f.resultados["Defectos"] = [
-                _fila("E_f más baja en el rango de E_F",
+                _fila("lowest E_f over the E_F range",
                       round(float(np.nanmin(d[:, 1:])), 4), "eV",
-                      "depende de μ y de E_F: mira la envolvente completa")]
+                      "depends on μ and on E_F: look at the full envelope")]
             f.procedencia["Defectos"] = str(form)
         except Exception:                                   # noqa: BLE001
             pass
@@ -313,9 +316,9 @@ def recoger(project=".") -> Ficha:
     if _buscar("MLIP_PROCEDENCIA.json"):
         f.codigos.append("mace")
         f.avisos.append(
-            "hay estructuras producidas por un potencial aprendido en esta "
-            "carpeta. Revisa\nque no se hayan mezclado sus energías con las "
-            "de DFT (olla-dft audit lo comprueba).")
+            "this folder contains structures produced by a machine-learned potential. "
+            "Check\nthat their energies have not been mixed with DFT ones "
+            "(olla-dft audit checks this).")
 
     f.codigos = list(dict.fromkeys(f.codigos + ["spglib", "seekpath", "ase"]))
     return f
@@ -344,40 +347,40 @@ def metodos(f: Ficha) -> str:
     """Párrafo de metodología redactado a partir de los parámetros reales."""
     p = f.parametros
     if not p:
-        return ("No hay parámetros que redactar: no se encontró ningún XML "
-                "de pw.x en la carpeta.")
+        return ("No parameters to write up: no pw.x XML was found "
+                "in the folder.")
     pseudos = ", ".join(f"{k} ({v})" for k, v in (p.get("pseudos") or {}).items())
     ocup = p.get("ocupaciones") or "?"
     if ocup == "smearing" and p.get("degauss_Ry"):
-        ocup = (f"ensanchamiento de tipo {p.get('smearing')} con degauss = "
+        ocup = (f"{p.get('smearing')}-type smearing with degauss = "
                 f"{p['degauss_Ry']:g} Ry")
     elif ocup == "fixed":
-        ocup = "ocupaciones fijas"
+        ocup = "fixed occupations"
     texto = (
-        f"Los cálculos de primeros principios se realizaron con Quantum "
-        f"ESPRESSO [1], en el marco de la teoría del funcional de la "
-        f"densidad. Se empleó el funcional de intercambio y correlación "
-        f"{p.get('funcional') or '?'} y los pseudopotenciales {pseudos or '?'}. "
-        f"Las funciones de onda y la densidad de carga se expandieron en "
-        f"ondas planas con energías de corte de {p.get('ecutwfc_Ry') or '?'} "
-        f"y {p.get('ecutrho_Ry') or '?'} Ry respectivamente. "
-        f"La zona de Brillouin se muestreó con una malla uniforme centrada "
-        f"en Γ de {p.get('malla_k') or '?'} (K_POINTS automatic, sin "
-        f"desplazamiento), con {ocup}. "
+        f"First-principles calculations were performed with Quantum "
+        f"ESPRESSO [1], within the framework of density functional "
+        f"theory. The {p.get('funcional') or '?'} exchange-correlation "
+        f"functional and the pseudopotentials {pseudos or '?'} were employed. "
+        f"Wavefunctions and charge density were expanded in "
+        f"plane waves with kinetic energy cutoffs of {p.get('ecutwfc_Ry') or '?'} "
+        f"and {p.get('ecutrho_Ry') or '?'} Ry respectively. "
+        f"The Brillouin zone was sampled with a uniform Γ-centred "
+        f"{p.get('malla_k') or '?'} mesh (K_POINTS automatic, no "
+        f"shift), with {ocup}. "
     )
     if p.get("nspin") == 2:
-        texto += "Los cálculos se realizaron con polarización de espín. "
+        texto += "The calculations were spin-polarized. "
     if "dfpt" in f.codigos:
-        texto += ("Las propiedades vibracionales se obtuvieron por teoría "
-                  "del funcional de la densidad perturbativa [2]. ")
+        texto += ("Vibrational properties were obtained by density "
+                  "functional perturbation theory [2]. ")
     if "mace" in f.codigos:
-        texto += ("Las geometrías de partida se pre-relajaron con el "
-                  "potencial interatómico aprendido MACE-MP-0; los "
-                  "resultados reportados provienen en todos los casos de "
-                  "los cálculos DFT posteriores. ")
-    texto += (f"El análisis de simetría y la generación de los caminos de "
-              f"alta simetría se hicieron con spglib y seekpath. "
-              f"El pre y post-proceso se realizó con Olla-DFT {__version__}.")
+        texto += ("Starting geometries were pre-relaxed with the "
+                  "MACE-MP-0 machine-learned interatomic potential; the "
+                  "reported results come in all cases from the "
+                  "subsequent DFT calculations. ")
+    texto += (f"Symmetry analysis and the generation of high-symmetry "
+              f"paths were performed with spglib and seekpath. "
+              f"Pre- and post-processing were done with Olla-DFT {__version__}.")
     return texto
 
 
@@ -386,36 +389,36 @@ def citas(f: Ficha) -> list:
 
 
 def markdown(f: Ficha) -> str:
-    lines = [f"# Ficha del material: {f.formula or '?'}", "",
-             f"*Generado por Olla-DFT {__version__} — "
+    lines = [f"# Material datasheet: {f.formula or '?'}", "",
+             f"*Generated by Olla-DFT {__version__} — "
              f"{provenance.fields()['generado']}*", ""]
     for seccion, filas in f.resultados.items():
-        lines += [f"## {seccion}", "",
-                  "| magnitud | valor | unidad |", "|---|---|---|"]
+        lines += [f"## {_SECTION_EN.get(seccion, seccion)}", "",
+                  "| quantity | value | unit |", "|---|---|---|"]
         for r in filas:
-            lines.append(f"| {r['magnitud']} | {r['valor']} | "
-                         f"{r['unidad']} |")
+            lines.append(f"| {r['magnitud']} | {r['magnitud']} | "
+                         f"{r['valor']} |")
         if seccion in f.procedencia:
-            lines += ["", f"*Fuente: `{f.procedencia[seccion]}`*"]
+            lines += ["", f"*Source: `{f.procedencia[seccion]}`*"]
         lines.append("")
-    lines += ["## Parámetros del cálculo", "",
-              "| parámetro | valor |", "|---|---|"]
+    lines += ["## Calculation parameters", "",
+              "| parameter | value |", "|---|---|"]
     for k, v in f.parametros.items():
         if isinstance(v, dict):
             v = ", ".join(f"{a}: {b}" for a, b in v.items())
-        lines.append(f"| {k} | {v if v is not None else '—'} |")
-    lines += ["", "## Métodos (borrador)", "", metodos(f), "",
-              "## Referencias", ""]
+        lines.append(f"| {_PARAMETER_EN.get(k, k)} | {v if v is not None else '—'} |")
+    lines += ["", "## Methods (draft)", "", metodos(f), "",
+              "## References", ""]
     for i, c in enumerate(citas(f), start=1):
         lines.append(f"{i}. {c}")
     if f.avisos:
-        lines += ["", "## Avisos", ""]
+        lines += ["", "## Warnings", ""]
         for a in f.avisos:
             lines.append(f"- {a}")
     lines += ["", "---", "",
-              "*El párrafo de métodos es un BORRADOR generado de los "
-              "parámetros reales del\ncálculo. Revísalo antes de usarlo: "
-              "sabe qué se hizo, no por qué se hizo.*"]
+              "*The methods paragraph is a DRAFT generated from the "
+              "actual parameters of the\ncalculation. Review it before using it: "
+              "it knows what was done, not why.*"]
     return "\n".join(lines)
 
 
@@ -423,30 +426,30 @@ def html(f: Ficha) -> str:
     import html as _h
     filas_html = []
     for seccion, filas in f.resultados.items():
-        filas_html.append(f"<h2>{_h.escape(seccion)}</h2><table>"
-                          "<tr><th>magnitud</th><th>valor</th>"
-                          "<th>unidad</th></tr>")
+        filas_html.append(f"<h2>{_h.escape(_SECTION_EN.get(seccion, seccion))}</h2><table>"
+                          "<tr><th>quantity</th><th>value</th>"
+                          "<th>unit</th></tr>")
         for r in filas:
             filas_html.append(
                 f"<tr><td>{_h.escape(str(r['magnitud']))}</td>"
-                f"<td class='v'>{_h.escape(str(r['valor']))}</td>"
-                f"<td>{_h.escape(str(r['unidad']))}</td></tr>")
+                f"<td class='v'>{_h.escape(str(r['magnitud']))}</td>"
+                f"<td>{_h.escape(str(r['valor']))}</td></tr>")
         filas_html.append("</table>")
         if seccion in f.procedencia:
             filas_html.append(
-                f"<p class='src'>Fuente: <code>"
+                f"<p class='src'>Source: <code>"
                 f"{_h.escape(f.procedencia[seccion])}</code></p>")
     params = "".join(
-        f"<tr><td>{_h.escape(k)}</td><td>"
+        f"<tr><td>{_h.escape(_PARAMETER_EN.get(k, k))}</td><td>"
         f"{_h.escape(', '.join(f'{a}: {b}' for a, b in v.items()) if isinstance(v, dict) else str(v))}"
         "</td></tr>" for k, v in f.parametros.items())
     refs = "".join(f"<li>{_h.escape(c)}</li>" for c in citas(f))
     avisos = ""
     if f.avisos:
-        avisos = "<h2>Avisos</h2><ul>" + "".join(
+        avisos = "<h2>Warnings</h2><ul>" + "".join(
             f"<li>{_h.escape(a)}</li>" for a in f.avisos) + "</ul>"
-    return f"""<!doctype html><html lang="es"><head><meta charset="utf-8">
-<title>Ficha — {_h.escape(f.formula or '?')}</title><style>
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<title>Datasheet — {_h.escape(f.formula or '?')}</title><style>
 body{{font-family:system-ui,sans-serif;max-width:52rem;margin:2rem auto;
 padding:0 1rem;line-height:1.5;color:#1a1a1a}}
 h1{{border-bottom:2px solid #333;padding-bottom:.3rem}}
@@ -458,19 +461,19 @@ text-align:right}}
 .src{{font-size:.85em;color:#666;margin-top:-.2rem}}
 .met{{background:#f7f7f7;padding:1rem;border-left:3px solid #888}}
 </style></head><body>
-<h1>Ficha del material: {_h.escape(f.formula or '?')}</h1>
-<p class="src">Generado por Olla-DFT {__version__} —
+<h1>Material datasheet: {_h.escape(f.formula or '?')}</h1>
+<p class="src">Generated by Olla-DFT {__version__} —
 {provenance.fields()['generado']}</p>
 {''.join(filas_html)}
-<h2>Parámetros del cálculo</h2><table>
-<tr><th>parámetro</th><th>valor</th></tr>{params}</table>
-<h2>Métodos (borrador)</h2>
+<h2>Calculation parameters</h2><table>
+<tr><th>parameter</th><th>value</th></tr>{params}</table>
+<h2>Methods (draft)</h2>
 <div class="met"><p>{_h.escape(metodos(f))}</p></div>
-<h2>Referencias</h2><ol>{refs}</ol>
+<h2>References</h2><ol>{refs}</ol>
 {avisos}
-<hr><p class="src">El párrafo de métodos es un borrador generado de los
-parámetros reales del cálculo. Revísalo antes de usarlo: sabe qué se hizo,
-no por qué se hizo.</p></body></html>"""
+<hr><p class="src">The methods paragraph is a draft generated from the
+actual parameters of the calculation. Review it before using it: it knows what was done,
+not why.</p></body></html>"""
 
 
 def escribir(f: Ficha, outdir: str = ".", nombre: str = None) -> list:

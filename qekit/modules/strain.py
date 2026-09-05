@@ -41,12 +41,12 @@ from qekit.modules import sweep
 # Cada modo define qué componentes de la deformación se activan, en notación
 # de Voigt (0..5 = xx, yy, zz, yz, xz, xy).
 MODOS = {
-    "biaxial":     ((0, 1),    "biaxial en el plano ab (εxx = εyy)"),
-    "uniaxial-a":  ((0,),      "uniaxial a lo largo de a (εxx)"),
-    "uniaxial-b":  ((1,),      "uniaxial a lo largo de b (εyy)"),
-    "uniaxial-c":  ((2,),      "uniaxial a lo largo de c (εzz)"),
-    "hidrostatica": ((0, 1, 2), "hidrostática (εxx = εyy = εzz)"),
-    "cizalla":     ((5,),      "cizalla en el plano ab (εxy)"),
+    "biaxial":     ((0, 1),    "biaxial in the ab plane (εxx = εyy)"),
+    "uniaxial-a":  ((0,),      "uniaxial along a (εxx)"),
+    "uniaxial-b":  ((1,),      "uniaxial along b (εyy)"),
+    "uniaxial-c":  ((2,),      "uniaxial along c (εzz)"),
+    "hidrostatica": ((0, 1, 2), "hydrostatic (εxx = εyy = εzz)"),
+    "cizalla":     ((5,),      "shear in the ab plane (εxy)"),
 }
 
 # Qué eje deja libre --relax-perp según el modo: el perpendicular al plano
@@ -61,8 +61,8 @@ def matriz(modo: str, eps: float) -> np.ndarray:
     """Matriz de deformación 3x3 del modo dado, para una deformación `eps`."""
     if modo not in MODOS:
         raise ErrorDeUso(
-            f"modo de deformación desconocido '{modo}'. "
-            f"Opciones: {', '.join(sorted(MODOS))}")
+            f"unknown strain mode '{modo}'. "
+            f"Options: {', '.join(sorted(MODOS))}")
     e = np.zeros((3, 3))
     for comp in MODOS[modo][0]:
         i, j = _VOIGT[comp]
@@ -83,29 +83,29 @@ def rango(texto: str) -> list:
     partes = str(texto).replace(",", ":").split(":")
     if len(partes) != 3:
         raise ErrorDeUso(
-            "--range se escribe MIN:MAX:N en por ciento, por ejemplo "
-            f"-5:5:11 (de -5 % a +5 % en 11 puntos); recibí '{texto}'.")
+            "--range is written MIN:MAX:N in percent, for example "
+            f"-5:5:11 (from -5 % to +5 % in 11 points); got '{texto}'.")
     try:
         lo, hi = float(partes[0]), float(partes[1])
         n = int(partes[2])
     except ValueError:
         raise ErrorDeUso(
-            f"--range necesita dos números y un entero; recibí '{texto}'."
+            f"--range needs two numbers and an integer; got '{texto}'."
         ) from None
     if n < 3:
         raise ErrorDeUso(
-            f"--range necesita al menos 3 puntos para poder ajustar una "
-            f"curva; pediste {n}.")
+            f"--range needs at least 3 points to be able to fit a "
+            f"curve; you asked for {n}.")
     if hi <= lo:
         raise ErrorDeUso(
-            f"el máximo de --range tiene que ser mayor que el mínimo; "
-            f"recibí de {lo:g} % a {hi:g} %.")
+            f"the maximum of --range must be greater than the minimum; "
+            f"got from {lo:g} % to {hi:g} %.")
     if max(abs(lo), abs(hi)) > 30.0:
         raise ErrorDeUso(
-            f"±{max(abs(lo), abs(hi)):g} % es una deformación enorme: a esa "
-            "escala la respuesta ya no es elástica y el cristal suele "
-            "romperse o cambiar de fase. ¿Escribiste fracciones en vez de "
-            "por ciento? --range va en POR CIENTO.")
+            f"±{max(abs(lo), abs(hi)):g} % is an enormous strain: at that "
+            "scale the response is no longer elastic and the crystal usually "
+            "breaks or changes phase. Did you write fractions instead of "
+            "percent? --range is in PERCENT.")
     vals = [round(v / 100.0, 10) for v in np.linspace(lo, hi, n)]
     if not any(abs(v) < 1e-12 for v in vals):
         # el punto sin deformar es la referencia de todo lo demás
@@ -152,8 +152,8 @@ def prepare(atoms, modo: str = "biaxial", rangos: str = "-5:5:11",
 
     if modo not in MODOS:
         raise ErrorDeUso(
-            f"modo de deformación desconocido '{modo}'. "
-            f"Opciones: {', '.join(sorted(MODOS))}")
+            f"unknown strain mode '{modo}'. "
+            f"Options: {', '.join(sorted(MODOS))}")
     strains = rango(rangos)
 
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho, insulator)
@@ -179,13 +179,13 @@ def prepare(atoms, modo: str = "biaxial", rangos: str = "-5:5:11",
 
     if relax_perp and modo == "hidrostatica":
         raise ErrorDeUso(
-            "--relax-perp no tiene sentido con deformación hidrostática: se "
-            "está deformando la celda en las tres direcciones, no queda eje "
-            "perpendicular que relajar.")
+            "--relax-perp makes no sense with hydrostatic strain: the "
+            "cell is being deformed in all three directions, no perpendicular "
+            "axis is left to relax.")
     if modo == "biaxial" and not laminar:
-        aviso_lam = ("AVISO: 'biaxial' deforma a y b y deja c fijo, que es lo "
-                     "que se hace en una lámina.\n  Esta celda no tiene vacío "
-                     "en c: si es material en bulto, quizá querías "
+        aviso_lam = ("WARNING: 'biaxial' strains a and b and keeps c fixed, which is "
+                     "what is done for a sheet.\n  This cell has no vacuum "
+                     "along c: if it is bulk material, you may have wanted "
                      "'hidrostatica'.")
     else:
         aviso_lam = None
@@ -199,25 +199,25 @@ def prepare(atoms, modo: str = "biaxial", rangos: str = "-5:5:11",
         calc, dofree = "scf", None
 
     modo_txt = MODOS[modo][1]
-    report = ["--- Barrido de deformación ---",
-              f"Estructura: {atoms.get_chemical_formula()} ({len(atoms)} átomos)",
-              f"Modo: {modo_txt}",
-              f"Deformaciones: {len(strains)} puntos de "
-              f"{min(strains) * 100:+.2f} % a {max(strains) * 100:+.2f} %",
-              f"Malla k: {grid[0]}x{grid[1]}x{grid[2]}",
-              f"Bandas: {nbnd} (con las vacías necesarias para leer el gap)"
-              if nbnd else "Bandas: automáticas (sin UPF no se puede estimar; "
-                           "puede que no haya gap en la tabla)",
-              "Posiciones internas: " + ("relajadas" if relax_ions else "fijas")
-              + (f"; celda con cell_dofree='{dofree}' (relajación de Poisson)"
-                 if dofree else "; celda fija en la deformación impuesta")]
+    report = ["--- Strain sweep ---",
+              f"Structure: {atoms.get_chemical_formula()} ({len(atoms)} atoms)",
+              f"Mode: {modo_txt}",
+              f"Strains: {len(strains)} points from "
+              f"{min(strains) * 100:+.2f} % to {max(strains) * 100:+.2f} %",
+              f"k-mesh: {grid[0]}x{grid[1]}x{grid[2]}",
+              f"Bands: {nbnd} (with the empty ones needed to read the gap)"
+              if nbnd else "Bands: automatic (without a UPF they cannot be estimated; "
+                           "the table may have no gap)",
+              "Internal positions: " + ("relaxed" if relax_ions else "fixed")
+              + (f"; cell with cell_dofree='{dofree}' (Poisson relaxation)"
+                 if dofree else "; cell fixed at the imposed strain")]
     if aviso_lam:
         report.append(aviso_lam)
     if nspin == 2 and not magnetization:
         report.append(
-            "AVISO: --nspin 2 sin magnetización inicial suele converger a la\n"
-            "  solución no magnética, y entonces el momento sale plano en todo\n"
-            "  el barrido por un motivo numérico, no físico. Usa --mag.")
+            "WARNING: --nspin 2 without an initial magnetization usually converges to the\n"
+            "  non-magnetic solution, and then the moment comes out flat across the whole\n"
+            "  sweep for a numerical reason, not a physical one. Use --mag.")
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
@@ -240,8 +240,8 @@ def prepare(atoms, modo: str = "biaxial", rangos: str = "-5:5:11",
         run.jobs.append(job)
 
     sweep.write_run_script(run.jobs, out / "run.sh")
-    report += ["", f"{len(run.jobs)} cálculos escritos en '{out.resolve()}'",
-               "Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta."]
+    report += ["", f"{len(run.jobs)} calculations written to '{out.resolve()}'",
+               "Run them with --run, or by hand with ./run.sh inside that folder."]
     return run, "\n".join(report)
 
 
@@ -363,13 +363,13 @@ def cierre_de_gap(run: StrainRun) -> float:
 def report(run: StrainRun) -> str:
     if not run.energies:
         raise FaltanDatos(
-            "no hay resultados que leer todavía. Corre los cálculos "
-            "(--run, o ./run.sh en la carpeta del barrido) y vuelve con "
+            "no results to read yet. Run the calculations "
+            "(--run, or ./run.sh in the sweep folder) and come back with "
             "--collect.")
     n = run.natoms
-    L = ["--- Barrido de deformación: resultados ---",
-         f"Modo: {MODOS[run.modo][1]}",
-         f"Celda de referencia: {run.natoms} átomos, "
+    L = ["--- Strain sweep: results ---",
+         f"Mode: {MODOS[run.modo][1]}",
+         f"Reference cell: {run.natoms} atoms, "
          f"V₀ = {run.volume0:.3f} Å³"
          + (f", A₀ = {run.area0:.3f} Å²" if run.laminar else ""),
          ""]
@@ -385,7 +385,7 @@ def report(run: StrainRun) -> str:
     hay_gap = any(g is not None for g in run.gaps)
     sin_gap = (not hay_gap) and any(h is not None for h in run.homos)
     hay_mag = any(m for m in run.moments)
-    cab = f"  {'ε (%)':>8s} {'ΔE (meV/át)':>13s} {'P (GPa)':>10s}"
+    cab = f"  {'ε (%)':>8s} {'ΔE (meV/at)':>13s} {'P (GPa)':>10s}"
     if hay_gap:
         cab += f" {'gap (eV)':>10s}"
     if hay_mag:
@@ -408,65 +408,65 @@ def report(run: StrainRun) -> str:
             m = run.moments[i]
             fila += f" {m:>9.3f}" if m is not None else f" {'—':>9s}"
         if run.converged[i] is False:
-            fila += "   << SIN CONVERGER"
+            fila += "   << NOT CONVERGED"
         L.append(fila)
 
     L.append("")
     eps0, _ = minimo(run)
     if eps0 is not None:
-        L.append(f"Mínimo de energía en ε = {eps0 * 100:+.3f} %")
+        L.append(f"Energy minimum at ε = {eps0 * 100:+.3f} %")
         if abs(eps0) > 0.003:
             L.append(
-                "  AVISO: el mínimo no cae en ε = 0. La estructura de partida\n"
-                "  no estaba relajada, y todo el barrido está medido desde un\n"
-                "  punto que no es el de equilibrio. Relájala primero:\n"
-                "    olla-dft gen ESTRUCTURA -p vc-relax")
+                "  WARNING: the minimum does not fall at ε = 0. The starting structure\n"
+                "  was not relaxed, and the whole sweep is measured from a\n"
+                "  point that is not the equilibrium one. Relax it first:\n"
+                "    olla-dft gen STRUCTURE -p vc-relax")
 
     if hay_gap:
         m, r2 = potencial_deformacion(run)
         if m is not None:
-            L.append(f"Potencial de deformación dEgap/dε = {m:+.3f} eV "
-                     f"(ajuste lineal, R² = {r2:.4f})")
+            L.append(f"Deformation potential dEgap/dε = {m:+.3f} eV "
+                     f"(linear fit, R² = {r2:.4f})")
             if r2 < 0.9:
-                L.append("  El gap no responde de forma lineal en este rango "
-                         "(R² bajo): la pendiente\n  es un promedio, no una "
-                         "constante; mira la gráfica antes de citarla.")
+                L.append("  The gap does not respond linearly in this range "
+                         "(low R²): the slope\n  is an average, not a "
+                         "constant; look at the plot before citing it.")
         cierre = cierre_de_gap(run)
         if cierre is not None:
-            L.append(f"El gap se cierra alrededor de ε = {cierre * 100:+.2f} % "
-                     "(transición a metal)")
+            L.append(f"The gap closes around ε = {cierre * 100:+.2f} % "
+                     "(transition to metal)")
 
     if hay_mag:
         ms = [(run.strains[i], run.moments[i]) for i in run.ok
               if run.moments[i] is not None]
         if ms:
             lo = min(ms, key=lambda t: abs(t[1]))
-            L.append(f"Momento magnético: de {max(abs(m) for _, m in ms):.3f} μB "
-                     f"a un mínimo de {abs(lo[1]):.3f} μB en ε = {lo[0] * 100:+.2f} %")
+            L.append(f"Magnetic moment: from {max(abs(m) for _, m in ms):.3f} μB "
+                     f"to a minimum of {abs(lo[1]):.3f} μB at ε = {lo[0] * 100:+.2f} %")
 
     if sin_gap:
-        L.append("No hay gap en la tabla: los cálculos no tienen bandas "
-                 "vacías, así que\n  hay un HOMO pero no un LUMO. Vuelve a "
-                 "preparar el barrido (sin --collect)\n  para que se incluyan, "
-                 "o añade nbnd a mano en los inputs.")
+        L.append("There is no gap in the table: the calculations have no empty "
+                 "bands, so\n  there is a HOMO but no LUMO. Prepare the sweep again "
+                 "(without --collect)\n  so that they are included, "
+                 "or add nbnd by hand to the inputs.")
 
     y2d = modulo_biaxial(run)
     if y2d is not None and run.laminar:
-        L.append(f"Módulo biaxial 2D = (1/A₀)·d²E/dε² = {y2d:.1f} N/m")
-        L.append("  Es la combinación C11 + 2C12 + C22, no el módulo de Young. "
-                 "Para las Cij\n  por separado:  olla-dft elastic --2d")
+        L.append(f"2D biaxial modulus = (1/A₀)·d²E/dε² = {y2d:.1f} N/m")
+        L.append("  It is the combination C11 + 2C12 + C22, not Young's modulus. "
+                 "For the individual Cij:\n  olla-dft elastic --2d")
 
     if fallidos:
         L.append("")
-        L.append(f"Sin resultado en {len(fallidos)} punto(s): "
+        L.append(f"No result at {len(fallidos)} point(s): "
                  + ", ".join(fallidos))
     sin_conv = [f"{run.strains[i] * 100:+.2f} %" for i in range(len(run.strains))
                 if run.converged[i] is False]
     if sin_conv:
-        L.append(f"SIN CONVERGER en {len(sin_conv)} punto(s): "
+        L.append(f"NOT CONVERGED at {len(sin_conv)} point(s): "
                  + ", ".join(sin_conv)
-                 + "\n  Esos puntos NO son comparables con el resto; "
-                   "vuelve a correrlos antes de leer la curva.")
+                 + "\n  Those points are NOT comparable with the rest; "
+                   "rerun them before reading the curve.")
     return "\n".join(L)
 
 
@@ -477,7 +477,7 @@ def export(run: StrainRun, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "STRAIN.dat"
     lines = [provenance.header(
-        f"barrido de deformación ({MODOS[run.modo][1]})",
+        f"strain sweep ({MODOS[run.modo][1]})",
         {"atomos": run.natoms, "V0_A3": f"{run.volume0:.4f}"}),
         f"# {'eps':>10s} {'E(eV)':>18s} {'gap(eV)':>12s} "
         f"{'P(GPa)':>12s} {'M(muB)':>10s}"]
@@ -507,12 +507,12 @@ def plot(run: StrainRun, outfile: str = "strain", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     idx = [i for i in run.ok if run.energies[i] is not None]
     if len(idx) < 2:
-        raise FaltanDatos("hacen falta al menos dos puntos con energía "
-                          "para graficar el barrido.")
+        raise FaltanDatos("at least two points with energy are needed "
+                          "to plot the sweep.")
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
     x = np.array([run.strains[i] * 100 for i in idx])
@@ -533,7 +533,7 @@ def plot(run: StrainRun, outfile: str = "strain", formats="pdf,png",
     if eps0 is not None and min(x) <= eps0 * 100 <= max(x):
         ax.axvline(eps0 * 100, color=qstyle.INK_FAINT, lw=st["axis_line"],
                    dashes=[1.5, 1.5])
-    ax.set_ylabel(r"$\Delta E$ (meV/átomo)")
+    ax.set_ylabel(r"$\Delta E$ (meV/atom)")
 
     if npan == 2:
         ax2 = axes[1]
@@ -552,10 +552,10 @@ def plot(run: StrainRun, outfile: str = "strain", formats="pdf,png",
             ax2.plot([run.strains[i] * 100 for i in mi],
                      [run.moments[i] for i in mi],
                      marker="^", ms=4, lw=st["line"], color=cols[2])
-            ax2.set_ylabel(r"$M$ ($\mu_B$/celda)")
-        ax2.set_xlabel(r"deformación $\varepsilon$ (%)")
+            ax2.set_ylabel(r"$M$ ($\mu_B$/cell)")
+        ax2.set_xlabel(r"strain $\varepsilon$ (%)")
     else:
-        ax.set_xlabel(r"deformación $\varepsilon$ (%)")
+        ax.set_xlabel(r"strain $\varepsilon$ (%)")
 
     written = qstyle.save(fig, outfile, formats, dpi=dpi, modulo="strain")
     plt.close(fig)

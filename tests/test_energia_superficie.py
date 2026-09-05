@@ -102,7 +102,7 @@ def test_el_reporte_avisa_de_la_deriva():
     r.E_bulto = eb + 0.02
     surfen.ajustar(r)
     txt = surfen.report(r)
-    assert "No converge" in txt
+    assert 'does not converge' in txt
     assert "0.05" not in txt.split("Ajuste")[0] or True   # solo estructura
 
 
@@ -207,7 +207,7 @@ def test_avisa_si_la_banda_esta_cortada():
     d = dos_mod.DOSData(energies=e, fermi=0.0, nspin=1)
     d.projected = OrderedDict({("Pt", "d"): g[None, :]})
     txt = dos_mod.report_momentos(dos_mod.momentos(d, "Pt", "d"))
-    assert "CORTADA" in txt
+    assert 'CUT' in txt
 
 
 def test_el_desdoblamiento_de_intercambio_sale_de_los_dos_canales():
@@ -219,7 +219,7 @@ def test_el_desdoblamiento_de_intercambio_sale_de_los_dos_canales():
     m = dos_mod.momentos(d, "Fe", "d")
     up, dw = m["canales"]
     assert up["centro"] - dw["centro"] == pytest.approx(-2.5, abs=1e-3)
-    assert "desdoblamiento de intercambio" in dos_mod.report_momentos(m)
+    assert 'exchange splitting' in dos_mod.report_momentos(m)
 
 
 def test_elemento_sin_pdos_se_queja():

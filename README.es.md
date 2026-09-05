@@ -9,7 +9,7 @@ Prepara cálculos, analiza propiedades y comparte gráficas y datos.</p>
 <a href="https://doi.org/10.5281/zenodo.22263121"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22263121.svg" alt="DOI"></a>
 </p>
 
-<p align="center"><a href="README.md">English</a> · <a href="docs/COMANDOS.md">Comandos</a> · <a href="examples/">Ejemplos</a> · <a href="https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/">Galería y demo</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="README.de.md">Deutsch</a> · <a href="docs/COMANDOS.md">Comandos</a> · <a href="examples/">Ejemplos</a> · <a href="https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/">Galería y demo</a></p>
 
 <p align="center"><a href="examples/demo_Si/"><img src="examples/demo_Si/Si_bandas_dos.png" width="820" alt="Bandas electrónicas y densidad de estados del silicio; gap LDA calculado de 0,52 eV"></a><br><sub>Silicio · bandas y DOS. Ejemplo calculado con QE; el gap LDA no es el gap experimental.</sub></p>
 
@@ -59,9 +59,11 @@ olla-dft
 
 `start` guía la creación del proyecto. Consulta `olla-dft --help` o la [guía de uso](docs/COMANDOS.md) para continuar. El paquete conserva el nombre interno `qekit` y `python -m qekit` por compatibilidad.
 
-`olla-dft` abre el selector **English / Español** y recuerda tu elección. Pulsa **l** en el menú para cambiarla; `olla-dft --language es` entra directamente en español. Para scripts puedes usar `--language en|es`, `OLLA_DFT_LANG` o `olla-dft config set language es`, sin preguntas interactivas.
+`olla-dft` abre el selector **English / Español / Deutsch** y recuerda tu elección. Pulsa **l** en el menú para cambiarla; `olla-dft --language es` entra directamente en español. Para scripts puedes usar `--language en|es|de`, `OLLA_DFT_LANG` o `olla-dft config set language es`, sin preguntas interactivas.
 
-¿Vienes del repositorio español anterior? Sigue la [guía de migración](docs/LANGUAGES.md#migrar-desde-la-edición-española). Ahora ambos idiomas comparten este repositorio, paquete y versiones.
+¿Vienes del repositorio español anterior? Sigue la [guía de migración](docs/LANGUAGES.md#migrar-desde-la-edición-española). Los tres idiomas comparten este repositorio, paquete y versiones.
+
+Los informes científicos se generan en **inglés**, cualquiera que sea el idioma de la interfaz. La referencia teórica detallada de la interfaz alemana también se ofrece en inglés.
 
 ## Explorar, personalizar y exportar
 

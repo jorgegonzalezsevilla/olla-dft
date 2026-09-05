@@ -74,7 +74,7 @@ def test_plantilla_desconocida_delata_la_confusion_con_revista():
 def test_plantilla_de_verdad_desconocida_lista_las_disponibles():
     with pytest.raises(ErrorDeUso) as exc:
         themes.load("noexiste123")
-    assert "Disponibles" in str(exc.value)
+    assert "Available" in str(exc.value)
     assert "--journal" not in str(exc.value)
 
 
@@ -114,7 +114,7 @@ def test_estadisticas_separan_uso_de_error(tmp_path):
     assert sum(st["por_comando"].values()) == 1
     assert sum(st["uso_por_comando"].values()) == 1
     texto = feedback.report_estadisticas(st)
-    assert "de uso: 1" in texto
+    assert 'usage: 1' in texto
 
 
 # ----------------------------------------------------------------------
@@ -123,10 +123,10 @@ def test_estadisticas_separan_uso_de_error(tmp_path):
 @pytest.mark.parametrize("salida,clave", [
     ("mpirun has detected an attempt to run as root", "root"),
     ("bash: pw.x: command not found", "PATH"),
-    ("Error in routine readpp (1):\n cannot open file Si.upf", "pseudopotencial"),
-    ("Error in routine electrons (1):\n charge is wrong", "carga"),
-    ("out of memory", "memoria"),
-    ("*** buffer overflow detected ***: terminated", "compilación"),
+    ("Error in routine readpp (1):\n cannot open file Si.upf", "pseudopotential"),
+    ("Error in routine electrons (1):\n charge is wrong", "charge"),
+    ("out of memory", "memory"),
+    ("*** buffer overflow detected ***: terminated", "build"),
 ])
 def test_pistas_reconocen_las_causas_frecuentes(salida, clave):
     assert clave in runner.failure_hint(salida)
@@ -147,7 +147,7 @@ def test_mensaje_de_fallo_prefiere_el_bloque_de_error_de_qe(tmp_path):
         "     cola irrelevante\n")
     msg = runner.failure_message("scf", log)
     assert "Error in routine cdiaghg" in msg
-    assert "Causa probable" in msg
+    assert "Probable cause" in msg
     assert "ecutwfc" in msg
     assert "banner" not in msg
 
