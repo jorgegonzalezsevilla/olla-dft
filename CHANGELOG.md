@@ -2,6 +2,14 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.3.0 — 2026-09-04
+
+- License project-owned software under AGPL-3.0-or-later; previous GPL releases remain available under their original terms.
+- Align source notices, package metadata, citation, GitHub and Zenodo metadata; preserve third-party licenses and existing scientific example licenses.
+- Include the full software license and a versioned source link in exported interactive HTML.
+- Clarify the project-generated core-hole pseudopotential test fixture in the third-party inventory.
+- No changes to scientific algorithms, calculation parameters or benchmark results.
+
 ## 1.2.0 — 2026-09-04
 
 - Add an offline result explorer with numeric axes, filtering, record selection and customizable figures.
@@ -16,7 +24,7 @@ All notable changes to Olla-DFT. Dates are ISO 8601.
 - Freeze input, UPFs, MPI command, threads, libraries and architecture; bound consecutive failures.
 - Generate a Linux service for automatic worker restart on a retained persistent disk.
 - Record restart/copy/compute overhead for Olla-Lungo cost comparisons without changing physical inputs.
-- Validate local QE 7.4 SCF, relax and vc-relax recovery after SIGTERM and SIGKILL; cloud replacement and net savings remain unmeasured.
+- Validate local QE 7.4 SCF, relax and vc-relax recovery after SIGTERM and SIGKILL; physical power loss and disk loss recovery remain unmeasured.
 
 ## 1.1.1 — 2026-09-04
 
