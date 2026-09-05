@@ -1,3 +1,5 @@
+[**English**](README.md) · [Español](README.es.md)
+
 # Silicon: bands, DOS and PDOS from start to finish
 
 Complete silicon example: generate the Quantum ESPRESSO inputs, run them,

@@ -1,3 +1,5 @@
+[**English**](README.md) · [Español](README.es.md)
+
 # bcc iron: spin-polarised DOS
 
 Ferromagnetic bcc iron: input generation with an initial magnetic moment

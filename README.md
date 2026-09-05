@@ -9,7 +9,7 @@ Prepare calculations, analyze properties, and share figures and data.</p>
 <a href="https://doi.org/10.5281/zenodo.22263121"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22263121.svg" alt="DOI"></a>
 </p>
 
-<p align="center"><a href="https://github.com/jorgegonzalezsevilla/olla-dft-esp">Versión en español</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="examples/">Examples</a> · <a href="https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/">Gallery and demo</a></p>
+<p align="center"><a href="README.es.md">Español</a> · <a href="docs/COMMANDS.md">Commands</a> · <a href="examples/">Examples</a> · <a href="https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/">Gallery and demo</a></p>
 
 <p align="center"><a href="examples/demo_Si/"><img src="examples/demo_Si/Si_bandas_dos.png" width="820" alt="Silicon electronic bands and density of states; calculated LDA gap of 0.52 eV"></a><br><sub>Silicon · bands and DOS. A QE example; the LDA gap is not the experimental gap.</sub></p>
 
@@ -54,10 +54,14 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install .
 olla-dft info examples/demo_Si/Si.cif
-olla-dft start --language en
+olla-dft
 ```
 
+`olla-dft` opens the language selector and menu. Choose **English** or **Español**; your preference is remembered. Press **l** in the menu to change it. `olla-dft --language es` opens directly in Spanish. For scripts, use `--language en|es`, `OLLA_DFT_LANG`, or `olla-dft config set language es`; commands never prompt for language.
+
 `start` guides project creation. Use `olla-dft --help` or the [usage guide](docs/COMMANDS.md) to continue. The internal `qekit` package and `python -m qekit` remain compatible. Help and the explorer support English/Spanish; some scientific reports retain Spanish text.
+
+Migrating from the former Spanish repository? Follow the [migration guide](docs/LANGUAGES.md). Both languages now use this repository, package and release history.
 
 ## Explore, customize and export
 

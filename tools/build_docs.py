@@ -7,20 +7,12 @@
 # Software Foundation, either version 3 of the License, or (at your option)
 # any later version. See the LICENSE file for details.
 
-"""Genera la documentación derivada del código, en el idioma del repositorio.
-
-    docs/TEORIA.md   (o THEORY.md)    <- qekit/data/theory/*.md
-    docs/COMANDOS.md (o COMMANDS.md)  <- el árbol de argparse (olla-dft --help)
-
-El idioma lo decide ``qekit.core.i18n.DEFAULT_LANGUAGE``: el repositorio en
-español publica TEORIA.md y COMANDOS.md; el repositorio en inglés, THEORY.md
-y COMMANDS.md. Con ``--all`` se generan los dos idiomas.
-
-Correr después de tocar la teoría o de añadir/renombrar un comando:
+"""Generate both language references from the same code.
 
     python tools/build_docs.py
 
-tests/test_teoria.py y tests/test_docs.py comprueban que estén al día.
+Writes docs/COMMANDS.md, COMANDOS.md, THEORY.md and TEORIA.md.
+The legacy --all flag is still accepted; both languages are always built.
 """
 
 import argparse
@@ -32,7 +24,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from qekit import __command_name__, __version__
 from qekit.cli import COMMAND_GROUPS, build_parser, _menu_labels
-from qekit.core.i18n import DEFAULT_LANGUAGE
 from qekit.modules import theory
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -144,7 +135,7 @@ def salidas(language: str) -> dict:
 def main(argv=None) -> int:
     import sys
     argv = sys.argv[1:] if argv is None else argv
-    idiomas = ("es", "en") if "--all" in argv else (DEFAULT_LANGUAGE,)
+    idiomas = ("es", "en")
     DOCS.mkdir(parents=True, exist_ok=True)
     todas = {}
     for lang in idiomas:

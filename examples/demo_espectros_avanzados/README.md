@@ -1,3 +1,5 @@
+[**English**](README.md) · [Español](README.es.md)
+
 # Spectra and advanced modules: XANES, Hubbard U, electron–phonon, band unfolding and VDOS
 
 REAL results from five modules (`xanes`, `hubbard`, `elph`, `unfold`,

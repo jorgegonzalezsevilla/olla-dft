@@ -2,6 +2,19 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.4.0 — 2026-09-05
+
+**Interactive behavior change:** no-command invocations with redirected input or output now print help and exit (status 0). Use direct commands instead of driving the menu with a heredoc. Interactive startup offers a language choice unless `--language` is supplied.
+
+- Unify English and Spanish in one package and canonical repository, with English as the fallback language.
+- Add a bilingual selector on interactive menu startup, remember the choice, and switch languages from the menu with `l`.
+- Pass the selected language through nested menu commands and catalog help, including when an environment override is set.
+- Keep direct commands, help and non-terminal invocations free of language prompts; `--language` bypasses the startup selector.
+- Include the Spanish README, reference, theory, platform guide and example guides alongside English documentation.
+- Use one update source and Zenodo software identity; provide migration instructions for the former Spanish edition.
+- Read explorer translations and assets explicitly as UTF-8 on all platforms.
+- Scientific algorithms, calculation input formats and checkpoint formats are unchanged. Scientific report text is not fully translated.
+
 ## 1.3.1 — 2026-09-04
 
 - Load Matplotlib and font discovery only when drawing figures; structure commands and help retain the same options without initializing plotting.

@@ -55,7 +55,7 @@ def comandos_de_readme(texto):
 
 
 def _readmes():
-    return sorted(EJEMPLOS.glob("**/README.md"))
+    return sorted(EJEMPLOS.glob("**/README*.md"))
 
 
 def _validar(cmd, subs):
@@ -104,14 +104,12 @@ def test_cada_readme_enseña_al_menos_un_comando():
         assert cmds, f"{rd} no tiene ningún comando olla-dft"
 
 
-def test_cada_readme_esta_en_el_idioma_del_repositorio():
-    """Cada repositorio (español o inglés) lleva sus README en un solo idioma."""
-    from qekit.core.i18n import DEFAULT_LANGUAGE
-    marcas = {"es": ("Español", "English"), "en": ("English", "Español")}
-    propia, ajena = marcas[DEFAULT_LANGUAGE]
-    for rd in _readmes():
-        texto = rd.read_text(encoding="utf-8")
-        assert f"## {ajena}" not in texto, f"{rd} mezcla idiomas"
+def test_cada_ejemplo_incluye_ambos_idiomas():
+    for rd in EJEMPLOS.rglob("README.md"):
+        spanish = rd.with_name("README.es.md")
+        assert spanish.is_file(), f"missing Spanish guide: {rd}"
+        assert '(README.es.md)' in rd.read_text(encoding="utf-8")
+        assert '(README.md)' in spanish.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("readme", _readmes(),
@@ -147,7 +145,7 @@ def test_los_archivos_citados_en_cada_readme_existen():
 def test_el_readme_general_lista_todas_las_carpetas_y_estructuras():
     texto = (EJEMPLOS / "README.md").read_text(encoding="utf-8")
     for p in sorted(EJEMPLOS.iterdir()):
-        if p.name == "README.md":
+        if p.name in ("README.md", "README.es.md"):
             continue
         nombre = p.name + "/" if p.is_dir() else p.name
         assert f"`{nombre}`" in texto, f"examples/README.md no lista {nombre}"

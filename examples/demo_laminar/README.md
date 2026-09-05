@@ -1,3 +1,5 @@
+[**English**](README.md) · [Español](README.es.md)
+
 # Graphite: layers, diffractogram and exfoliation energy
 
 Layered-materials module (`layers`, `xrd`, `exfoliate`), demonstrated on

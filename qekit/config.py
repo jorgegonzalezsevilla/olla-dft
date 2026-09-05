@@ -15,7 +15,9 @@ idioma, etc.).
 """
 
 import configparser
+import os
 import shutil
+import tempfile
 from pathlib import Path
 
 from qekit.core import i18n, plataforma
@@ -79,7 +81,7 @@ def load() -> dict:
     values = dict(DEFAULTS)
     if CONFIG_FILE.exists():
         parser = configparser.ConfigParser()
-        parser.read(CONFIG_FILE)
+        parser.read(CONFIG_FILE, encoding="utf-8")
         if parser.has_section("qekit"):
             for key, val in parser.items("qekit"):
                 values[key] = val
@@ -87,12 +89,29 @@ def load() -> dict:
 
 
 def save(values: dict) -> None:
-    """Guarda solo las claves válidas en el archivo de configuración."""
+    """Update known keys, preserving existing settings from other versions."""
     parser = configparser.ConfigParser()
-    parser["qekit"] = {k: str(v) for k, v in values.items() if k in DEFAULTS}
+    if CONFIG_FILE.exists():
+        parser.read(CONFIG_FILE, encoding="utf-8")
+    if not parser.has_section("qekit"):
+        parser.add_section("qekit")
+    for key, value in values.items():
+        if key in DEFAULTS:
+            parser.set("qekit", key, str(value))
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    with open(CONFIG_FILE, "w") as fh:
-        parser.write(fh)
+    # A failed preference write must not truncate existing calculation settings.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8",
+                                         dir=CONFIG_DIR, delete=False) as fh:
+            temporary = Path(fh.name)
+            parser.write(fh)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(temporary, CONFIG_FILE)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def set_value(key: str, value: str) -> None:
