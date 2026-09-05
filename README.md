@@ -74,7 +74,7 @@ Open `results.html`: filter calculations, choose metrics and units, select recor
 
 `olla-dft resilient` saves and verifies checkpoints to resume supported `pw.x` jobs when the disk survives. Set up the persistent environment first: [recovery guide](docs/resilience/RECUPERACION.md) (Spanish).
 
-Local SCF, `relax` and `vc-relax` pairs were checked with simulated process interruptions. Google Cloud VM replacement, disk loss recovery and financial savings **have not been demonstrated**. [Results and tolerances](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html) · [Recovery contract](docs/resilience/CONTRACT.md).
+Local SCF, `relax` and `vc-relax` pairs were checked with simulated process interruptions. Recovery after disk loss or a physical power outage **has not been demonstrated**. [Results and tolerances](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html) · [Recovery contract](docs/resilience/CONTRACT.md).
 
 ## Documentation, quality and citation
 
