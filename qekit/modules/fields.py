@@ -40,17 +40,17 @@ RY_EV = qeout.RY_EV
 BOHR = qeout.BOHR_ANG
 
 PLOTS = {
-    "density": (0, "densidad de carga (e/bohr³)"),
-    "potential": (11, "potencial electrostático V_bare + V_H (Ry)"),
-    "vtotal": (1, "potencial total V_bare + V_H + V_xc (Ry)"),
-    "elf": (8, "función de localización electrónica (ELF)"),
-    "spin": (6, "densidad de espín (up − down)"),
+    "density": (0, "charge density (e/bohr³)"),
+    "potential": (11, "electrostatic potential V_bare + V_H (Ry)"),
+    "vtotal": (1, "total potential V_bare + V_H + V_xc (Ry)"),
+    "elf": (8, "electron localization function (ELF)"),
+    "spin": (6, "spin density (up − down)"),
 }
 
 
 def build_pp_input(prefix: str, plot: str, cube_name: str) -> str:
     if plot not in PLOTS:
-        raise ErrorDeUso(f"campo desconocido '{plot}'. Opciones: {', '.join(PLOTS)}")
+        raise ErrorDeUso(f"unknown field '{plot}'. Options: {', '.join(PLOTS)}")
     num, _desc = PLOTS[plot]
     return (
         "&INPUTPP\n"
@@ -82,8 +82,8 @@ def run_pp(calc_dir, plot: str, cube_name: str, pw_cmd: str = None,
     exe = Path(cmd[-1]).parent / "pp.x" if "/" in cmd[-1] else Path("pp.x")
     if not shutil.which(str(exe)) and not Path(exe).exists():
         raise FileNotFoundError(
-            f"no se encontró pp.x junto a pw.x ('{exe}'). "
-            "Compila el paquete PP de Quantum ESPRESSO (make pp)."
+            f"pp.x was not found next to pw.x ('{exe}'). "
+            "Compile the PP package of Quantum ESPRESSO (make pp)."
         )
     pp_cmd = cmd[:-1] + [str(exe)]
     with open(calc_dir / f"{stem}.in") as fin,          open(calc_dir / f"{stem}.out", "w") as fout:
@@ -134,7 +134,7 @@ def read_cube(path: str) -> CubeData:
         vals = np.array(fh.read().split(), dtype=float)
     n1, n2, n3 = shape
     if vals.size != n1 * n2 * n3:
-        raise FaltanDatos(f"'{path}': se esperaban {n1*n2*n3} valores y hay {vals.size}")
+        raise FaltanDatos(f"'{path}': expected {n1*n2*n3} values and found {vals.size}")
     return CubeData(origin=origin * BOHR, axes=np.array(axes),
                     shape=(n1, n2, n3), data=vals.reshape((n1, n2, n3)),
                     natoms=natoms)
@@ -244,16 +244,16 @@ def work_function(cube: CubeData, fermi_ev: float, axis: int = 2,
 
 
 def report_wf(wf: WorkFunction) -> str:
-    lines = ["--- Función trabajo ---",
-             f"V_vacío = {wf.v_vacuum:10.4f} eV   (meseta plana a ±{wf.flatness/2:.3f} eV, "
-             f"evaluada en z = {wf.vacuum_z[0]:.2f}..{wf.vacuum_z[1]:.2f} Å)",
-             f"E_Fermi = {wf.fermi:10.4f} eV",
+    lines = ["--- Work function ---",
+             f"V_vacuum = {wf.v_vacuum:10.4f} eV   (plateau flat to ±{wf.flatness/2:.3f} eV, "
+             f"evaluated at z = {wf.vacuum_z[0]:.2f}..{wf.vacuum_z[1]:.2f} Å)",
+             f"E_Fermi  = {wf.fermi:10.4f} eV",
              "",
-             f"Φ = V_vacío − E_F = {wf.phi:.3f} eV"]
+             f"Φ = V_vacuum − E_F = {wf.phi:.3f} eV"]
     if wf.flatness > 0.05:
-        lines.append("\nAVISO: la meseta de vacío varía más de 0.05 eV. El vacío es\n"
-                     "insuficiente o hay un dipolo neto; aumenta el vacío (o usa una\n"
-                     "losa simétrica) antes de confiar en este valor.")
+        lines.append("\nWARNING: the vacuum plateau varies by more than 0.05 eV. The vacuum is\n"
+                     "insufficient or there is a net dipole; increase the vacuum (or use a\n"
+                     "symmetric slab) before trusting this value.")
     return "\n".join(lines)
 
 
@@ -269,7 +269,7 @@ def export_wf(wf: WorkFunction, outdir: str = ".") -> list:
     from qekit.core import provenance
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "WF.dat"
-    cab = [provenance.header("función trabajo desde el potencial planar",
+    cab = [provenance.header("work function from the planar potential",
                              {"eje": "abc"[wf.axis]}),
            f"# Phi_eV = {wf.phi:.6f}",
            f"# V_vacio_eV = {wf.v_vacuum:.6f}",
@@ -313,7 +313,7 @@ def plot_profile(wf: WorkFunction, outfile: str = "funcion_trabajo",
         bbox=dict(facecolor=st["background"], alpha=0.85, edgecolor="none", pad=1.2),
     )
     ax.set_xlabel(f"z ({qstyle.angstrom()})")
-    ax.set_ylabel("potencial planar (eV)")
+    ax.set_ylabel("planar potential (eV)")
     ax.set_xlim(wf.z[0], wf.z[-1])
     written = qstyle.save(fig, outfile, formats, dpi=dpi,
                           modulo="campos (pp.x)")
@@ -322,7 +322,7 @@ def plot_profile(wf: WorkFunction, outfile: str = "funcion_trabajo",
 
 
 def plot_density_profile(z, prof, outfile: str = "densidad_planar",
-                         label: str = "densidad de carga",
+                         label: str = "charge density",
                          formats="pdf,png", theme: str = None, size: str = None,
                          family: str = None, background: str = None, palette=None,
                          usetex: bool = None, width="single",

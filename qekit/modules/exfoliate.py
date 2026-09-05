@@ -59,9 +59,9 @@ def prepare(atoms, outdir: str = "exfoliacion", vacuum: float = 20.0,
     ana = layers_mod.analyze(atoms, tol)
     if not ana.layers:
         raise ErrorDeUso(
-            "no se detectaron capas en la estructura "
-            f"(dimensionalidad {ana.dimensionality}). Ajusta --tol si crees "
-            "que sí es laminar."
+            "no layers were detected in the structure "
+            f"(dimensionality {ana.dimensionality}). Adjust --tol if you believe "
+            "it really is layered."
         )
 
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
@@ -85,32 +85,32 @@ def prepare(atoms, outdir: str = "exfoliacion", vacuum: float = 20.0,
         natoms_slab=len(slab), vacuum=vacuum, vdw=vdw,
     )
 
-    report = ["--- Energía de exfoliación ---",
-              f"Estructura: {atoms.get_chemical_formula()}  |  "
-              f"{run.n_layers} capa(s) por celda, "
-              f"apiladas según el eje {'abc'[ana.stacking_axis]}",
-              f"Espaciado basal: {ana.basal_spacing:.4f} Å  |  "
-              f"área en el plano: {area:.4f} Å²",
-              f"Monocapa: {run.natoms_slab} átomos con {vacuum:g} Å de vacío",
-              f"Mallas k: bulk {grid_bulk[0]}x{grid_bulk[1]}x{grid_bulk[2]}, "
-              f"monocapa {grid_slab[0]}x{grid_slab[1]}x{grid_slab[2]}"]
+    report = ["--- Exfoliation energy ---",
+              f"Structure: {atoms.get_chemical_formula()}  |  "
+              f"{run.n_layers} layer(s) per cell, "
+              f"stacked along axis {'abc'[ana.stacking_axis]}",
+              f"Basal spacing: {ana.basal_spacing:.4f} Å  |  "
+              f"in-plane area: {area:.4f} Å²",
+              f"Monolayer: {run.natoms_slab} atoms with {vacuum:g} Å of vacuum",
+              f"k-grids: bulk {grid_bulk[0]}x{grid_bulk[1]}x{grid_bulk[2]}, "
+              f"monolayer {grid_slab[0]}x{grid_slab[1]}x{grid_slab[2]}"]
     if vdw:
-        report.append(f"Corrección de dispersión: vdw_corr = '{vdw}'")
+        report.append(f"Dispersion correction: vdw_corr = '{vdw}'")
         lda_like = any(t in p["filename"].lower()
                        for p in common["pseudos"].values()
                        for t in ("pz", "lda", "pw92"))
         if lda_like and vdw.lower() in ("grimme-d2", "dft-d", "grimme-d3"):
             report.append(
-                "AVISO: los pseudopotenciales parecen LDA y las correcciones de\n"
-                "Grimme están parametrizadas para PBE: combinarlas cuenta la\n"
-                "dispersión dos veces (LDA ya sobreliga las capas). Usa pseudos\n"
-                "PBE con Grimme, o LDA sin corrección solo como referencia."
+                "WARNING: the pseudopotentials look like LDA and the Grimme\n"
+                "corrections are parametrized for PBE: combining them counts the\n"
+                "dispersion twice (LDA already overbinds the layers). Use PBE\n"
+                "pseudopotentials with Grimme, or LDA without correction only as a reference."
             )
     else:
         report.append(
-            "SIN corrección de van der Waals: PBE apenas liga las capas y LDA\n"
-            "liga por cancelación de errores. Para resultados publicables usa\n"
-            "--vdw grimme-d2 (QE >= 5) o --vdw grimme-d3 (QE >= 7.1)."
+            "NO van der Waals correction: PBE barely binds the layers and LDA\n"
+            "binds by error cancellation. For publishable results use\n"
+            "--vdw grimme-d2 (QE >= 5) or --vdw grimme-d3 (QE >= 7.1)."
         )
     warn = sweep.missing_pseudo_warning(common)
     if warn:
@@ -120,13 +120,13 @@ def prepare(atoms, outdir: str = "exfoliacion", vacuum: float = 20.0,
         atoms, common, out / "bulk", "bulk", grid_bulk,
         meta={"which": "bulk"}, vdw=vdw))
     run.jobs.append(sweep.write_scf_job(
-        slab, common, out / "monocapa", "monocapa", grid_slab,
+        slab, common, out / "monocapa", "monolayer", grid_slab,
         meta={"which": "slab"},
         calculation="relax" if relax_slab else "scf", vdw=vdw))
 
     sweep.write_run_script(run.jobs, out / "run.sh")
-    report += ["", f"2 cálculos escritos en '{out.resolve()}'",
-               "Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta."]
+    report += ["", f"2 calculations written to '{out.resolve()}'",
+               "Run them with --run, or by hand with ./run.sh inside that folder."]
     return run, "\n".join(report)
 
 
@@ -149,11 +149,11 @@ def collect(run: ExfoliationRun, results: list = None) -> ExfoliationRun:
 
 
 def report_result(run: ExfoliationRun) -> str:
-    lines = ["--- Resultado de exfoliación ---"]
+    lines = ["--- Exfoliation result ---"]
     if run.E_bulk is None or run.E_slab is None:
-        faltan = [w for w, e in (("bulk", run.E_bulk), ("monocapa", run.E_slab))
+        faltan = [w for w, e in (("bulk", run.E_bulk), ("monolayer", run.E_slab))
                   if e is None]
-        lines.append(f"Faltan cálculos terminados: {', '.join(faltan)}.")
+        lines.append(f"Finished calculations are missing: {', '.join(faltan)}.")
         return "\n".join(lines)
 
     e_per_layer = run.E_bulk / run.n_layers
@@ -162,24 +162,24 @@ def report_result(run: ExfoliationRun) -> str:
     per_atom = diff / run.natoms_slab * 1000.0
 
     lines += [
-        f"E(bulk)     = {run.E_bulk / qeout.RY_EV:16.8f} Ry  "
-        f"({run.natoms_bulk} átomos, {run.n_layers} capas)",
-        f"E(monocapa) = {run.E_slab / qeout.RY_EV:16.8f} Ry  "
-        f"({run.natoms_slab} átomos)",
+        f"E(bulk)      = {run.E_bulk / qeout.RY_EV:16.8f} Ry  "
+        f"({run.natoms_bulk} atoms, {run.n_layers} layers)",
+        f"E(monolayer) = {run.E_slab / qeout.RY_EV:16.8f} Ry  "
+        f"({run.natoms_slab} atoms)",
         "",
         f"E_exf = {per_area * EV_A2_TO_J_M2:8.4f} J/m²"
         f"   = {per_area * 1000.0:8.2f} meV/Å²"
-        f"   = {per_atom:8.2f} meV/átomo",
+        f"   = {per_atom:8.2f} meV/atom",
     ]
     if diff < 0:
         lines.append(
-            "\nAVISO: la energía salió NEGATIVA (la monocapa sería más estable "
-            "que el bulk).\nCasi siempre significa que falta la corrección vdW "
-            "o que algún cálculo no está\nbien convergido."
+            "\nWARNING: the energy came out NEGATIVE (the monolayer would be more stable "
+            "than the bulk).\nThis almost always means the vdW correction is missing "
+            "or some calculation is not\nwell converged."
         )
     if not run.vdw:
         lines.append(
-            "\nRecordatorio: sin corrección de dispersión este número no es "
-            "comparable con\nexperimento (referencia: grafito ≈ 0.35 J/m²)."
+            "\nReminder: without a dispersion correction this number is not "
+            "comparable with\nexperiment (reference: graphite ≈ 0.35 J/m²)."
         )
     return "\n".join(lines)

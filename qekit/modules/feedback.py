@@ -187,7 +187,7 @@ def estadisticas(dir_=None) -> dict:
     por_comando, por_excepcion, uso_por_comando = {}, {}, {}
     for i in incs:
         partes = i.comando.split()
-        sub = partes[1] if len(partes) > 1 else "(sin subcomando)"
+        sub = partes[1] if len(partes) > 1 else "(no subcommand)"
         if i.tipo == "uso":
             uso_por_comando[sub] = uso_por_comando.get(sub, 0) + 1
             continue
@@ -217,11 +217,11 @@ def exportar(destino="incidencias_qekit.json", dir_=None,
         incs = [i for i in incs if i.estado == "abierta"]
     doc = {
         "que_es": (
-            "Registro de incidencias de Olla-DFT exportado para revision. "
-            "Cada entrada trae el comando exacto, la traza del error si lo "
-            "hubo, y las versiones de Olla-DFT, Python, las dependencias y "
-            "Quantum ESPRESSO. Con eso se puede reproducir el fallo sin "
-            "volver a preguntar nada."),
+            "Olla-DFT incident log exported for review. "
+            "Each entry carries the exact command, the error traceback if there "
+            "was one, and the versions of Olla-DFT, Python, the dependencies and "
+            "Quantum ESPRESSO. With that the failure can be reproduced without "
+            "asking anything further."),
         "qekit_version": __version__,
         "generado": provenance.fields()["generado"],
         "estadisticas": estadisticas(dir_),
@@ -234,35 +234,35 @@ def exportar(destino="incidencias_qekit.json", dir_=None,
 
 def report_lista(incs: list) -> str:
     if not incs:
-        return ("No hay incidencias registradas.\n\n"
-                "Se registran solas cuando un comando falla. Para anotar "
-                "algo que no revienta\npero estorba —una salida confusa, "
-                "una bandera que no hace lo que parece—:\n"
-                "    olla-dft report \"lo que pasó\"")
-    lines = [f"--- Incidencias ({len(incs)}) ---",
-             f"{'id':>9s} {'fecha':>17s} {'tipo':>7s} {'estado':>8s}  "
-             "comando"]
+        return ("No incidents registered.\n\n"
+                "They are registered automatically when a command fails. To note "
+                "something that does not crash\nbut gets in the way —a confusing output, "
+                "a flag that does not do what it seems—:\n"
+                "    olla-dft report \"what happened\"")
+    lines = [f"--- Incidents ({len(incs)}) ---",
+             f"{'id':>9s} {'date':>17s} {'type':>7s} {'state':>8s}  "
+             "command"]
     for i in incs:
-        cmd = i.comando or "(sin comando)"
+        cmd = i.comando or "(no command)"
         lines.append(f"{i.id:>9s} {i.fecha[:16]:>17s} {i.tipo:>7s} "
                      f"{i.estado:>8s}  {cmd[:60]}")
-    lines += ["", "Detalle:  olla-dft report --show <id>",
-              "Cerrar:   olla-dft report --close <id>",
-              "Exportar: olla-dft report --export incidencias.json"]
+    lines += ["", "Details:  olla-dft report --show <id>",
+              "Close:    olla-dft report --close <id>",
+              "Export:   olla-dft report --export incidencias.json"]
     return "\n".join(lines)
 
 
 def report_detalle(inc: Incidencia) -> str:
-    lines = [f"--- Incidencia {inc.id} ({inc.estado}) ---",
-             f"Fecha: {inc.fecha}   |   tipo: {inc.tipo}",
-             f"Comando: {inc.comando or '(sin comando)'}",
-             f"Directorio: {inc.cwd}"]
+    lines = [f"--- Incident {inc.id} ({inc.estado}) ---",
+             f"Date: {inc.fecha}   |   type: {inc.tipo}",
+             f"Command: {inc.comando or '(no command)'}",
+             f"Directory: {inc.cwd}"]
     if inc.descripcion:
-        lines += ["", "Descripción:", f"  {inc.descripcion}"]
+        lines += ["", "Description:", f"  {inc.descripcion}"]
     if inc.excepcion:
-        lines += ["", f"Excepción: {inc.excepcion}"]
+        lines += ["", f"Exception: {inc.excepcion}"]
     v = inc.versiones
-    lines += ["", "Entorno:",
+    lines += ["", "Environment:",
               f"  Olla-DFT {v.get('qekit')}  |  Python {v.get('python')}  |  "
               f"{v.get('sistema')}"]
     deps = "  ".join(f"{k}={v[k]}" for k in DEPENDENCIAS
@@ -272,40 +272,40 @@ def report_detalle(inc: Incidencia) -> str:
     if inc.qe.get("disponible"):
         lines.append(f"  Quantum ESPRESSO: {inc.qe.get('version') or '?'}")
     else:
-        lines.append("  Quantum ESPRESSO: no encontrado en el PATH")
+        lines.append("  Quantum ESPRESSO: not found in PATH")
     if inc.adjuntos:
-        lines.append(f"  Adjuntos: {', '.join(inc.adjuntos)}")
+        lines.append(f"  Attachments: {', '.join(inc.adjuntos)}")
     if inc.traceback:
-        lines += ["", "Traza:"]
+        lines += ["", "Traceback:"]
         lines += [f"  {l}" for l in inc.traceback.rstrip().splitlines()]
     if inc.nota:
-        lines += ["", f"Nota al cerrar: {inc.nota}"]
+        lines += ["", f"Closing note: {inc.nota}"]
     return "\n".join(lines)
 
 
 def report_estadisticas(st: dict) -> str:
     if not st["total"]:
-        return "No hay incidencias registradas."
-    lines = ["--- Resumen de incidencias ---",
-             f"Total: {st['total']}  |  abiertas: {st['abiertas']}  |  "
-             f"de error: {st['errores']}  |  de uso: {st.get('uso', 0)}", ""]
+        return "No incidents registered."
+    lines = ["--- Incident summary ---",
+             f"Total: {st['total']}  |  open: {st['abiertas']}  |  "
+             f"errors: {st['errores']}  |  usage: {st.get('uso', 0)}", ""]
     if st["por_comando"]:
-        lines.append("Por subcomando (dónde falla más la interfaz):")
+        lines.append("By subcommand (where the interface fails most):")
         for k, n in st["por_comando"].items():
             lines.append(f"  {n:4d}  {k}")
     if st["por_excepcion"]:
-        lines += ["", "Por tipo de excepción:"]
+        lines += ["", "By exception type:"]
         for k, n in st["por_excepcion"].items():
             lines.append(f"  {n:4d}  {k}")
     if st.get("uso_por_comando"):
-        lines += ["", "Errores de USO por subcomando (el programa avisó "
-                  "bien; la interfaz confunde):"]
+        lines += ["", "USAGE errors by subcommand (the program warned "
+                  "correctly; the interface is confusing):"]
         for k, n in st["uso_por_comando"].items():
             lines.append(f"  {n:4d}  {k}")
     lines += ["",
-              "Un subcomando que acumula fallos no es mala suerte: es una "
-              "interfaz confusa\no un caso no contemplado. Eso es lo que "
-              "hay que arreglar primero.",
-              "Los de USO no son fallas del programa, pero si uno se repite "
-              "mucho la bandera\nestá mal nombrada o mal documentada."]
+              "A subcommand that accumulates failures is not bad luck: it is a "
+              "confusing interface\nor an unhandled case. That is what "
+              "must be fixed first.",
+              "USAGE ones are not program failures, but if one repeats "
+              "often the flag\nis badly named or badly documented."]
     return "\n".join(lines)

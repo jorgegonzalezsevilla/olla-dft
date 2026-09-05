@@ -120,24 +120,24 @@ def limpiar_frecuencias(nu, fase: str = "solido", piso: float = None,
     if fase == "transicion":
         if n_imag == 0:
             avisos.append(
-                "Se declaró un ESTADO DE TRANSICIÓN pero no hay ninguna "
-                "frecuencia imaginaria.\nUn estado de transición es un punto "
-                "de silla de primer orden: tiene que\ntener exactamente una. "
-                "O la estructura no es el estado de transición, o el\ncálculo "
-                "de fonones no está convergido.")
+                "A TRANSITION STATE was declared but there is no "
+                "imaginary frequency.\nA transition state is a first-order "
+                "saddle point: it must\nhave exactly one. "
+                "Either the structure is not the transition state, or the\nphonon "
+                "calculation is not converged.")
         elif n_imag > 1:
             avisos.append(
-                f"Hay {n_imag} frecuencias imaginarias en un estado de "
-                "transición; debería\nhaber exactamente una. Con más de una "
-                "es un punto de silla de orden mayor,\nno un estado de "
-                "transición.")
+                f"There are {n_imag} imaginary frequencies in a transition "
+                "state; there should\nbe exactly one. With more than one "
+                "it is a higher-order saddle point,\nnot a transition "
+                "state.")
     elif n_imag > 0:
         avisos.append(
-            f"Hay {n_imag} frecuencia(s) imaginaria(s) en algo declarado como "
-            f"MÍNIMO\n(la mayor: {abs(nu[imag]).max():.1f}i cm⁻¹). Eso quiere "
-            "decir que la estructura NO\nes un mínimo: relaja mejor antes de "
-            "calcular termoquímica sobre ella.\nSe excluyen de las sumas, "
-            "pero el número que salga no describe un estado\nestable.")
+            f"There are {n_imag} imaginary frequency(ies) in something declared as a "
+            f"MINIMUM\n(the largest: {abs(nu[imag]).max():.1f}i cm⁻¹). That "
+            "means the structure is NOT\na minimum: relax it better before "
+            "computing thermochemistry on it.\nThey are excluded from the sums, "
+            "but the resulting number does not describe a stable\nstate.")
 
     n_sub = 0
     if piso:
@@ -146,12 +146,12 @@ def limpiar_frecuencias(nu, fase: str = "solido", piso: float = None,
         reales = np.where(blandos, piso, reales)
         if n_sub:
             avisos.append(
-                f"Se subieron {n_sub} modo(s) por debajo de {piso:.0f} cm⁻¹ "
-                f"hasta ese piso.\nLa entropía vibracional de un modo diverge "
-                "como -ln(w) cuando w tiende a 0,\nasí que un modo blando mal "
-                "calculado domina el resultado. Subirlos es la\npráctica "
-                "habitual, pero es una CORRECCIÓN, no un cálculo: dilo si "
-                "publicas\nestos números.")
+                f"{n_sub} mode(s) below {piso:.0f} cm⁻¹ were raised "
+                f"to that floor.\nThe vibrational entropy of a mode diverges "
+                "as -ln(w) when w tends to 0,\nso a poorly computed soft mode "
+                "dominates the result. Raising them is the\nusual "
+                "practice, but it is a CORRECTION, not a calculation: say so if "
+                "you publish\nthese numbers.")
     return reales, n_imag, n_sub, avisos
 
 
@@ -269,17 +269,17 @@ def corregir(nu_cm1, T: float = 298.15, fase: str = "solido",
     """
     if fase not in ("solido", "adsorbato", "gas", "transicion"):
         raise ErrorDeUso(
-            f"fase '{fase}' desconocida. Opciones: solido, adsorbato, gas, "
+            f"unknown phase '{fase}'. Options: solido, adsorbato, gas, "
             "transicion.")
     if T <= 0:
-        raise ErrorDeUso("la temperatura tiene que ser positiva.")
+        raise ErrorDeUso("the temperature must be positive.")
 
     reales, n_imag, n_sub, avisos = limpiar_frecuencias(
         nu_cm1, fase=fase, piso=piso)
     if len(reales) == 0:
         raise ErrorDeUso(
-            "no queda ninguna frecuencia real utilizable. Revisa el cálculo "
-            "de fonones.")
+            "no usable real frequency remains. Check the phonon "
+            "calculation.")
 
     tq = Termoquimica(T=T, p=p, fase=fase, n_imaginarias=n_imag,
                       n_subidos=n_sub, avisos=avisos)
@@ -292,8 +292,8 @@ def corregir(nu_cm1, T: float = 298.15, fase: str = "solido",
     if fase == "gas":
         if atoms is None:
             raise ErrorDeUso(
-                "para la fase gas hace falta la estructura (masa y momentos "
-                "de inercia).")
+                "the gas phase requires the structure (mass and moments "
+                "of inertia).")
         tq.S_trans = S_traslacional(float(sum(atoms.get_masses())), T, p)
         tq.S_rot = S_rotacional(atoms, T, simetria)
         S += tq.S_trans + tq.S_rot
@@ -307,12 +307,12 @@ def corregir(nu_cm1, T: float = 298.15, fase: str = "solido",
         n_esperados = 3 * len(atoms) - (5 if lineal else 6)
         if len(reales) != n_esperados and len(atoms) > 1:
             tq.avisos.append(
-                f"Para una molécula {'lineal' if lineal else 'no lineal'} de "
-                f"{len(atoms)} átomos se esperan\n{n_esperados} modos "
-                f"vibracionales y hay {len(reales)}. Si sobran, seguramente "
-                "son\ntraslaciones y rotaciones residuales que no se "
-                "separaron: cuentan doble\ncon los términos traslacional y "
-                "rotacional.")
+                f"For a {'linear' if lineal else 'non-linear'} molecule of "
+                f"{len(atoms)} atoms, {n_esperados} vibrational\nmodes "
+                f"are expected and there are {len(reales)}. If there are extra ones, they are probably "
+                "residual\ntranslations and rotations that were not "
+                "separated: they are double-counted\nwith the translational and "
+                "rotational terms.")
 
     if multiplicidad > 1:
         tq.S_elec = KB_EV * np.log(multiplicidad)
@@ -326,11 +326,11 @@ def corregir(nu_cm1, T: float = 298.15, fase: str = "solido",
 
 
 def report(tq: Termoquimica, E_dft: float = None) -> str:
-    lines = ["--- Correcciones termoquímicas ---",
-             f"Fase: {tq.fase}    T = {tq.T:.2f} K"
+    lines = ["--- Thermochemical corrections ---",
+             f"Phase: {tq.fase}    T = {tq.T:.2f} K"
              + (f"    p = {tq.p / 1e5:.4g} bar" if tq.fase == "gas" else ""),
              ""]
-    lines.append(f"  ZPE (punto cero)          {tq.ZPE:+10.4f} eV")
+    lines.append(f"  ZPE (zero point)          {tq.ZPE:+10.4f} eV")
     lines.append(f"  H(T) - H(0)               {tq.H_corr:+10.4f} eV")
     lines.append(f"  -T*S                      {-tq.TS:+10.4f} eV")
     lines.append(f"  {'-' * 40}")
@@ -339,26 +339,26 @@ def report(tq: Termoquimica, E_dft: float = None) -> str:
         lines += ["",
                   f"  E_DFT                     {E_dft:+10.4f} eV",
                   f"  G(T)                      {E_dft + tq.G_corr:+10.4f} eV"]
-    lines += ["", "Desglose de la entropía (eV/K y su contribución -T*S):"]
-    for nombre, val in (("vibracional", tq.S_vib),
-                        ("traslacional", tq.S_trans),
-                        ("rotacional", tq.S_rot),
-                        ("electrónica", tq.S_elec)):
+    lines += ["", "Entropy breakdown (eV/K and its -T*S contribution):"]
+    for nombre, val in (("vibrational", tq.S_vib),
+                        ("translational", tq.S_trans),
+                        ("rotational", tq.S_rot),
+                        ("electronic", tq.S_elec)):
         if val is None:
             continue
         lines.append(f"  {nombre:15s} {val:12.3e}   {-tq.T * val:+8.4f} eV")
     lines.append(f"  {'total':15s} {tq.S:12.3e}   {-tq.TS:+8.4f} eV")
     lines.append("")
-    lines.append(f"  C_v vibracional           {tq.Cv:.4e} eV/K  "
+    lines.append(f"  vibrational C_v           {tq.Cv:.4e} eV/K  "
                  f"({tq.Cv * NA * EV_J:.2f} J/(mol·K))")
 
     if tq.fase == "gas":
         lines += ["",
-                  "La entropía traslacional depende de la PRESIÓN y la "
-                  "rotacional del número\nde simetría. Cambiar de 1 bar a la "
-                  "presión parcial de un reactor mueve\nG en décimas de eV; "
-                  "olvidar el número de simetría del metano (12) la\nmueve "
-                  "0.06 eV a 300 K."]
+                  "The translational entropy depends on the PRESSURE and the "
+                  "rotational one on the symmetry\nnumber. Changing from 1 bar to the "
+                  "partial pressure of a reactor moves\nG by tenths of an eV; "
+                  "forgetting the symmetry number of methane (12) moves\nit "
+                  "by 0.06 eV at 300 K."]
     for a in tq.avisos:
         lines += ["", a]
     return "\n".join(lines)

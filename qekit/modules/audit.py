@@ -43,14 +43,14 @@ from qekit.core import provenance, qeout
 from qekit.core.errors import ErrorDeUso
 
 ETIQUETAS = {
-    "origen": "origen del cálculo (DFT o potencial aprendido)",
-    "functional": "funcional",
-    "pseudos": "pseudopotenciales",
+    "origen": "origin of the calculation (DFT or machine-learned potential)",
+    "functional": "functional",
+    "pseudos": "pseudopotentials",
     "ecutwfc": "ecutwfc (Ry)",
     "ecutrho": "ecutrho (Ry)",
-    "smearing": "tipo de smearing",
+    "smearing": "smearing type",
     "degauss": "degauss (Ry)",
-    "occupations": "ocupaciones",
+    "occupations": "occupations",
     "nspin": "nspin",
 }
 
@@ -166,49 +166,49 @@ def audit(runs: list) -> dict:
 
 
 def report(a: dict) -> str:
-    lines = ["--- Auditoría de consistencia ---",
-             f"Cálculos leídos: {len(a['runs'])}  |  "
-             f"válidos: {len(a['buenos'])}  |  "
-             f"ilegibles: {len(a['fallidos'])}"]
+    lines = ["--- Consistency audit ---",
+             f"Calculations read: {len(a['runs'])}  |  "
+             f"valid: {len(a['buenos'])}  |  "
+             f"unreadable: {len(a['fallidos'])}"]
 
     for x in a["fallidos"]:
-        lines.append(f"  no se pudo leer {x.path}: {x.error}")
+        lines.append(f"  could not read {x.path}: {x.error}")
 
     if a["no_convergidos"]:
-        lines += ["", f"NO CONVERGIERON ({len(a['no_convergidos'])}) — sus "
-                      "energías no sirven:"]
+        lines += ["", f"NOT CONVERGED ({len(a['no_convergidos'])}) — their "
+                      "energies are unusable:"]
         for x in a["no_convergidos"]:
             lines.append(f"  {x.path}")
 
     if a.get("sin_energia"):
-        lines += ["", f"Sin energía utilizable ({len(a['sin_energia'])}): "
-                      "son nscf o bands, que parten de una",
-                  "densidad ya convergida y no dan una energía total "
-                  "comparable."]
+        lines += ["", f"No usable energy ({len(a['sin_energia'])}): "
+                      "these are nscf or bands runs, which start from an",
+                  "already converged density and do not give a comparable "
+                  "total energy."]
         for x in a["sin_energia"]:
             lines.append(f"  {x.path}  ({x.result.calculation})")
 
     lines.append("")
     if not a["buenos"]:
-        lines.append("No hay nada que auditar.")
+        lines.append("There is nothing to audit.")
         return "\n".join(lines)
 
     if a["comparables"]:
-        lines.append("COMPARABLES: los cálculos comparten funcional, "
-                     "pseudos, cutoffs y ocupaciones.")
-        lines.append("Restar sus energías totales es legítimo.")
+        lines.append("COMPARABLE: the calculations share functional, "
+                     "pseudopotentials, cutoffs and occupations.")
+        lines.append("Subtracting their total energies is legitimate.")
     else:
-        lines.append(f"NO COMPARABLES: hay {len(a['grupos'])} "
-                     "configuraciones distintas entre estos cálculos.")
-        lines.append("Restar sus energías totales daría un número sin "
-                     "significado físico.")
+        lines.append(f"NOT COMPARABLE: there are {len(a['grupos'])} "
+                     "distinct configurations among these calculations.")
+        lines.append("Subtracting their total energies would give a number "
+                     "with no physical meaning.")
         lines.append("")
-        lines.append("Difieren en:")
+        lines.append("They differ in:")
         for clave, valores in a["difieren"]:
             lines.append(f"  {ETIQUETAS[clave]}:")
             for v in sorted(valores, key=repr):
                 if clave == "pseudos":
-                    v = ", ".join(f"{k}={n}" for k, n in v) or "(ninguno)"
+                    v = ", ".join(f"{k}={n}" for k, n in v) or "(none)"
                 lines.append(f"    - {v}")
 
     # malla k: aviso, no error
@@ -218,15 +218,15 @@ def report(a: dict) -> str:
         vals = [d for _, d in dens]
         if max(vals) / min(vals) > 2.0:
             lines += ["",
-                      "AVISO — densidad de puntos k muy dispar "
-                      f"(de {min(vals):.1f} a {max(vals):.1f} puntos/Å⁻³):"]
+                      "WARNING — very uneven k-point density "
+                      f"(from {min(vals):.1f} to {max(vals):.1f} points/Å⁻³):"]
             for p, d in sorted(dens, key=lambda t: t[1]):
                 lines.append(f"    {d:8.1f}   {p}")
             lines.append(
-                "  No es una incompatibilidad por sí sola —un bulk y una "
-                "losa necesitan\n  mallas distintas— pero si estos cálculos "
-                "se van a restar entre sí,\n  la malla debería estar "
-                "convergida en todos por igual.")
+                "  This is not an incompatibility by itself —a bulk and a "
+                "slab need\n  different grids— but if these calculations "
+                "are going to be subtracted,\n  the grid should be equally "
+                "converged in all of them.")
     return "\n".join(lines)
 
 
@@ -380,12 +380,12 @@ def query(sql: str, db_path="olla-dft.db") -> list:
     """Consulta libre sobre la base (solo lectura)."""
     if not Path(db_path).exists():
         raise FileNotFoundError(
-            f"no existe la base '{db_path}'. Créala con "
-            "'olla-dft db carpeta/ --index'.")
+            f"the database '{db_path}' does not exist. Create it with "
+            "'olla-dft db folder/ --index'.")
     bajo = sql.strip().lower()
     if not bajo.startswith("select"):
-        raise ErrorDeUso("solo se admiten consultas SELECT: la base es un "
-                         "índice de resultados, no se edita a mano.")
+        raise ErrorDeUso("only SELECT queries are allowed: the database is an "
+                         "index of results and is not edited by hand.")
     con = sqlite3.connect(str(db_path))
     con.row_factory = sqlite3.Row
     try:
@@ -395,7 +395,7 @@ def query(sql: str, db_path="olla-dft.db") -> list:
         # Como el esquema está aquí mismo, se listan las columnas reales.
         cols = columnas(db_path, con=con)
         raise ErrorDeUso(
-            f"{exc}.\nColumnas de 'calculos': {', '.join(cols)}"
+            f"{exc}.\nColumns of 'calculos': {', '.join(cols)}"
         ) from None
     finally:
         con.close()
@@ -421,18 +421,18 @@ def search(db_path="olla-dft.db", formula=None, calculation=None,
     """Búsqueda parametrizada para no obligar al usuario a escribir SQL."""
     if not Path(db_path).exists():
         raise FileNotFoundError(
-            f"no existe la base '{db_path}'. Créala con 'olla-dft db carpeta/'.")
+            f"the database '{db_path}' does not exist. Create it with 'olla-dft db folder/'.")
     try:
         limit = max(1, min(int(limit), 10000))
     except (TypeError, ValueError):
-        raise ErrorDeUso("--limit debe ser un entero positivo.") from None
+        raise ErrorDeUso("--limit must be a positive integer.") from None
     try:
         if gap_min is not None:
             gap_min = float(gap_min)
         if gap_max is not None:
             gap_max = float(gap_max)
     except (TypeError, ValueError):
-        raise ErrorDeUso("los límites de gap deben ser numéricos.") from None
+        raise ErrorDeUso("the gap limits must be numeric.") from None
     clauses, values = [], []
     if formula:
         clauses.append("formula LIKE ?")
@@ -464,12 +464,12 @@ def summary(db_path="olla-dft.db") -> str:
                   "energia_por_atomo_eV, convergido, ruta FROM calculos "
                   "ORDER BY formula, energia_por_atomo_eV", db_path)
     if not filas:
-        return "La base está vacía."
-    lines = [f"--- Base de cálculos ({len(filas)} registros) ---",
-             f"{'fórmula':>10s} {'tipo':>10s} {'func':>6s} {'ecut':>6s} "
-             f"{'malla':>9s} {'E/átomo(eV)':>13s} {'conv':>5s}"]
+        return "The database is empty."
+    lines = [f"--- Calculation database ({len(filas)} records) ---",
+             f"{'formula':>10s} {'type':>10s} {'func':>6s} {'ecut':>6s} "
+             f"{'kgrid':>9s} {'E/atom(eV)':>13s} {'conv':>5s}"]
     for f in filas:
-        conv = {1: "sí", 0: "NO"}.get(f["convergido"], "?")
+        conv = {1: "yes", 0: "NO"}.get(f["convergido"], "?")
         e = f["energia_por_atomo_eV"]
         lines.append(
             f"{(f['formula'] or '?'):>10s} {(f['calculation'] or '?'):>10s} "

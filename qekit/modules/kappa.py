@@ -88,10 +88,10 @@ def _importar():
         from phono3py import Phono3py
     except ImportError as exc:
         raise FaltanDatos(
-            "hace falta phono3py, que es quien resuelve la ecuación de "
-            "Boltzmann de fonones:\n  pip install phono3py\n"
-            "Se instala con pip y no necesita compilar Quantum ESPRESSO otra "
-            "vez.") from exc
+            "phono3py is required, which is what solves the phonon "
+            "Boltzmann equation:\n  pip install phono3py\n"
+            "It is installed with pip and does not require recompiling Quantum "
+            "ESPRESSO.") from exc
     return Phono3py
 
 
@@ -216,10 +216,10 @@ def leer_fuerzas(carpetas, natomos):
         fuera.append(F)
     if faltan:
         raise FaltanDatos(
-            f"faltan las fuerzas de {len(faltan)} configuraciones "
+            f"the forces of {len(faltan)} configurations are missing "
             f"({', '.join(faltan[:5])}{'...' if len(faltan) > 5 else ''}).\n"
-            f"Sin TODAS no se puede construir la fc3: cada una aporta una "
-            f"derivada distinta.")
+            f"Without ALL of them the fc3 cannot be built: each one contributes a "
+            f"different derivative.")
     return np.array(fuera)
 
 
@@ -324,80 +324,80 @@ def exponente_temperatura(run, T_min=200.0):
 
 
 def report(run) -> str:
-    L = [f"--- Conductividad térmica de red: {run.formula} ---",
-         f"Fuerzas: {run.fuente}",
-         f"Supercelda de la fc3: {run.dim[0]}×{run.dim[1]}×{run.dim[2]}"
+    L = [f"--- Lattice thermal conductivity: {run.formula} ---",
+         f"Forces: {run.fuente}",
+         f"fc3 supercell: {run.dim[0]}×{run.dim[1]}×{run.dim[2]}"
          + (f"   |   fc2: {run.dim_fc2[0]}×{run.dim_fc2[1]}×{run.dim_fc2[2]}"
             if run.dim_fc2 else "")
-         + f"   |   {run.n_config} configuraciones de {run.n_atomos} átomos",
-         f"Malla de q: {run.malla[0]}×{run.malla[1]}×{run.malla[2]}"
-         + ("   |   isótopos naturales" if run.isotopos else "")
-         + (f"   |   granos de {run.frontera:g} µm" if run.frontera else ""),
+         + f"   |   {run.n_config} configurations of {run.n_atomos} atoms",
+         f"q-grid: {run.malla[0]}×{run.malla[1]}×{run.malla[2]}"
+         + ("   |   natural isotopes" if run.isotopos else "")
+         + (f"   |   grains of {run.frontera:g} µm" if run.frontera else ""),
          ""]
     if run.kappa is None:
-        return "\n".join(L + ["Todavía no hay κ."])
+        return "\n".join(L + ["No κ yet."])
     iso = np.allclose(run.kappa[:, 0], run.kappa[:, 1], rtol=0.02) and \
         np.allclose(run.kappa[:, 0], run.kappa[:, 2], rtol=0.02)
-    L += ["   T (K)      κ_xx      κ_yy      κ_zz     media  (W/m·K)"]
+    L += ["   T (K)      κ_xx      κ_yy      κ_zz      mean  (W/m·K)"]
     for i, T in enumerate(run.temperaturas):
         k = run.kappa[i]
         marca = "  ←" if i == run.i300 else ""
         L.append(f"  {T:6.0f}  {k[0]:9.2f} {k[1]:9.2f} {k[2]:9.2f} "
                  f"{run.kappa_media[i]:9.2f}{marca}")
     if iso:
-        L.append("  (el tensor es isótropo, como corresponde a la simetría "
-                 "cúbica)")
+        L.append("  (the tensor is isotropic, as befits cubic "
+                 "symmetry)")
     n = exponente_temperatura(run)
     if n is not None:
-        L += ["", f"Dependencia con la temperatura: κ ∝ T^−{n:.2f}"]
+        L += ["", f"Temperature dependence: κ ∝ T^−{n:.2f}"]
         if abs(n - 1.0) < 0.25:
-            L.append("  Es el T⁻¹ de los procesos Umklapp: por encima de la "
-                     "temperatura de Debye,")
-            L.append("  cuantos más fonones hay, más se estorban entre sí.")
+            L.append("  This is the T⁻¹ of Umklapp processes: above the "
+                     "Debye temperature,")
+            L.append("  the more phonons there are, the more they scatter each other.")
         else:
-            L.append("  Se aleja del T⁻¹ de Umklapp puro; suele significar "
-                     "que hay otro canal")
-            L.append("  dominante (fronteras, isótopos) o que la malla de q "
-                     "no está convergida.")
+            L.append("  It departs from the T⁻¹ of pure Umklapp; this usually means "
+                     "there is another dominant")
+            L.append("  channel (boundaries, isotopes) or that the q-grid "
+                     "is not converged.")
     L50 = recorrido_representativo(run, 0.5)
     L90 = recorrido_representativo(run, 0.9)
     if L50:
-        L += ["", "Recorrido libre medio (a la T más cercana a 300 K):",
-              f"  la mitad de κ la llevan fonones con Λ < {L50 / 10:.0f} nm",
-              f"  el 90 %,                              Λ < {L90 / 10:.0f} nm",
-              "  Es lo que dice si nanoestructurar sirve: un grano más "
-              "pequeño que ese Λ corta",
-              "  esa parte de κ; uno más grande no hace nada."]
-    L += ["", "Lo que NO está incluido, y conviene tener presente:",
-          "  · Es RTA, no la solución exacta de la ecuación de Boltzmann. La "
-          "RTA subestima κ",
-          "    (≈10-15 % en silicio, mucho más en grafeno o diamante).",
-          "  · Solo hay dispersión de tres fonones. A alta temperatura los "
-          "procesos de cuatro",
-          "    fonones bajan κ, y en materiales muy anarmónicos no son un "
-          "detalle."]
+        L += ["", "Mean free path (at the T closest to 300 K):",
+              f"  half of κ is carried by phonons with Λ < {L50 / 10:.0f} nm",
+              f"  90 %,                                   Λ < {L90 / 10:.0f} nm",
+              "  This is what tells whether nanostructuring helps: a grain "
+              "smaller than that Λ cuts",
+              "  that part of κ; a larger one does nothing."]
+    L += ["", "What is NOT included, and is worth keeping in mind:",
+          "  · This is RTA, not the exact solution of the Boltzmann equation. "
+          "RTA underestimates κ",
+          "    (≈10-15 % in silicon, much more in graphene or diamond).",
+          "  · Only three-phonon scattering. At high temperature "
+          "four-phonon processes",
+          "    lower κ, and in very anharmonic materials they are not a "
+          "detail."]
     if not run.isotopos:
-        L.append("  · Sin dispersión por isótopos. El silicio natural conduce "
-                 "~10 % menos que el")
-        L.append("    isotópicamente puro: si comparas con un experimento, "
-                 "pon --isotopes.")
+        L.append("  · No isotope scattering. Natural silicon conducts "
+                 "~10 % less than the")
+        L.append("    isotopically pure one: if you compare with an experiment, "
+                 "use --isotopes.")
     if run.fuente and "ESPRESSO" not in run.fuente.upper():
         run.avisos.append(
-            f"Las fuerzas vienen de {run.fuente}, no de DFT. La forma de "
-            f"κ(T) suele salir bien,\n  pero el valor absoluto puede estar "
-            f"lejos: con MACE-MP pequeño el silicio da\n  ~51 W/mK a 300 K "
-            f"donde el experimento son ~140. Úsalo para elegir la supercelda "
-            f"y\n  la malla, y repite con Quantum ESPRESSO antes de "
-            f"publicar nada.")
+            f"The forces come from {run.fuente}, not from DFT. The shape of "
+            f"κ(T) usually comes out right,\n  but the absolute value may be "
+            f"far off: with small MACE-MP silicon gives\n  ~51 W/mK at 300 K "
+            f"where the experiment is ~140. Use it to choose the supercell "
+            f"and\n  the grid, and repeat with Quantum ESPRESSO before "
+            f"publishing anything.")
     if int(np.prod(run.dim)) <= 8:
         run.avisos.append(
-            f"La supercelda de la fc3 es {run.dim[0]}×{run.dim[1]}×{run.dim[2]}"
-            f", que es pequeña. κ tiene que converger\n  en el tamaño de la "
-            f"supercelda Y en la malla de q a la vez: sube una, luego la "
-            f"otra,\n  y no te fíes hasta que ninguna de las dos mueva el "
-            f"resultado.")
+            f"The fc3 supercell is {run.dim[0]}×{run.dim[1]}×{run.dim[2]}"
+            f", which is small. κ has to converge\n  in the supercell "
+            f"size AND in the q-grid at the same time: raise one, then the "
+            f"other,\n  and do not trust it until neither of the two moves the "
+            f"result.")
     for a in run.avisos:
-        L += ["", f"AVISO: {a}"]
+        L += ["", f"WARNING: {a}"]
     return "\n".join(L)
 
 
@@ -408,7 +408,7 @@ def export(run, outdir="kappa") -> list:
         f = out / "KAPPA.dat"
         np.savetxt(f, np.column_stack([run.temperaturas, run.kappa,
                                        run.kappa_media]), fmt="%12.5f",
-                   header="T(K)  kxx  kyy  kzz  kyz  kxz  kxy  media "
+                   header="T(K)  kxx  kyy  kzz  kyz  kxz  kxy  mean "
                           "(W/m/K)")
         escritos.append(str(f))
     L, a = acumulada(run)
@@ -417,7 +417,7 @@ def export(run, outdir="kappa") -> list:
         Lg = RECORRIDOS
         ac = np.interp(Lg, L, a)
         np.savetxt(f, np.column_stack([Lg / 10.0, ac]), fmt="%14.6e",
-                   header="Lambda(nm)   fraccion acumulada de kappa")
+                   header="Lambda(nm)   cumulative fraction of kappa")
         escritos.append(str(f))
     f = out / "KAPPA.txt"
     f.write_text(report(run) + "\n", encoding="utf-8")
@@ -434,15 +434,15 @@ def plot(run, outfile="kappa", formats="pdf,png", theme=None, size=None,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     if run.kappa is None:
-        raise FaltanDatos("no hay κ que dibujar.")
+        raise FaltanDatos("there is no κ to plot.")
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
     fig, ax = qstyle.new_figure(width, journal, aspect)
     cols = qstyle.palette(3, mono=mono)
     ax.loglog(run.temperaturas, run.kappa_media, marker="o", ms=4,
-              lw=st["line"], color=cols[0], label=r"$\kappa_L$ calculada")
+              lw=st["line"], color=cols[0], label=r"$\kappa_L$ computed")
     n = exponente_temperatura(run)
     if n is not None:
         i = run.i300 if run.i300 is not None else 0
@@ -466,8 +466,8 @@ def plot(run, outfile="kappa", formats="pdf,png", theme=None, size=None,
             ax2.annotate(f"{et}: {x:.0f} nm", (x, frac * 100),
                          textcoords="offset points", xytext=(5, -10),
                          fontsize=st["legend"], color=cols[1])
-        ax2.set_xlabel(r"recorrido libre medio $\Lambda$ (nm)")
-        ax2.set_ylabel(r"% de $\kappa_L$ acumulado")
+        ax2.set_xlabel(r"mean free path $\Lambda$ (nm)")
+        ax2.set_ylabel(r"cumulative % of $\kappa_L$")
         ax2.set_ylim(0, 102)
         escritos += qstyle.save(fig2, str(outfile) + "_recorrido", formats,
                                 dpi=dpi, modulo="kappa")

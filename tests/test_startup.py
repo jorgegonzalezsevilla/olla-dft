@@ -18,7 +18,7 @@ def cold_python(code, tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-@pytest.mark.parametrize("language", ["en", "es"])
+@pytest.mark.parametrize("language", ["en", "es", "de"])
 def test_structure_cli_does_not_initialize_plotting(tmp_path, language):
     cold_python(f'''
 import sys

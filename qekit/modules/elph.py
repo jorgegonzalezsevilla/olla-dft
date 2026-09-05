@@ -219,13 +219,13 @@ def leer_elph_ph(path) -> ElPhRun:
         cand = [p / "ph.out"] + sorted(p.glob("*.out"))
         p = next((c for c in cand if c.exists()), None)
         if p is None:
-            raise ErrorDeUso(f"no hay ninguna salida de ph.x en {path}.")
+            raise ErrorDeUso(f"there is no ph.x output in {path}.")
     texto = p.read_text(errors="ignore")
     if "electron-phonon" not in texto.lower() and "lambda" not in texto:
         raise ErrorDeUso(
-            f"{p.name} no trae acoplamiento electrón-fonón. Hace falta correr "
-            "ph.x con\n  electron_phonon = 'interpolated'\ny una malla de k "
-            "mucho más densa que la del scf normal.")
+            f"{p.name} contains no electron-phonon coupling. ph.x must be run "
+            "with\n  electron_phonon = 'interpolated'\nand a k-grid "
+            "much denser than that of the normal scf.")
 
     # "Gaussian Broadening: 0.005 Ry, ngauss= 1" ... "DOS = ... states/spin/Ry"
     sig = [float(x) for x in re.findall(
@@ -245,7 +245,7 @@ def leer_a2F(path) -> tuple:
     p = Path(path)
     datos = np.loadtxt(p, comments="#")
     if datos.ndim != 2 or datos.shape[1] < 2:
-        raise ErrorDeUso(f"{p.name} no tiene la forma de un alpha^2F.")
+        raise ErrorDeUso(f"{p.name} does not have the shape of an alpha^2F.")
     return datos[:, 0], datos[:, 1]
 
 
@@ -261,9 +261,9 @@ def build_lambda_input(qpuntos, pesos, archivos, emax_thz: float = 20.0,
     """
     if not (len(qpuntos) == len(pesos) == len(archivos)):
         raise ErrorDeUso(
-            f"no cuadran los tamaños: {len(qpuntos)} q-puntos, {len(pesos)} "
-            f"pesos y {len(archivos)} archivos. Los tres tienen que ir en el "
-            "MISMO orden.")
+            f"the sizes do not match: {len(qpuntos)} q-points, {len(pesos)} "
+            f"weights and {len(archivos)} files. All three must be in the "
+            "SAME order.")
     lineas = [f"{emax_thz}  {degaussq}  {ngaussq}", f"{len(qpuntos)}"]
     for q, w in zip(qpuntos, pesos):
         lineas.append(f"  {q[0]:12.7f} {q[1]:12.7f} {q[2]:12.7f} {w:10.4f}")
@@ -367,7 +367,7 @@ def leer_lambda_out(path) -> ElPhRun:
             tabla = _tabla_tc_lambda_out(p.read_text(errors="ignore"))
         if tabla is not None and len(tabla[2]) == len(run.lambdas):
             run.Tc = tabla[2]
-            run.Tc_fuente = f"lambda.x (Allen-Dynes con mu* = {run.mustar:.2f})"
+            run.Tc_fuente = f"lambda.x (Allen-Dynes with mu* = {run.mustar:.2f})"
             if run.omega_log is None or not np.any(np.isfinite(run.omega_log)):
                 # la tabla trae omega_log en K: si el .dat no lo tenía, vale
                 if np.any(np.isfinite(tabla[1])):
@@ -378,16 +378,16 @@ def leer_lambda_out(path) -> ElPhRun:
                 for l, w in zip(run.lambdas,
                                 run.omega_log if run.omega_log is not None
                                 else np.full(len(run.lambdas), np.nan))])
-            run.Tc_fuente = (f"Allen-Dynes calculada por Olla-DFT con mu* = "
-                             f"{run.mustar:.2f} (lambda.out no trae la tabla "
-                             "de T_c)")
+            run.Tc_fuente = (f"Allen-Dynes computed by Olla-DFT with mu* = "
+                             f"{run.mustar:.2f} (lambda.out does not contain the "
+                             "T_c table)")
     if run.omega_log is not None and not np.any(np.isfinite(run.omega_log)):
         run.avisos.append(
-            "lambda.x dejo omega_log en NaN. Pasa cuando la malla de q "
-            "es gruesa: su integral de alpha^2F sale mal muestreada. "
-            "lambda sigue siendo utilizable, pero para Tc hace falta "
-            "omega_log: calculalo desde el alpha^2F si tienes el archivo "
-            "a2F.dos, o refina la malla de q.")
+            "lambda.x left omega_log as NaN. This happens when the q-grid "
+            "is coarse: its alpha^2F integral is poorly sampled. "
+            "lambda is still usable, but Tc requires "
+            "omega_log: compute it from the alpha^2F if you have the "
+            "a2F.dos file, or refine the q-grid.")
     return run
 
 
@@ -418,13 +418,13 @@ def plato(lambdas, tol: float = 0.05) -> int:
 # ----------------------------------------------------------------------
 def report(run: ElPhRun, T_debye: float = None,
            mus=(0.10, 0.13, 0.16)) -> str:
-    lines = ["--- Acoplamiento electrón-fonón ---"]
+    lines = ["--- Electron-phonon coupling ---"]
     if run.nq:
-        lines.append(f"Puntos q: {run.nq}")
+        lines.append(f"q-points: {run.nq}")
 
     if run.lambdas is not None:
-        lines += ["", "Dependencia del ENSANCHAMIENTO (el valor bueno es el "
-                  "del plató):",
+        lines += ["", "Dependence on the BROADENING (the good value is the "
+                  "plateau one):",
                   f"  {'sigma(Ry)':>10s} {'lambda':>8s} {'N(EF)':>10s} "
                   f"{'w_log(K)':>10s} {'Tc(K)':>8s}"]
         for i in range(len(run.lambdas)):
@@ -433,66 +433,66 @@ def report(run: ElPhRun, T_debye: float = None,
             d = run.dos_ef[i] if run.dos_ef is not None else float("nan")
             w = run.omega_log[i] if run.omega_log is not None else float("nan")
             t = run.Tc[i] if run.Tc is not None else float("nan")
-            marca = "  <- plató" if i == run.i_plato else ""
+            marca = "  <- plateau" if i == run.i_plato else ""
             lines.append(f"  {s:10.4f} {run.lambdas[i]:8.4f} {d:10.4f} "
                          f"{w:10.2f} {t:8.3f}{marca}")
         if run.Tc_fuente:
-            lines.append(f"  Tc(K) de la tabla: {run.Tc_fuente}.")
+            lines.append(f"  Tc(K) in the table: {run.Tc_fuente}.")
         if run.i_plato is None:
             lines += ["",
-                      "NO hay plató: lambda cambia con el ensanchamiento a lo "
-                      "largo de toda la\nserie. Eso quiere decir que la malla "
-                      "de k es insuficiente — el acoplamiento\nse calcula "
-                      "sobre la superficie de Fermi y necesita una malla mucho "
-                      "más\nfina que la de la energía total. Cualquier lambda "
-                      "que se reporte de aquí es\narbitrario."]
+                      "There is NO plateau: lambda changes with the broadening "
+                      "along the whole\nseries. That means the k-grid "
+                      "is insufficient — the coupling\nis computed "
+                      "on the Fermi surface and needs a grid much "
+                      "finer\nthan that of the total energy. Any lambda "
+                      "reported from here is\narbitrary."]
 
     lam, wlog = run.lam, run.wlog
     if np.isfinite(lam):
         lines += ["", f"lambda   = {lam:.4f}",
                   f"omega_log = {wlog:.1f} K"]
-        regimen = ("acoplamiento débil" if lam < 0.5 else
-                   "acoplamiento intermedio" if lam < 1.0 else
-                   "acoplamiento fuerte")
+        regimen = ("weak coupling" if lam < 0.5 else
+                   "intermediate coupling" if lam < 1.0 else
+                   "strong coupling")
         lines.append(f"  ({regimen})")
 
         w2 = run.omega_2 if run.omega_2 and np.isfinite(run.omega_2) else None
         if w2:
-            lines.append(f"omega_2  = {w2:.1f} K  (entra en el factor de forma f2)")
-        lines += ["", "Temperatura crítica (Allen-Dynes), según mu*:"]
+            lines.append(f"omega_2  = {w2:.1f} K  (enters the shape factor f2)")
+        lines += ["", "Critical temperature (Allen-Dynes), as a function of mu*:"]
         for mu in mus:
             lines.append(f"  mu* = {mu:.2f}   Tc = "
                          f"{allen_dynes(lam, wlog, mu, omega_2_K=w2):7.3f} K")
-        lines.append("  mu* es empírico (0.10-0.16) y NO se calcula aquí; por "
-                     "eso se da el rango.")
+        lines.append("  mu* is empirical (0.10-0.16) and is NOT computed here; "
+                     "that is why a range is given.")
         if lam < 0.3:
-            lines.append("  Con lambda tan bajo, Tc es prácticamente cero: "
-                         "este material no es\n  un superconductor "
-                         "convencional apreciable.")
+            lines.append("  With such a low lambda, Tc is practically zero: "
+                         "this material is not\n  an appreciable conventional "
+                         "superconductor.")
 
-        lines += ["", "Tiempo de relajación por fonones (1/tau = "
+        lines += ["", "Phonon-limited relaxation time (1/tau = "
                   "2*pi*lambda*k_B*T/hbar):",
                   f"  {'T (K)':>8s} {'tau (fs)':>12s}"]
         for T in (100.0, 300.0, 500.0, 800.0):
             tau = float(tau_elph(lam, T)[0])
             lines.append(f"  {T:8.0f} {tau * 1e15:12.3f}")
-        lines.append("  Este tau es el que le falta a la CRTA de 'olla-dft "
-                     "transport'. No se aplica\n  solo: multiplica las "
-                     "columnas sigma/tau y kappa_e/tau de TRANSPORTE.dat "
-                     "por\n  el tau(T) de esta tabla y sigma sale en S/m.")
+        lines.append("  This tau is what the CRTA of 'olla-dft "
+                     "transport' is missing. It is not applied\n  automatically: multiply the "
+                     "sigma/tau and kappa_e/tau columns of TRANSPORTE.dat "
+                     "by\n  the tau(T) of this table and sigma comes out in S/m.")
         if T_debye:
-            lines.append(f"  La fórmula vale por encima de la temperatura de "
-                         f"Debye ({T_debye:.0f} K).\n  Por debajo "
-                         "sobreestima la dispersión: los modos que dispersan "
-                         "se congelan.")
+            lines.append(f"  The formula is valid above the Debye "
+                         f"temperature ({T_debye:.0f} K).\n  Below it, it "
+                         "overestimates the scattering: the scattering modes "
+                         "freeze out.")
         else:
-            lines.append("  Vale por ENCIMA de la temperatura de Debye; por "
-                         "debajo sobreestima la\n  dispersión. Calcúlala con "
-                         "'olla-dft derived' y compara.")
+            lines.append("  Valid ABOVE the Debye temperature; below it, "
+                         "it overestimates the\n  scattering. Compute it with "
+                         "'olla-dft derived' and compare.")
 
     if run.a2F is not None:
         lines += ["", "alpha^2F(w):",
-                  f"  máximo en {run.freq[int(np.argmax(run.a2F))]:.2f} THz "
+                  f"  maximum at {run.freq[int(np.argmax(run.a2F))]:.2f} THz "
                   f"({run.freq[int(np.argmax(run.a2F))] * THZ_CM1:.0f} cm⁻¹)"]
 
     for a in run.avisos:
@@ -504,13 +504,13 @@ def export(run: ElPhRun, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     escritos = []
     cab = provenance.header_plain(
-        "acoplamiento electron-fonon",
+        "electron-phonon coupling",
         {"lambda": None if not np.isfinite(run.lam) else round(run.lam, 5),
          "omega_log_K": None if not np.isfinite(run.wlog)
          else round(run.wlog, 2),
          "omega_2_K": None if not (run.omega_2 and np.isfinite(run.omega_2))
          else round(run.omega_2, 2), "nq": run.nq or None},
-        titulo="Electron-fonon")
+        titulo="Electron-phonon")
     if run.lambdas is not None:
         f = out / "ELPH.dat"
         cols, nombres = [], []
@@ -528,7 +528,7 @@ def export(run: ElPhRun, outdir: str = ".") -> list:
     if run.a2F is not None:
         f = out / "A2F.dat"
         np.savetxt(f, np.column_stack([run.freq, run.a2F]), fmt="%14.6f",
-                   header=cab + "\n   frecuencia(THz)      alpha^2F",
+                   header=cab + "\n   frequency(THz)       alpha^2F",
                    comments="# ")
         escritos.append(str(f))
     txt = out / "ELPH.txt"
@@ -547,7 +547,7 @@ def plot(run: ElPhRun, outfile: str = "elph", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                          # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     qstyle.apply(theme, family=family, background=background,
                  palette=palette, usetex=usetex, mono=mono)
@@ -574,9 +574,9 @@ def plot(run: ElPhRun, outfile: str = "elph", formats="pdf,png",
         ax.plot(x, run.lambdas, "o-", ms=4, lw=1.2, color=colores[1])
         if run.i_plato is not None:
             ax.plot(x[run.i_plato], run.lambdas[run.i_plato], "o", ms=8,
-                    mfc="none", mew=1.5, color=colores[2], label="plató")
+                    mfc="none", mew=1.5, color=colores[2], label="plateau")
             ax.legend(frameon=False, fontsize="small")
-        ax.set_xlabel("ensanchamiento (Ry)")
+        ax.set_xlabel("broadening (Ry)")
         ax.set_ylabel(r"$\lambda$")
         ax.set_ylim(bottom=0)
     return qstyle.save(fig, outfile, formats, dpi=dpi)
@@ -633,7 +633,7 @@ def prepare(atoms, outdir: str = "elph", qgrid=(2, 2, 2), kgrid_scf=None,
                          txt, count=1)
         sweep.write_input(out / f"{nombre}.in", txt)
 
-    ph = ["Acoplamiento electron-fonon", " &INPUTPH",
+    ph = ["Electron-phonon coupling", " &INPUTPH",
           f"   prefix = '{common['prefix']}',", "   outdir = './out',",
           f"   tr2_ph = {tr2:.1e},".replace("e-", "d-"),
           "   fildyn = 'dyn',", "   ldisp = .true.,",
@@ -644,31 +644,31 @@ def prepare(atoms, outdir: str = "elph", qgrid=(2, 2, 2), kgrid_scf=None,
     sweep.write_input(out / "3_ph.in", "\n".join(ph) + "\n")
 
     nk = int(np.prod(k_nscf))
-    rep = ["--- Acoplamiento electron-fonon ---",
-           f"Estructura: {atoms.get_chemical_formula()} "
-           f"({len(atoms)} átomos)",
-           f"Malla de q: {qgrid[0]}x{qgrid[1]}x{qgrid[2]}",
-           f"Malla de k del scf:  {k_scf[0]}x{k_scf[1]}x{k_scf[2]}",
-           f"Malla de k del nscf: {k_nscf[0]}x{k_nscf[1]}x{k_nscf[2]}  "
-           f"({nk} puntos antes de simetría)",
-           f"Ensanchamientos: {nsigma} de {sigma_paso} Ry",
+    rep = ["--- Electron-phonon coupling ---",
+           f"Structure: {atoms.get_chemical_formula()} "
+           f"({len(atoms)} atoms)",
+           f"q-grid: {qgrid[0]}x{qgrid[1]}x{qgrid[2]}",
+           f"scf k-grid:  {k_scf[0]}x{k_scf[1]}x{k_scf[2]}",
+           f"nscf k-grid: {k_nscf[0]}x{k_nscf[1]}x{k_nscf[2]}  "
+           f"({nk} points before symmetry)",
+           f"Broadenings: {nsigma} of {sigma_paso} Ry",
            "",
-           f"Archivos en '{out.resolve()}':",
-           "  1_scf.in    scf normal",
-           "  2_nscf.in   malla densa CON la2F = .true.",
-           "  3_ph.in     ph.x con electron_phonon = 'interpolated'",
+           f"Files in '{out.resolve()}':",
+           "  1_scf.in    normal scf",
+           "  2_nscf.in   dense grid WITH la2F = .true.",
+           "  3_ph.in     ph.x with electron_phonon = 'interpolated'",
            "",
-           "Orden, y los tres son obligatorios:",
+           "Order, and all three are mandatory:",
            "  pw.x -in 1_scf.in  &&  pw.x -in 2_nscf.in  &&  ph.x -in 3_ph.in",
            "",
-           "El paso 2 es el que se olvida. Sin el archivo a2Fsave que "
-           "deja ese nscf, ph.x llega hasta 'electron-phonon "
-           "interaction ...' y se muere sin decir por que.",
+           "Step 2 is the one that gets forgotten. Without the a2Fsave file "
+           "left by that nscf, ph.x gets as far as 'electron-phonon "
+           "interaction ...' and dies without saying why.",
            "",
-           "Esto es CARO: el acoplamiento vive en la superficie de Fermi "
-           "y necesita una malla de k mucho mas fina que cualquier otra "
-           "cosa. Si lambda cambia al refinarla, todavia no esta "
-           "convergido."]
+           "This is EXPENSIVE: the coupling lives on the Fermi surface "
+           "and needs a k-grid much finer than anything "
+           "else. If lambda changes when refining it, it is not yet "
+           "converged."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)

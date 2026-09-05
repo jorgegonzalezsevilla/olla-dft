@@ -144,7 +144,7 @@ def test_failed_atomic_save_preserves_existing_config(preferences, monkeypatch):
     assert list(preferences.parent.iterdir()) == [preferences]
 
 
-@pytest.mark.parametrize('language', ['en', 'es'])
+@pytest.mark.parametrize('language', ['en', 'es', 'de'])
 def test_one_update_source_for_both_languages(preferences, monkeypatch, language):
     i18n.set_language(language)
     monkeypatch.setattr(i18n, 'DEFAULT_LANGUAGE', language)
@@ -156,7 +156,7 @@ def test_one_update_source_for_both_languages(preferences, monkeypatch, language
 
 def test_language_catalogs_and_documentation_are_packaged():
     root = Path(__file__).resolve().parents[1]
-    for lang in ('en', 'es'):
+    for lang in ('en', 'es', 'de'):
         for name in ('menu', 'studio', 'onboarding', 'dashboard', 'cli'):
             assert json.loads((root / f'qekit/data/i18n/{name}_{lang}.json').read_text(encoding='utf-8'))
     for name in ('README.es.md', 'docs/COMANDOS.md', 'docs/TEORIA.md', 'docs/COMMANDS.md', 'docs/THEORY.md'):
@@ -200,7 +200,7 @@ def test_invalid_flag_does_not_prompt_or_save(preferences, monkeypatch):
     assert not preferences.exists()
 
 
-@pytest.mark.parametrize('language', ['en', 'es'])
+@pytest.mark.parametrize('language', ['en', 'es', 'de'])
 def test_explorer_keeps_utf8_labels_and_title(tmp_path, language):
     from qekit.modules import studio
     destination = studio.generate([], tmp_path / 'results.html',

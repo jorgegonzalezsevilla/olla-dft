@@ -162,8 +162,8 @@ def _elegir(symbol, candidates, forzado=None, tarea=None, funcional=None):
                 return c
         from qekit.core.errors import ErrorDeUso
         raise ErrorDeUso(
-            f"pediste '{forzado}' para {symbol} y no esta en la carpeta de "
-            "pseudopotenciales.\nLos que hay: "
+            f"you asked for '{forzado}' for {symbol} and it is not in the "
+            "pseudopotential folder.\nAvailable: "
             + ", ".join(c.name for c in candidates))
     if tarea and len(candidates) > 1:
         try:

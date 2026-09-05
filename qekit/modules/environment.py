@@ -104,11 +104,11 @@ def write(root, destination=None) -> Path:
 def verify(root, lock=None) -> dict:
     target = path(root, lock)
     if not target.is_file():
-        raise ErrorDeUso(f"no existe el bloqueo de entorno '{target}'.")
+        raise ErrorDeUso(f"the environment lock '{target}' does not exist.")
     try:
         expected = json.loads(target.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ErrorDeUso(f"no se pudo leer '{target}': {exc}") from None
+        raise ErrorDeUso(f"could not read '{target}': {exc}") from None
     current = capture()
     changes = []
     for key in ("qekit_version", "python", "python_executable", "platform",
@@ -121,12 +121,12 @@ def verify(root, lock=None) -> dict:
 
 
 def report(result: dict) -> str:
-    lines = ["--- Entorno reproducible ---", f"Bloqueo: {result['path']}"]
+    lines = ["--- Reproducible environment ---", f"Lock: {result['path']}"]
     if result.get("locked_at"):
-        lines.append(f"Capturado: {result['locked_at']}")
+        lines.append(f"Captured: {result['locked_at']}")
     if result.get("ok"):
-        lines.append("OK: Python, dependencias, binarios y variables coinciden.")
+        lines.append("OK: Python, dependencies, binaries and variables match.")
     else:
-        lines.append("CAMBIOS: " + ", ".join(result.get("changed", [])))
-        lines.append("Vuelve a capturar el entorno si el cambio fue intencional.")
+        lines.append("CHANGES: " + ", ".join(result.get("changed", [])))
+        lines.append("Capture the environment again if the change was intentional.")
     return "\n".join(lines)

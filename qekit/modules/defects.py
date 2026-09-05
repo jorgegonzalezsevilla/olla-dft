@@ -73,8 +73,8 @@ def madelung_xi(cell, tol: float = 1e-10) -> float:
     cell = np.asarray(cell, dtype=float)
     V = abs(np.linalg.det(cell))
     if V <= 0:
-        raise ErrorDeUso("la celda tiene volumen cero; no puedo calcular la "
-                         "corrección de imagen.")
+        raise ErrorDeUso("the cell has zero volume; the image correction "
+                         "cannot be computed.")
     eta = sqrt(pi) / V ** (1.0 / 3.0)
     recip = 2 * pi * np.linalg.inv(cell).T
 
@@ -128,18 +128,18 @@ def correccion_imagen(q: int, cell, epsilon: float = None,
     """
     if esquema not in ESQUEMAS:
         raise ErrorDeUso(
-            f"esquema de corrección desconocido '{esquema}'. "
-            f"Opciones: {', '.join(ESQUEMAS)}.")
+            f"unknown correction scheme '{esquema}'. "
+            f"Options: {', '.join(ESQUEMAS)}.")
     if q == 0 or esquema == "ninguna":
         return {"E_mp": 0.0, "E_lz": 0.0, "E_corr": 0.0, "alpha": None,
                 "esquema": "ninguna" if q == 0 else esquema}
     if not epsilon or epsilon <= 0:
         raise ErrorDeUso(
-            "para corregir una celda cargada hace falta la constante "
-            "dieléctrica del material (--epsilon). Sin apantallar, la "
-            "corrección sale ε veces demasiado grande: en silicio (ε≈11.7) "
-            "eso es un factor 12. Si de verdad quieres verla sin corregir, "
-            "usa --correction ninguna y el reporte lo dirá.")
+            "correcting a charged cell requires the dielectric constant "
+            "of the material (--epsilon). Without screening, the "
+            "correction comes out ε times too large: in silicon (ε≈11.7) "
+            "that is a factor of 12. If you really want it uncorrected, "
+            "use --correction ninguna and the report will say so.")
     cell = np.asarray(cell, dtype=float)
     L = abs(np.linalg.det(cell)) ** (1.0 / 3.0)
     alpha = constante_madelung(cell)
@@ -180,8 +180,8 @@ def alineamiento(pot_defecto: str, pot_perfecto: str, eje: int = 2,
 
     if unidades_cube not in UNIDADES_POTENCIAL:
         raise ErrorDeUso(
-            f"unidades del potencial '{unidades_cube}' desconocidas; "
-            f"opciones: {', '.join(UNIDADES_POTENCIAL)}.")
+            f"unknown potential units '{unidades_cube}'; "
+            f"options: {', '.join(UNIDADES_POTENCIAL)}.")
     factor = UNIDADES_POTENCIAL[unidades_cube]
 
     cd = fields.read_cube(pot_defecto)
@@ -273,14 +273,14 @@ def prepare(atoms, kind: str = "vacancy", site: int = 0,
 
     cargas = sorted({int(q) for q in cargas})
     if esquema not in ESQUEMAS:
-        raise ErrorDeUso(f"--correction es uno de: {', '.join(ESQUEMAS)}.")
+        raise ErrorDeUso(f"--correction must be one of: {', '.join(ESQUEMAS)}.")
     if any(q != 0 for q in cargas) and esquema != "ninguna" and not epsilon:
         raise ErrorDeUso(
-            "hay estados de carga distintos de 0 y no diste --epsilon. La "
-            "constante dieléctrica es lo que apantalla la interacción del "
-            "defecto con sus imágenes; sin ella la corrección sale ε veces "
-            "de más. Puedes obtenerla con 'olla-dft optics' (el límite "
-            "ε₁(ω→0)), buscarla en la literatura, o pedir explícitamente "
+            "there are charge states other than 0 and --epsilon was not given. The "
+            "dielectric constant is what screens the interaction of the "
+            "defect with its images; without it the correction comes out ε times "
+            "too large. You can obtain it with 'olla-dft optics' (the "
+            "ε₁(ω→0) limit), look it up in the literature, or explicitly request "
             "--correction ninguna.")
 
     perfecto, info = builder.defect(atoms, kind=kind, site=site,
@@ -337,19 +337,19 @@ def prepare(atoms, kind: str = "vacancy", site: int = 0,
             for q in cargas:
                 mags[q] = float(int(round(ne_def - q)) % 2)
             aviso_impar = (
-                "Estados de carga con un número impar de electrones: "
+                "Charge states with an odd number of electrons: "
                 + ", ".join(etiqueta_q(q) for q in impares)
-                + ".\n  Con occupations='fixed' pw.x no puede repartirlos y "
-                  "aborta diciendo que el\n  sistema es metálico. Se activa "
-                  "el cálculo con espín (nspin=2) en TODOS los\n  estados, "
-                  "con tot_magnetization = 1 en los impares y 0 en los pares: "
-                  "es la\n  física correcta y deja las energías comparables "
-                  "entre sí.")
+                + ".\n  With occupations='fixed' pw.x cannot distribute them and "
+                  "aborts saying that the\n  system is metallic. Spin-polarized "
+                  "calculation (nspin=2) is enabled in ALL\n  states, "
+                  "with tot_magnetization = 1 in the odd ones and 0 in the even ones: "
+                  "this is the\n  correct physics and keeps the energies comparable "
+                  "with each other.")
 
     extras = dict(vdw=vdw, nspin=nspin, magnetization=magnetization, nbnd=nbnd)
     ne_perf = electrones(perfecto, common["pseudos"])
     run.jobs.append(sweep.write_scf_job(
-        perfecto, common, out / "_perfecto", "supercelda perfecta", grid,
+        perfecto, common, out / "_perfecto", "perfect supercell", grid,
         meta={"papel": "perf"}, calculation="scf",
         tot_magnetization=(float(int(round(ne_perf)) % 2)
                            if (mags and ne_perf is not None) else None),
@@ -367,48 +367,48 @@ def prepare(atoms, kind: str = "vacancy", site: int = 0,
 
     sweep.write_run_script(run.jobs, out / "run.sh")
 
-    detalle = {"vacancy": f"vacancia de {info.especie_ida}",
-               "substitution": f"{info.especie_ida} sustituido por "
+    detalle = {"vacancy": f"{info.especie_ida} vacancy",
+               "substitution": f"{info.especie_ida} substituted by "
                                f"{info.especie_nueva}",
-               "interstitial": f"{info.especie_nueva} intersticial"}.get(kind, kind)
-    report = ["--- Defectos cargados ---",
-              f"Defecto: {detalle}",
-              f"Supercelda: {run.supercell[0]}x{run.supercell[1]}x"
-              f"{run.supercell[2]}  ({len(perfecto)} átomos perfectos, "
-              f"{len(defectuoso)} con el defecto)",
-              f"Estados de carga: "
+               "interstitial": f"{info.especie_nueva} interstitial"}.get(kind, kind)
+    report = ["--- Charged defects ---",
+              f"Defect: {detalle}",
+              f"Supercell: {run.supercell[0]}x{run.supercell[1]}x"
+              f"{run.supercell[2]}  ({len(perfecto)} perfect atoms, "
+              f"{len(defectuoso)} with the defect)",
+              f"Charge states: "
               f"{', '.join(etiqueta_q(q) for q in cargas)}",
-              f"Malla k: {grid[0]}x{grid[1]}x{grid[2]}  |  "
-              + ("posiciones relajadas en cada carga" if relax_ions
-                 else "posiciones fijas")]
+              f"k-grid: {grid[0]}x{grid[1]}x{grid[2]}  |  "
+              + ("positions relaxed in each charge state" if relax_ions
+                 else "fixed positions")]
     lado = float(min(np.linalg.norm(run.cell, axis=1)))
     if any(q != 0 for q in cargas):
         alpha = constante_madelung(run.cell)
         L = abs(np.linalg.det(run.cell)) ** (1.0 / 3.0)
-        report.append(f"Corrección de imagen: {esquema}, α_M = {alpha:.4f} "
-                      f"(Ewald sobre esta celda), L = V^(1/3) = {L:.3f} Å"
+        report.append(f"Image correction: {esquema}, α_M = {alpha:.4f} "
+                      f"(Ewald on this cell), L = V^(1/3) = {L:.3f} Å"
                       + (f", ε = {epsilon:g}" if epsilon else ""))
         if epsilon:
             q_max = max(abs(q) for q in cargas)
             e1 = correccion_imagen(q_max, run.cell, epsilon, esquema)["E_corr"]
-            report.append(f"  Para q = ±{q_max} la corrección vale "
-                          f"{e1:.3f} eV. Si ese número es del tamaño de la "
-                          f"E_f que\n  esperas, la supercelda es demasiado "
-                          f"pequeña para fiarse.")
+            report.append(f"  For q = ±{q_max} the correction is "
+                          f"{e1:.3f} eV. If that number is of the size of the "
+                          f"E_f you\n  expect, the supercell is too "
+                          f"small to be trusted.")
     if aviso_impar:
         report.append(aviso_impar)
     for w in info.warnings:
-        report.append(f"AVISO: {w}")
+        report.append(f"WARNING: {w}")
     if lado < 10.0 and any(q != 0 for q in cargas):
         report.append(
-            f"AVISO: {lado:.1f} Å de lado con defectos cargados es poco. El "
-            "error de tamaño\n  finito va como q²/L y la corrección solo "
-            "quita el término principal.")
+            f"WARNING: a {lado:.1f} Å side with charged defects is small. The "
+            "finite-size\n  error goes as q²/L and the correction only "
+            "removes the leading term.")
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
-    report += ["", f"{len(run.jobs)} cálculos escritos en '{out.resolve()}'",
-               "Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta."]
+    report += ["", f"{len(run.jobs)} calculations written to '{out.resolve()}'",
+               "Run them with --run, or by hand with ./run.sh inside that folder."]
     return run, "\n".join([r for r in report if r])
 
 
@@ -518,78 +518,78 @@ def _nombre_defecto(run: DefectRun) -> str:
 def report(run: DefectRun) -> str:
     if not run.energies:
         raise FaltanDatos(
-            "no hay resultados todavía. Corre los cálculos (--run, o ./run.sh "
-            "en la carpeta) y vuelve con --collect.")
+            "there are no results yet. Run the calculations (--run, or ./run.sh "
+            "in the folder) and come back with --collect.")
 
-    L = ["--- Energía de formación de defectos ---",
-         f"Defecto: {_nombre_defecto(run)}   |   supercelda "
+    L = ["--- Defect formation energy ---",
+         f"Defect: {_nombre_defecto(run)}   |   supercell "
          f"{run.supercell[0]}x{run.supercell[1]}x{run.supercell[2]} "
-         f"({run.natoms_perf} átomos)"]
+         f"({run.natoms_perf} atoms)"]
 
     if run.E_perfecto is None:
-        L += ["", "Falta la energía de la supercelda perfecta: sin ella no hay "
-                  "resta que hacer.\n  Está en la carpeta _perfecto."]
+        L += ["", "The energy of the perfect supercell is missing: without it there is no "
+                  "subtraction to make.\n  It is in the _perfecto folder."]
         return "\n".join(L)
-    L.append(f"E(perfecto) = {run.E_perfecto:.6f} eV")
+    L.append(f"E(perfect) = {run.E_perfecto:.6f} eV")
 
     if run.vbm is None:
-        L += ["", "No pude leer el VBM de la supercelda perfecta. Sin él, el "
-                  "término q(ε_VBM + ε_F)\n  no se puede escribir y E_f de "
-                  "los estados cargados no está definida.\n  Suele pasar en "
-                  "un metal (no hay gap) o si el cálculo no tenía bandas "
-                  "vacías."]
+        L += ["", "Could not read the VBM of the perfect supercell. Without it, the "
+                  "term q(ε_VBM + ε_F)\n  cannot be written and E_f of "
+                  "the charged states is not defined.\n  This usually happens in "
+                  "a metal (no gap) or if the calculation had no empty "
+                  "bands."]
         return "\n".join(L)
     L.append(f"VBM = {run.vbm:.4f} eV"
              + (f"   |   gap = {run.gap:.4f} eV" if run.gap else
-                "   |   gap: no se pudo leer"))
+                "   |   gap: could not be read"))
 
     if run.aviso_mu:
         L += ["",
-              f"FALTA el potencial químico de: {run.aviso_mu}.",
-              "  E_f depende linealmente de μ, así que sin él los números de "
-              "abajo están\n  desplazados por una constante desconocida: las "
-              "DIFERENCIAS entre cargas y\n  los niveles de transición sí "
-              "valen, el valor absoluto de E_f no.",
-              "  Dáselo con  --mu ELEMENTO=VALOR  (energía por átomo del "
-              "reservorio, en eV)."]
+              f"MISSING chemical potential of: {run.aviso_mu}.",
+              "  E_f depends linearly on μ, so without it the numbers "
+              "below are\n  shifted by an unknown constant: the "
+              "DIFFERENCES between charges and\n  the transition levels are "
+              "valid, the absolute value of E_f is not.",
+              "  Provide it with  --mu ELEMENT=VALUE  (energy per atom of the "
+              "reservoir, in eV)."]
     else:
-        L.append("Potenciales químicos: "
+        L.append("Chemical potentials: "
                  + ", ".join(f"μ({s}) = {v:.4f} eV"
                              for s, v in sorted(run.mu.items())))
 
     if run.dV:
-        L.append(f"Alineamiento de potencial ΔV = {run.dV:+.4f} eV"
-                 + (f" (σ = {run.dV_sigma:.4f} eV en la zona lejana)"
+        L.append(f"Potential alignment ΔV = {run.dV:+.4f} eV"
+                 + (f" (σ = {run.dV_sigma:.4f} eV in the far region)"
                     if run.dV_sigma is not None else "")
-                 + f"; entra en E_f como q·ΔV = {run.dV:+.4f} eV por unidad "
-                   "de carga\n  (el potencial de pp.x viene en Ry y se pasó "
-                   "a eV)")
+                 + f"; enters E_f as q·ΔV = {run.dV:+.4f} eV per unit "
+                   "charge\n  (the pp.x potential comes in Ry and was converted "
+                   "to eV)")
         if run.dV_sigma is not None and run.dV_sigma > 0.3 * abs(run.dV):
-            L.append("  La dispersión es grande comparada con el valor: el "
-                     "defecto todavía se\n  nota en la zona 'lejana', o sea "
-                     "que la supercelda es pequeña.")
+            L.append("  The spread is large compared with the value: the "
+                     "defect is still\n  noticeable in the 'far' region, i.e. "
+                     "the supercell is small.")
 
     hay_carga = any(q != 0 for q in run.cargas)
     if hay_carga:
         alpha = constante_madelung(run.cell)
         Lc = abs(np.linalg.det(run.cell)) ** (1.0 / 3.0)
-        L.append(f"Corrección de imagen: {run.esquema}, α_M = {alpha:.4f}, "
+        L.append(f"Image correction: {run.esquema}, α_M = {alpha:.4f}, "
                  f"L = {Lc:.3f} Å"
-                 + (f", ε = {run.epsilon:g}" if run.epsilon else ", SIN apantallar"))
+                 + (f", ε = {run.epsilon:g}" if run.epsilon else ", UNSCREENED"))
         if run.esquema == "ninguna":
-            L.append("  SIN CORREGIR: las E_f de los estados cargados están "
-                     "sistemáticamente\n  bajas, y el error crece con q². "
-                     "Solo sirven para comparar entre sí\n  cargas del mismo "
-                     "valor absoluto.")
+            L.append("  UNCORRECTED: the E_f of the charged states are "
+                     "systematically\n  low, and the error grows with q². "
+                     "They are only useful to compare\n  charges of the same "
+                     "absolute value with each other.")
 
-    L += ["", f"  {'q':>3s} {'E(defecto)':>14s} {'E_corr':>9s} "
+    L += ["", f"  {'q':>3s} {'E(defect)':>14s} {'E_corr':>9s} "
               f"{'E_f(ε_F=0)':>12s}"
           + (f" {'E_f(ε_F=gap)':>13s}" if run.gap else "")]
     L.append("  " + "-" * (56 if run.gap else 42))
     for q in run.cargas:
         e = run.energies.get(q)
         if e is None:
-            L.append(f"  {etiqueta_q(q):>3s} {'sin resultado':>14s}")
+            L.append(f"  {etiqueta_q(q):>3s} {'no result':>14s}")
             continue
         c = run.correccion(q)["E_corr"]
         f0 = run.E_f(q, 0.0)
@@ -597,21 +597,21 @@ def report(run: DefectRun) -> str:
         if run.gap:
             fila += f" {run.E_f(q, run.gap):>13.4f}"
         if run.converged.get(q) is False:
-            fila += "   << SIN CONVERGER"
+            fila += "   << NOT CONVERGED"
         L.append(fila)
 
     trans = niveles_transicion(run)
     if trans:
-        L += ["", "Niveles de transición de carga (eV sobre el VBM):"]
+        L += ["", "Charge transition levels (eV above the VBM):"]
         for t in trans:
-            marca = "" if t["dentro"] else "   << fuera del gap"
+            marca = "" if t["dentro"] else "   << outside the gap"
             L.append(f"  ε({etiqueta_q(t['q1'])}/{etiqueta_q(t['q2'])}) = "
                      f"{t['eps']:8.4f}{marca}")
         fuera = [t for t in trans if not t["dentro"]]
         if fuera and run.gap:
-            L.append("  Un nivel fuera del gap no es un estado observable: "
-                     "quiere decir que esa\n  carga nunca llega a ser la más "
-                     "estable dentro del gap.")
+            L.append("  A level outside the gap is not an observable state: "
+                     "it means that this\n  charge never becomes the most "
+                     "stable one inside the gap.")
 
     if run.gap:
         ef = np.linspace(0.0, run.gap, 201)
@@ -620,13 +620,13 @@ def report(run: DefectRun) -> str:
             estables = []
             for q in dict.fromkeys(qs):
                 estables.append(int(q))
-            L += ["", "Cargas estables al recorrer el gap: "
+            L += ["", "Stable charges across the gap: "
                       + " → ".join(etiqueta_q(q) for q in estables)]
-            L.append(f"  E_f mínima en el gap: {float(np.min(env)):.4f} eV")
+            L.append(f"  Minimum E_f in the gap: {float(np.min(env)):.4f} eV")
 
     if run.perf_ok is False:
-        L.append("\nAVISO: la supercelda perfecta no convergió; toda la "
-                 "columna hereda ese error.")
+        L.append("\nWARNING: the perfect supercell did not converge; the whole "
+                 "column inherits that error.")
     return "\n".join(L)
 
 
@@ -634,7 +634,7 @@ def export(run: DefectRun, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "FORMACION.dat"
     lines = [provenance.header(
-        f"energia de formacion, {_nombre_defecto(run)}",
+        f"formation energy, {_nombre_defecto(run)}",
         {"supercelda": "x".join(str(v) for v in run.supercell),
          "E_perfecto_eV": run.E_perfecto, "VBM_eV": run.vbm,
          "gap_eV": run.gap, "epsilon": run.epsilon, "esquema": run.esquema,
@@ -648,7 +648,7 @@ def export(run: DefectRun, outdir: str = ".") -> list:
                      f"{run.correccion(q)['E_corr']:12.5f} "
                      f"{run.E_f(q, 0.0):12.5f}")
     if run.gap:
-        lines += ["", "# E_f(eF) en el gap: eF  " +
+        lines += ["", "# E_f(eF) in the gap: eF  " +
                   "  ".join(f"q={q:+d}" for q in run.cargas)]
         for ef in np.linspace(0.0, run.gap, 51):
             vals = [run.E_f(q, ef) for q in run.cargas]
@@ -671,14 +671,14 @@ def plot(run: DefectRun, outfile: str = "formacion", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     if run.gap is None or run.vbm is None:
         raise FaltanDatos(
-            "para el diagrama hace falta el gap de la supercelda perfecta, y "
-            "no se pudo leer. En un metal este diagrama no tiene sentido.")
+            "the diagram needs the gap of the perfect supercell, and "
+            "it could not be read. In a metal this diagram makes no sense.")
     qs = [q for q in run.cargas if run.E_f(q) is not None]
     if not qs:
-        raise FaltanDatos("no hay energías de formación que graficar.")
+        raise FaltanDatos("there are no formation energies to plot.")
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -708,7 +708,7 @@ def plot(run: DefectRun, outfile: str = "formacion", formats="pdf,png",
                     color=qstyle.INK_SOFT)
 
     ax.set_xlim(0.0, run.gap)
-    ax.set_xlabel(r"$\varepsilon_F$ sobre el VBM (eV)")
+    ax.set_xlabel(r"$\varepsilon_F$ above the VBM (eV)")
     ax.set_ylabel(r"$E_f$ (eV)")
     ax.legend(frameon=False, fontsize=st["legend"], ncol=2)
     written = qstyle.save(fig, outfile, formats, dpi=dpi, modulo="formacion")

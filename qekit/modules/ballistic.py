@@ -127,22 +127,22 @@ def comprobar_geometria(atoms) -> list:
     # el eje de transporte es z y tiene que ser ortogonal al plano
     if abs(celda[2, 0]) > 1e-6 or abs(celda[2, 1]) > 1e-6:
         problemas.append(
-            "el tercer vector de red no es paralelo a z. pwcond.x transporta "
-            "SIEMPRE a lo\nlargo de z, y la celda tiene que estar orientada "
-            "así.")
+            "the third lattice vector is not parallel to z. pwcond.x ALWAYS "
+            "transports along\nz, and the cell has to be oriented "
+            "that way.")
     if abs(celda[0, 2]) > 1e-6 or abs(celda[1, 2]) > 1e-6:
         problemas.append(
-            "los vectores del plano tienen componente z. La celda tiene que "
-            "ser tetragonal\nu ortorrómbica con z separado.")
+            "the in-plane vectors have a z component. The cell has to "
+            "be tetragonal\nor orthorhombic with z separated.")
     z = atoms.get_positions()[:, 2]
     largo = float(np.linalg.norm(celda[2]))
     if largo <= 0:
-        problemas.append("la celda no tiene extensión en z.")
+        problemas.append("the cell has no extent along z.")
     elif (z.max() - z.min()) > 0.98 * largo:
         problemas.append(
-            "los átomos llenan la celda entera en z. Para un electrodo "
-            "periódico eso está\nbien; para una región de dispersión hace "
-            "falta dejar sitio a los electrodos.")
+            "the atoms fill the whole cell along z. For a periodic "
+            "electrode that is\nfine; for a scattering region there must be "
+            "room left for the electrodes.")
     return problemas
 
 
@@ -202,25 +202,25 @@ def prepare(electrodo, outdir: str = "balistico", dispersor=None,
         c2 = np.array(dispersor.get_cell())[:2, :2]
         if not np.allclose(c1, c2, atol=1e-4):
             problemas.append(
-                "el electrodo y la región de dispersión NO tienen la misma "
-                "celda en el plano xy.\npwcond.x empalma las dos regiones "
-                "por ahí: si no coinciden, no hay empalme.")
+                "the electrode and the scattering region do NOT have the same "
+                "cell in the xy plane.\npwcond.x joins the two regions "
+                "there: if they do not match, there is no junction.")
     if problemas:
-        raise ErrorDeUso("la geometría no sirve para pwcond.x:\n\n" +
+        raise ErrorDeUso("the geometry is not usable by pwcond.x:\n\n" +
                          "\n\n".join("  " + p for p in problemas))
 
     if ikind is None:
         ikind = 1 if dispersor is not None else 0
     if ikind == 2:
         raise ErrorDeUso(
-            "ikind=2 (electrodos izquierdo y derecho DISTINTOS) no está "
-            "implementado: Olla-DFT\nsolo prepara el caso de electrodos "
-            "iguales (ikind=1). Para dos electrodos distintos\nhay que "
-            "escribir a mano el tercer scf y 'prefixr' y 'bdr' en cond.in.")
+            "ikind=2 (DIFFERENT left and right electrodes) is not "
+            "implemented: Olla-DFT\nonly prepares the case of identical electrodes "
+            "(ikind=1). For two different electrodes\nyou have to "
+            "write the third scf and 'prefixr' and 'bdr' in cond.in by hand.")
     if ikind == 1 and dispersor is None:
         raise ErrorDeUso(
-            "ikind=1 pide una región de dispersión: pásala con --scatterer, "
-            "o usa ikind=0\npara ver solo las bandas complejas del electrodo.")
+            "ikind=1 requires a scattering region: pass it with --scatterer, "
+            "or use ikind=0\nto see only the complex bands of the electrode.")
 
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     regiones = [("electrodo", electrodo)]
@@ -255,41 +255,41 @@ def prepare(electrodo, outdir: str = "balistico", dispersor=None,
         kpuntos=kpuntos or ((0.0, 0.0, 1.0),), nz1=nz1)
     sweep.write_input(out / "cond.in", cond)
 
-    rep = ["--- Transporte balístico (pwcond.x) ---",
-           f"Electrodo: {electrodo.get_chemical_formula()} "
-           f"({len(electrodo)} átomos)"]
+    rep = ["--- Ballistic transport (pwcond.x) ---",
+           f"Electrode: {electrodo.get_chemical_formula()} "
+           f"({len(electrodo)} atoms)"]
     if dispersor is not None:
-        rep.append(f"Región de dispersión: "
+        rep.append(f"Scattering region: "
                    f"{dispersor.get_chemical_formula()} "
-                   f"({len(dispersor)} átomos)")
-    rep += [f"Modo: ikind = {ikind}"
-            + ("  (solo bandas complejas: el número de canales, que es la "
-               "cota superior)" if ikind == 0 else
-               "  (conductancia con región de dispersión)"),
-            f"Ventana: {emin} a {emax} eV respecto de E_F, "
-            f"{npuntos} puntos",
+                   f"({len(dispersor)} atoms)")
+    rep += [f"Mode: ikind = {ikind}"
+            + ("  (complex bands only: the number of channels, which is the "
+               "upper bound)" if ikind == 0 else
+               "  (conductance with scattering region)"),
+            f"Window: {emin} to {emax} eV relative to E_F, "
+            f"{npuntos} points",
             "",
-            f"Archivos en '{out.resolve()}':"]
+            f"Files in '{out.resolve()}':"]
     for nombre, _ in regiones:
         rep.append(f"  scf_{nombre}.in")
     rep += ["  cond.in", "",
-            "Orden:  " + "  &&  ".join(
+            "Order:  " + "  &&  ".join(
                 f"pw.x -in scf_{n}.in" for n, _ in regiones)
             + "  &&  pwcond.x -in cond.in",
             ""]
     if ikind == 0:
-        rep += ["Con ikind=0 NO sale la conductancia: sale el número de "
-                "canales abiertos a\ncada energía, que es cuánto PODRÍA "
-                "transmitir como mucho. Es barato y es\nlo primero que hay "
-                "que mirar: si a E_F hay dos canales, la conductancia\nno "
-                "puede pasar de 2 G0.", ""]
-    rep += [f"La conductancia sale en unidades de G0 = 2e²/h = "
-            f"{G0:.4e} S,\nque equivale a una resistencia de "
-            f"{R0 / 1000:.3f} kΩ por canal perfecto.",
+        rep += ["With ikind=0 the conductance is NOT produced: what comes out is the number of "
+                "open channels at\neach energy, which is how much it COULD "
+                "transmit at most. It is cheap and it is\nthe first thing to "
+                "look at: if there are two channels at E_F, the conductance\ncannot "
+                "exceed 2 G0.", ""]
+    rep += [f"The conductance comes out in units of G0 = 2e²/h = "
+            f"{G0:.4e} S,\nwhich corresponds to a resistance of "
+            f"{R0 / 1000:.3f} kΩ per perfect channel.",
             "",
-            "Esto es transporte BALÍSTICO: vale para un nanocontacto o una "
-            "molécula entre\nelectrodos, no para un cristal macroscópico. "
-            "Para eso está 'olla-dft transport'."]
+            "This is BALLISTIC transport: it applies to a nanocontact or a "
+            "molecule between\nelectrodes, not to a macroscopic crystal. "
+            "For that, use 'olla-dft transport'."]
     return {"prefijos": prefijos}, "\n".join(rep)
 
 
@@ -349,9 +349,9 @@ def collect(path) -> CondRun:
 
     if run.energias is None:
         raise ErrorDeUso(
-            f"no se pudo leer ningun resultado de pwcond.x en {p}.\n"
-            "Busca trans*.dat (conductancia) o la salida cond.out (bandas "
-            "complejas).")
+            f"no pwcond.x result could be read in {p}.\n"
+            "Look for trans*.dat (conductance) or the cond.out output (complex "
+            "bands).")
 
     if run.transmision is not None:
         i = int(np.argmin(np.abs(run.energias)))
@@ -366,33 +366,33 @@ def _avisar(run: CondRun) -> None:
         exceso = run.transmision - run.canales
         if np.any(exceso > 0.01):
             run.avisos.append(
-                "La transmisión supera el número de canales abiertos en "
-                "alguna energía.\nEso es imposible: T <= N por construcción. "
-                "Revisa que los límites bdl/bds\nsepan dónde acaba cada "
-                "región y que las celdas del plano coincidan.")
+                "The transmission exceeds the number of open channels at "
+                "some energy.\nThat is impossible: T <= N by construction. "
+                "Check that the bdl/bds limits\nknow where each region "
+                "ends and that the in-plane cells match.")
     if run.transmision is not None and np.any(run.transmision < -1e-6):
         run.avisos.append(
-            "Hay transmisiones NEGATIVAS. Es señal de que el cálculo no "
-            "convergió o de que\nla geometría de las regiones está mal "
-            "cortada.")
+            "There are NEGATIVE transmissions. It is a sign that the calculation did not "
+            "converge or that\nthe geometry of the regions is cut "
+            "wrongly.")
     if run.ikind == 0:
         run.avisos.append(
-            "Modo ikind=0: esto NO es la conductancia. Es el número de "
-            "canales abiertos,\nque acota la conductancia por arriba. Para "
-            "el valor real hace falta la región\nde dispersión y ikind=1 o 2.")
+            "Mode ikind=0: this is NOT the conductance. It is the number of "
+            "open channels,\nwhich bounds the conductance from above. For "
+            "the real value the scattering region\nand ikind=1 or 2 are needed.")
 
 
 def report(run: CondRun) -> str:
-    lines = ["--- Transporte balístico ---",
-             f"Modo: ikind = {run.ikind}"]
+    lines = ["--- Ballistic transport ---",
+             f"Mode: ikind = {run.ikind}"]
     if run.energias is not None:
-        lines.append(f"Ventana: {run.energias.min():.2f} a "
-                     f"{run.energias.max():.2f} eV respecto de E_F "
-                     f"({len(run.energias)} puntos)")
+        lines.append(f"Window: {run.energias.min():.2f} to "
+                     f"{run.energias.max():.2f} eV relative to E_F "
+                     f"({len(run.energias)} points)")
 
     if run.G_fermi is not None:
         lines += ["",
-                  "Conductancia en el nivel de Fermi:",
+                  "Conductance at the Fermi level:",
                   f"  T(E_F)  = {run.G_fermi:.4f}",
                   f"  G       = {run.G_fermi:.4f} G0 = "
                   f"{run.G_siemens:.4e} S",
@@ -400,19 +400,19 @@ def report(run: CondRun) -> str:
         cerca = round(run.G_fermi)
         if cerca >= 1 and abs(run.G_fermi - cerca) < 0.08:
             lines.append(
-                f"  T está muy cerca de {cerca} entero: son {cerca} canal(es) "
-                "transmitiendo casi\n  perfectamente. Eso es la "
-                "cuantización de la conductancia, y verla es la\n  mejor "
-                "señal de que el cálculo está bien planteado.")
+                f"  T is very close to the integer {cerca}: that is {cerca} channel(s) "
+                "transmitting almost\n  perfectly. This is conductance "
+                "quantization, and seeing it is the\n  best "
+                "sign that the calculation is well posed.")
         elif run.G_fermi < 0.1:
             lines.append(
-                "  T casi cero: el contacto está cerrado a esa energía. Con "
-                "una molécula en\n  medio es lo normal si su gap cae sobre "
+                "  T almost zero: the contact is closed at that energy. With "
+                "a molecule in\n  between this is normal if its gap falls on "
                 "E_F.")
 
     if run.canales is not None:
-        lines += ["", "Canales abiertos (cota superior de T):",
-                  f"  {'E-Ef (eV)':>11s} {'canales':>8s}"
+        lines += ["", "Open channels (upper bound of T):",
+                  f"  {'E-Ef (eV)':>11s} {'channels':>8s}"
                   + ("  {:>8s}".format("T") if run.transmision is not None
                      else "")]
         n = len(run.energias)
@@ -427,10 +427,10 @@ def report(run: CondRun) -> str:
     for a in run.avisos:
         lines += ["", a]
     lines += ["",
-              f"G0 = 2e²/h = {G0:.4e} S; un canal perfecto son "
+              f"G0 = 2e²/h = {G0:.4e} S; one perfect channel is "
               f"{R0 / 1000:.3f} kΩ.",
-              "Transporte BALÍSTICO: el electrón cruza sin dispersarse. "
-              "Para un cristal\nmacroscópico, que es difusivo, está "
+              "BALLISTIC transport: the electron crosses without scattering. "
+              "For a macroscopic\ncrystal, which is diffusive, use "
               "'olla-dft transport'."]
     return "\n".join(lines)
 
@@ -442,14 +442,14 @@ def export(run: CondRun, outdir: str = ".") -> list:
     if run.transmision is not None:
         cols.append(run.transmision); nombres.append("T")
     if run.canales is not None and len(run.canales) == len(run.energias):
-        cols.append(run.canales); nombres.append("canales")
+        cols.append(run.canales); nombres.append("channels")
     np.savetxt(f, np.column_stack(cols), fmt="%14.6f",
                header=provenance.header_plain(
-                   "transporte balistico",
+                   "ballistic transport",
                    {"ikind": run.ikind,
                     "G_en_G0": None if run.G_fermi is None
                     else round(run.G_fermi, 5)},
-                   titulo="Conductancia de Landauer") + "\n" +
+                   titulo="Landauer conductance") + "\n" +
                "  ".join(f"{n:>14s}" for n in nombres), comments="# ")
     txt = out / "BALISTICO.txt"
     txt.write_text(report(run) + "\n")
@@ -465,7 +465,7 @@ def plot(run: CondRun, outfile: str = "balistico", formats="pdf,png",
         import matplotlib
         matplotlib.use("Agg")
     except ImportError as exc:                          # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -475,7 +475,7 @@ def plot(run: CondRun, outfile: str = "balistico", formats="pdf,png",
     if run.canales is not None and len(run.canales) == len(run.energias):
         ax.step(run.energias, run.canales, where="mid", lw=1.0,
                 color=qstyle.INK_FAINT, dashes=[3, 2],
-                label="canales abiertos")
+                label="open channels")
     if run.transmision is not None:
         ax.plot(run.energias, run.transmision, lw=1.5, color=colores[0],
                 label="T(E)")

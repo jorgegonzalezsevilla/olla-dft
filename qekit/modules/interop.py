@@ -133,10 +133,10 @@ def from_xrd(pattern, atoms=None) -> dict:
         }
     return envelope(
         "drx_patron_calculado", datos, atoms,
-        notas="Patrón simulado desde una estructura relajada por DFT. Las "
-              "intensidades son |F|² con Lorentz-polarización; sin "
-              "orientación preferencial ni corrección de rugosidad, así que "
-              "difieren de un difractograma medido de polvo real.")
+        notas="Pattern simulated from a DFT-relaxed structure. The "
+              "intensities are |F|² with Lorentz-polarization; no "
+              "preferred orientation or roughness correction, so "
+              "they differ from a diffractogram measured on real powder.")
 
 
 def from_optics(run, atoms=None, tauc_kind: str = "direct") -> dict:
@@ -164,11 +164,11 @@ def from_optics(run, atoms=None, tauc_kind: str = "direct") -> dict:
     }
     return envelope(
         "optica_dft", datos, atoms,
-        notas="RPA de partícula independiente: sin campos locales ni "
-              "excitones. Para comparar contra un espectro UV-Vis medido, "
-              "revisa el scissor aplicado. En un semiconductor de gap "
-              "indirecto epsilon.x no incluye transiciones asistidas por "
-              "fonones, así que el borde calculado es el gap DIRECTO.")
+        notas="Independent-particle RPA: no local fields or "
+              "excitons. To compare against a measured UV-Vis spectrum, "
+              "check the scissor applied. In an indirect-gap "
+              "semiconductor epsilon.x does not include phonon-assisted "
+              "transitions, so the computed edge is the DIRECT gap.")
 
 
 def from_phonons_gamma(run, atoms=None) -> dict:
@@ -184,11 +184,11 @@ def from_phonons_gamma(run, atoms=None) -> dict:
     return envelope(
         "fonones_gamma", {"modos": modos,
                           "con_tensor_dielectrico": bool(run.epsil)}, atoms,
-        notas="Frecuencias armónicas en Γ. La actividad IR es la del cálculo "
-              "DFPT (unidades de QE), proporcional a la intensidad medida "
-              "pero no igual a ella: compara posiciones de banda y "
-              "actividad relativa, no valores absolutos. Sin anarmonicidad, "
-              "así que las frecuencias suelen salir altas frente al FTIR.")
+        notas="Harmonic frequencies at Γ. The IR activity is that of the "
+              "DFPT calculation (QE units), proportional to the measured intensity "
+              "but not equal to it: compare band positions and "
+              "relative activity, not absolute values. No anharmonicity, "
+              "so the frequencies usually come out high compared with FTIR.")
 
 
 def from_raman(run, atoms=None, laser_nm: float = 532.0,
@@ -218,12 +218,12 @@ def from_raman(run, atoms=None, laser_nm: float = 532.0,
     }
     return envelope(
         "raman_dft", datos, atoms,
-        notas="Frecuencias armonicas en Gamma. La intensidad simulada "
-              "aplica (wL-w)^4/w y el factor de Bose a la actividad "
-              "calculada, que es lo que hace comparable el calculo con un "
-              "espectro medido: las actividades crudas NO son intensidades. "
-              "Sin anarmonicidad, asi que las frecuencias suelen salir "
-              "algo altas frente a la medida.")
+        notas="Harmonic frequencies at Gamma. The simulated intensity "
+              "applies (wL-w)^4/w and the Bose factor to the computed "
+              "activity, which is what makes the calculation comparable with a "
+              "measured spectrum: raw activities are NOT intensities. "
+              "No anharmonicity, so the frequencies usually come out "
+              "somewhat high compared with the measurement.")
 
 
 def from_xps(res, atoms=None) -> dict:
@@ -241,7 +241,7 @@ def from_xps(res, atoms=None) -> dict:
         "xps_core_dft", {"atomos": atomos,
                          "todos_equivalentes": bool(res.equivalentes)},
         atoms,
-        notas="Aproximacion de ESTADO INICIAL: comparable en corrimientos "
-              "RELATIVOS entre sitios, no en energias de enlace absolutas. "
-              "La relajacion frente al hueco de core (estado final) no esta "
-              "incluida y puede valer varias decimas de eV.")
+        notas="INITIAL-STATE approximation: comparable in RELATIVE shifts "
+              "between sites, not in absolute binding energies. "
+              "The relaxation in response to the core hole (final state) is not "
+              "included and can amount to several tenths of an eV.")

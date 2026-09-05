@@ -22,8 +22,8 @@ def test_occupied_only_is_insufficient_not_metal(fermi):
     bs = structure(fermi=fermi)
     info = bands.analyze_gap(bs)
     assert not info.is_metal and info.gap is None
-    assert 'No hay bandas de conducción' in bands.gap_report(bs)
-    assert 'METÁLICO' not in bands.gap_report(bs)
+    assert 'There are no conduction bands' in bands.gap_report(bs)
+    assert 'METALLIC' not in bands.gap_report(bs)
 
 
 def test_gap_still_detects_insulator_and_crossing():
@@ -39,7 +39,7 @@ def test_gap_cli_status_and_convergence_warning(monkeypatch, capsys, converged, 
     monkeypatch.setattr(bands, 'load', lambda *a, **k: structure(empty=empty, converged=converged))
     assert cli.main(['gap', '.']) == expected
     text = capsys.readouterr().out
-    assert ('no convergió' in text) == (not converged)
+    assert ('did not converge' in text) == (not converged)
 
 
 @pytest.mark.parametrize('field,value', [

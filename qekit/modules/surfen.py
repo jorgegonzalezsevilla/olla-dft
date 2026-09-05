@@ -146,13 +146,13 @@ def prepare(atoms, miller=(1, 0, 0), capas=(3, 4, 5, 6), vacuum: float = 20.0,
     capas = sorted({int(c) for c in capas})
     if len(capas) < 2:
         raise ErrorDeUso(
-            "hacen falta al menos dos grosores para poder ajustar la recta "
-            "E(N); con uno solo no hay forma de separar la energía de "
-            "superficie de la del bulto. Prueba --layers 3,4,5,6.")
+            "at least two thicknesses are needed to fit the line "
+            "E(N); with only one there is no way to separate the surface "
+            "energy from the bulk one. Try --layers 3,4,5,6.")
     if min(capas) < 2:
         raise ErrorDeUso(
-            f"una losa de {min(capas)} capa(s) no tiene interior: todo lo que "
-            "hay es superficie, y el ajuste no significa nada. Empieza en 3.")
+            f"a slab of {min(capas)} layer(s) has no interior: all there "
+            "is is surface, and the fit means nothing. Start at 3.")
 
     losas, reducciones = {}, {}
     for n in capas:
@@ -192,7 +192,7 @@ def prepare(atoms, miller=(1, 0, 0), capas=(3, 4, 5, 6), vacuum: float = 20.0,
         info = losas[n]
         run.natomos[n] = len(info.atoms)
         job = sweep.write_scf_job(
-            info.atoms, common, out / f"capas{n:02d}", f"{n} capas", grid,
+            info.atoms, common, out / f"capas{n:02d}", f"{n} layers", grid,
             meta={"papel": "losa", "capas": n}, calculation=calc, **extras)
         run.jobs.append(job)
         for w in info.warnings:
@@ -206,51 +206,51 @@ def prepare(atoms, miller=(1, 0, 0), capas=(3, 4, 5, 6), vacuum: float = 20.0,
         # losa (con 1 punto en c) daría una energía sin sentido
         grid_b = sweep.default_grid(bulto, kspacing)
         run.jobs.append(sweep.write_scf_job(
-            bulto, common, out / "_bulto", "bulto", grid_b,
+            bulto, common, out / "_bulto", "bulk", grid_b,
             meta={"papel": "bulto"}, calculation="scf",
             vdw=vdw, nspin=nspin, magnetization=magnetization))
 
     sweep.write_run_script(run.jobs, out / "run.sh")
 
-    report = ["--- Energía de superficie ---",
-              f"Superficie ({run.miller[0]}{run.miller[1]}{run.miller[2]}) de "
+    report = ["--- Surface energy ---",
+              f"Surface ({run.miller[0]}{run.miller[1]}{run.miller[2]}) of "
               f"{atoms.get_chemical_formula()}",
-              f"Grosores: {', '.join(str(c) for c in capas)} capas  "
-              f"({', '.join(str(run.natomos[c]) for c in capas)} átomos)",
-              f"Área de una cara: {area:.4f} Å²   |   vacío {vacuum:g} Å",
-              f"Malla k: {grid[0]}x{grid[1]}x{grid[2]}  |  "
-              + ("posiciones relajadas" if relajar else "posiciones fijas")
-              + (f", {fijar} capas del fondo congeladas" if fijar else "")]
+              f"Thicknesses: {', '.join(str(c) for c in capas)} layers  "
+              f"({', '.join(str(run.natomos[c]) for c in capas)} atoms)",
+              f"Area of one face: {area:.4f} Å²   |   vacuum {vacuum:g} Å",
+              f"k-grid: {grid[0]}x{grid[1]}x{grid[2]}  |  "
+              + ("relaxed positions" if relajar else "fixed positions")
+              + (f", {fijar} bottom layers frozen" if fijar else "")]
     if reducciones:
         f = max(reducciones.values())
         report.append(
-            f"Celda superficial reducida a la mínima: {f:.0f} veces menos "
-            f"átomos por capa.\n  γ es por unidad de área, así que el número "
-            f"es el mismo y el cálculo cuesta\n  {f:.0f} veces menos. Con "
-            f"--no-reduce se usa el corte tal cual sale de los hkl.")
+            f"Surface cell reduced to the minimal one: {f:.0f} times fewer "
+            f"atoms per layer.\n  γ is per unit area, so the number "
+            f"is the same and the calculation costs\n  {f:.0f} times less. With "
+            f"--no-reduce the cut is used as it comes out of the hkl.")
     if not ref.simetrica:
         report.append(
-            "AVISO: la losa NO es simétrica, así que sus dos caras no son la "
-            "misma\n  superficie. Lo que sale de dividir entre 2 es el PROMEDIO "
-            "de las dos, no γ\n  de ninguna. Para una cara concreta hace falta "
-            "una losa simétrica (más capas)\n  o una referencia aparte.")
+            "WARNING: the slab is NOT symmetric, so its two faces are not the "
+            "same\n  surface. What comes out of dividing by 2 is the AVERAGE "
+            "of the two, not γ\n  of either. For a specific face a "
+            "symmetric slab (more layers)\n  or a separate reference is needed.")
     if ref.polar:
         report.append(
-            "AVISO: la losa es polar (las dos caras tienen composición "
-            "distinta). Además\n  del promedio, aparece un campo eléctrico a "
-            "través del vacío: usa --dipole.")
+            "WARNING: the slab is polar (the two faces have different "
+            "composition). Besides\n  the averaging, an electric field appears "
+            "across the vacuum: use --dipole.")
     if not relajar:
         report.append(
-            "Las posiciones están FIJAS: esto da la γ sin relajar, que siempre "
-            "sale alta.\n  La relajación superficial la baja típicamente entre "
-            "un 5 y un 20 %. Con --relax\n  se relaja (y cuesta bastante más).")
+            "The positions are FIXED: this gives the unrelaxed γ, which always "
+            "comes out high.\n  Surface relaxation typically lowers it by "
+            "5 to 20 %. With --relax\n  it is relaxed (and costs considerably more).")
     for w in run.avisos:
-        report.append(f"AVISO: {w}")
+        report.append(f"WARNING: {w}")
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
-    report += ["", f"{len(run.jobs)} cálculos escritos en '{out.resolve()}'",
-               "Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta."]
+    report += ["", f"{len(run.jobs)} calculations written to '{out.resolve()}'",
+               "Run them with --run, or by hand with ./run.sh inside that folder."]
     return run, "\n".join(report)
 
 
@@ -289,29 +289,29 @@ def collect(run: GammaRun, results: list = None) -> GammaRun:
 def report(run: GammaRun) -> str:
     if not run.energias:
         raise FaltanDatos(
-            "no hay resultados todavía. Corre los cálculos (--run, o ./run.sh "
-            "en la carpeta) y vuelve con --collect.")
+            "there are no results yet. Run the calculations (--run, or ./run.sh "
+            "in the folder) and come back with --collect.")
     hkl = "".join(str(m) for m in run.miller)
-    L = [f"--- Energía de superficie ({hkl}) ---",
-         f"Área de una cara: {run.area:.4f} Å²"
-         + (f"   |   E_bulto = {run.E_bulto:.6f} eV/átomo (cálculo aparte)"
-            if run.E_bulto is not None else "   |   sin cálculo de bulto")]
+    L = [f"--- Surface energy ({hkl}) ---",
+         f"Area of one face: {run.area:.4f} Å²"
+         + (f"   |   E_bulk = {run.E_bulto:.6f} eV/atom (separate calculation)"
+            if run.E_bulto is not None else "   |   no bulk calculation")]
 
     hay_directo = run.E_bulto is not None
-    L += ["", f"  {'capas':>6s} {'átomos':>7s} {'E_losa (eV)':>15s}"
-          + (f" {'γ directa (J/m²)':>18s}" if hay_directo else "")]
+    L += ["", f"  {'layers':>6s} {'atoms':>7s} {'E_slab (eV)':>15s}"
+          + (f" {'γ direct (J/m²)':>18s}" if hay_directo else "")]
     L.append("  " + "-" * (48 if hay_directo else 31))
     for n in run.capas:
         e = run.energias.get(n)
         if e is None:
-            L.append(f"  {n:>6d} {run.natomos[n]:>7d} {'sin resultado':>15s}")
+            L.append(f"  {n:>6d} {run.natomos[n]:>7d} {'no result':>15s}")
             continue
         fila = f"  {n:>6d} {run.natomos[n]:>7d} {e:>15.6f}"
         if hay_directo:
             g = run.gamma_directo(n)
             fila += f" {g * EV_A2_A_J_M2:>18.4f}"
         if run.convergido.get(n) is False:
-            fila += "   << SIN CONVERGER"
+            fila += "   << NOT CONVERGED"
         L.append(fila)
 
     if hay_directo:
@@ -320,51 +320,51 @@ def report(run: GammaRun) -> str:
         if len(gs) >= 2:
             deriva = (gs[-1] - gs[0]) * EV_A2_A_J_M2
             L.append("")
-            L.append(f"Deriva de la γ directa entre la losa más fina y la más "
-                     f"gruesa: {deriva:+.4f} J/m²")
+            L.append(f"Drift of the direct γ between the thinnest and the thickest "
+                     f"slab: {deriva:+.4f} J/m²")
             if abs(deriva) > 0.05:
                 L.append(
-                    "  No converge: crece (o baja) con el grosor en vez de "
-                    "estabilizarse. Es el\n  error residual de E_bulto "
-                    "multiplicado por el número de átomos, no física.\n"
-                    "  El valor bueno es el del ajuste, abajo.")
+                    "  It does not converge: it grows (or drops) with thickness instead of "
+                    "stabilizing. This is the\n  residual error of E_bulk "
+                    "multiplied by the number of atoms, not physics.\n"
+                    "  The good value is the one from the fit, below.")
 
     if run.gamma_ajuste is not None:
-        L += ["", "Ajuste lineal E_losa(N) = 2γA + N·E_bulto  "
+        L += ["", "Linear fit E_slab(N) = 2γA + N·E_bulk  "
                   "(Fiorentini–Methfessel):",
               f"  γ = {run.gamma_ajuste:.6f} eV/Å²  =  "
               f"{run.gamma_ajuste * EV_A2_A_J_M2:.4f} J/m²",
-              f"  Energía de escisión (dos caras) = "
+              f"  Cleavage energy (two faces) = "
               f"{2 * run.gamma_ajuste * EV_A2_A_J_M2:.4f} J/m²",
-              f"  E_bulto de la pendiente = {run.E_bulto_ajuste:.6f} eV/átomo"
+              f"  E_bulk from the slope = {run.E_bulto_ajuste:.6f} eV/atom"
               f"   (R² = {run.r2:.6f})"]
         if run.E_bulto is not None:
             d = (run.E_bulto_ajuste - run.E_bulto) * 1000
-            L.append(f"  Diferencia con el cálculo de bulto aparte: "
-                     f"{d:+.2f} meV/átomo")
+            L.append(f"  Difference with the separate bulk calculation: "
+                     f"{d:+.2f} meV/atom")
             if abs(d) > 5:
-                L.append("  Esa diferencia es la que hacía derivar la γ "
-                         "directa. Viene de que la losa y\n  el bulto no "
-                         "comparten malla k (no pueden: uno tiene vacío y el "
-                         "otro no).")
+                L.append("  That difference is what made the direct γ "
+                         "drift. It comes from the slab and\n  the bulk not "
+                         "sharing the k-grid (they cannot: one has vacuum and the "
+                         "other does not).")
         if run.r2 is not None and run.r2 < 0.999:
-            L.append(f"  R² = {run.r2:.5f} es bajo para una recta: o falta "
-                     "convergencia en algún punto,\n  o las losas finas "
-                     "todavía no tienen interior de bulto. Prueba a quitar la "
-                     "más fina.")
+            L.append(f"  R² = {run.r2:.5f} is low for a straight line: either "
+                     "convergence is missing at some point,\n  or the thin slabs "
+                     "do not yet have a bulk-like interior. Try removing the "
+                     "thinnest one.")
     else:
-        L.append("\nNo hay puntos suficientes para el ajuste.")
+        L.append("\nThere are not enough points for the fit.")
 
     if not run.simetrica:
-        L.append("\nLa losa no es simétrica: γ es el PROMEDIO de sus dos "
-                 "caras, no el de una.")
+        L.append("\nThe slab is not symmetric: γ is the AVERAGE of its two "
+                 "faces, not that of one.")
     if not run.relajado:
-        L.append("Sin relajar: γ sale alta. La relajación superficial la baja "
-                 "entre un 5 y un 20 %.")
+        L.append("Unrelaxed: γ comes out high. Surface relaxation lowers it "
+                 "by 5 to 20 %.")
     sin_conv = [n for n in run.capas if run.convergido.get(n) is False]
     if sin_conv:
-        L.append(f"SIN CONVERGER: {sin_conv} capas. Esos puntos sesgan el "
-                 "ajuste entero.")
+        L.append(f"NOT CONVERGED: {sin_conv} layers. Those points bias the "
+                 "whole fit.")
     return "\n".join(L)
 
 
@@ -373,14 +373,14 @@ def export(run: GammaRun, outdir: str = ".") -> list:
     f = out / "GAMMA.dat"
     hkl = "".join(str(m) for m in run.miller)
     lines = [provenance.header(
-        f"energia de superficie ({hkl})",
+        f"surface energy ({hkl})",
         {"area_A2": f"{run.area:.5f}",
          "gamma_eV_A2": run.gamma_ajuste,
          "gamma_J_m2": (run.gamma_ajuste * EV_A2_A_J_M2
                         if run.gamma_ajuste else None),
          "E_bulto_ajuste_eV_at": run.E_bulto_ajuste, "R2": run.r2}),
-        f"# {'capas':>6s} {'atomos':>8s} {'E_losa(eV)':>18s} "
-        f"{'gamma_directa(J/m2)':>21s}"]
+        f"# {'layers':>6s} {'atoms':>8s} {'E_slab(eV)':>18s} "
+        f"{'gamma_direct(J/m2)':>21s}"]
     for n in run.capas:
         if run.energias.get(n) is None:
             continue
@@ -405,11 +405,11 @@ def plot(run: GammaRun, outfile: str = "gamma", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     ns = [n for n in run.capas if run.energias.get(n) is not None]
     if len(ns) < 2:
-        raise FaltanDatos("hacen falta al menos dos grosores para graficar.")
+        raise FaltanDatos("at least two thicknesses are needed to plot.")
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
     fig, ax = qstyle.new_figure(width, journal, aspect)
@@ -420,12 +420,12 @@ def plot(run: GammaRun, outfile: str = "gamma", formats="pdf,png",
     if directos:
         ax.plot([d[0] for d in directos], [d[1] for d in directos],
                 marker="o", ms=4, lw=st["line"], color=cols[0],
-                label="directa, con E$_{bulto}$ aparte")
+                label="direct, with separate E$_{bulk}$")
     if run.gamma_ajuste is not None:
         g = run.gamma_ajuste * EV_A2_A_J_M2
         ax.axhline(g, color=cols[1], lw=st["line"], dashes=[4.0, 2.0],
-                   label=f"ajuste: {g:.3f} J/m$^2$")
-    ax.set_xlabel("capas de la losa")
+                   label=f"fit: {g:.3f} J/m$^2$")
+    ax.set_xlabel("slab layers")
     ax.set_ylabel(r"$\gamma$ (J/m$^2$)")
     ax.set_xticks(ns)
     if directos or run.gamma_ajuste is not None:

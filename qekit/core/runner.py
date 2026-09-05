@@ -131,10 +131,10 @@ def reparto(paralelo: int, nproc: int = None) -> tuple:
         n = max(1, int(cfg.get("nproc", 1) or 1))
     aviso = ""
     if par * n > hilos:
-        aviso = (f"pediste {par} cálculos a la vez con {n} proceso"
-                 f"{'s' if n > 1 else ''} cada uno = {par * n} procesos, y la "
-                 f"máquina tiene {hilos} hilo{'s' if hilos > 1 else ''}. "
-                 f"Sobresuscribir hace que TODOS vayan más lentos.")
+        aviso = (f"you asked for {par} simultaneous calculations with {n} process"
+                 f"{'es' if n > 1 else ''} each = {par * n} processes, and the "
+                 f"machine has {hilos} thread{'s' if hilos > 1 else ''}. "
+                 f"Oversubscribing makes ALL of them slower.")
     return par, n, aviso
 
 
@@ -252,14 +252,14 @@ def check_available(pw_cmd: str = None, nproc: int = None) -> str:
     if not found:
         sug = ""
         if plataforma.WINDOWS:
-            sug = ("\nEn Windows los binarios de Quantum ESPRESSO se llaman "
-                   "pw.exe, no pw.x.\nSi lo tienes en WSL, corre Olla-DFT "
-                   "dentro de WSL: allí verá el pw.x de Linux.")
+            sug = ("\nOn Windows the Quantum ESPRESSO binaries are called "
+                   "pw.exe, not pw.x.\nIf you have it in WSL, run Olla-DFT "
+                   "inside WSL: there it will see the Linux pw.x.")
         raise FileNotFoundError(
-            f"no se encontró el ejecutable '{exe}'.\n"
-            "Instala Quantum ESPRESSO o indica la ruta con:\n"
-            f"  olla-dft config set pw_cmd /ruta/a/{exe}\n"
-            "También puedes generar los inputs sin --run y correrlos tú."
+            f"executable '{exe}' not found.\n"
+            "Install Quantum ESPRESSO or set the path with:\n"
+            f"  olla-dft config set pw_cmd /path/to/{exe}\n"
+            "You can also generate the inputs without --run and run them yourself."
             + sug
         )
     return found
@@ -268,7 +268,7 @@ def check_available(pw_cmd: str = None, nproc: int = None) -> str:
 def _qe_executable_index(cmd: list) -> int:
     """Índice de pw.x/pw.exe en un comando, también detrás de MPI/Slurm."""
     if not cmd:
-        raise ValueError("el comando de Quantum ESPRESSO está vacío")
+        raise ValueError("the Quantum ESPRESSO command is empty")
     if Path(cmd[0]).name.lower() not in ("mpirun", "mpiexec", "srun"):
         return 0
     for i in range(1, len(cmd)):
@@ -300,7 +300,7 @@ def run_one(job: Job, cmd: list, timeout: float = None,
                                   cwd=str(job.directory), timeout=timeout)
         res.seconds = time.time() - start
         if proc.returncode != 0:
-            res.error = f"pw.x terminó con código {proc.returncode}"
+            res.error = f"pw.x exited with code {proc.returncode}"
             # Un código de salida a secas no dice nada. Si la salida trae
             # una causa reconocible, se pega aquí para no tener que abrir
             # el archivo — sobre todo en un barrido de 25 cálculos.
@@ -313,14 +313,14 @@ def run_one(job: Job, cmd: list, timeout: float = None,
             return res
     except subprocess.TimeoutExpired:
         res.seconds = time.time() - start
-        res.error = "se agotó el tiempo límite"
+        res.error = "the time limit was exceeded"
         return res
     except OSError as exc:
         res.error = str(exc)
         return res
 
     if not job.is_done(estricto=False):
-        res.error = "el cálculo no llegó a terminar (revisa la salida)"
+        res.error = "the calculation did not finish (check the output)"
         try:
             pista = failure_hint(job.output_path.read_text(errors="ignore"))
         except OSError:
@@ -335,26 +335,26 @@ def run_one(job: Job, cmd: list, timeout: float = None,
             # Terminó, pero sin converger. Se marca: la energía existe y es
             # un número perfectamente formado que no significa nada.
             res.ok = False
-            res.error = ("terminó SIN CONVERGER (agotó electron_maxstep). "
-                         "Sube conv_thr, baja mixing_beta o usa "
-                         "'olla-dft doctor' sobre esta carpeta")
+            res.error = ("finished WITHOUT CONVERGING (exhausted electron_maxstep). "
+                         "Raise conv_thr, lower mixing_beta or use "
+                         "'olla-dft doctor' on this folder")
         elif res.result is not None and res.result.converged is None:
-            res.error = ("terminó, pero el XML no confirma la convergencia; "
-                         "el resultado no se dará por válido")
+            res.error = ("finished, but the XML does not confirm convergence; "
+                         "the result will not be taken as valid")
     except Exception as exc:                                # noqa: BLE001
-        res.error = f"terminó pero no se pudo leer el resultado: {exc}"
+        res.error = f"finished but the result could not be read: {exc}"
     return res
 
 
 def _linea_resultado(i: int, total: int, r: JobResult) -> str:
     cabeza = f"  [{i:>{len(str(total))}d}/{total}] {r.job.name} ... "
     if r.skipped:
-        return cabeza + "ya estaba hecho"
+        return cabeza + "already done"
     if r.ok:
         e = r.energy
         extra = f"  E = {e / qeout.RY_EV:.6f} Ry" if e is not None else ""
         return cabeza + f"{r.seconds:.1f} s{extra}"
-    return cabeza + f"FALLÓ ({r.error})"
+    return cabeza + f"FAILED ({r.error})"
 
 
 def run_all(jobs: list, pw_cmd: str = None, nproc: int = None,
@@ -384,32 +384,32 @@ def run_all(jobs: list, pw_cmd: str = None, nproc: int = None,
     agotado = threading.Event()
 
     if verbose:
-        cab = f"Ejecutando {total} cálculos con: {' '.join(cmd)}"
+        cab = f"Running {total} calculations with: {' '.join(cmd)}"
         if par > 1:
-            cab += (f"\n  {par} a la vez, {n} proceso{'s' if n > 1 else ''} "
-                    f"cada uno ({nucleos()} hilos disponibles). "
-                    f"Terminan en desorden.")
+            cab += (f"\n  {par} at a time, {n} process{'es' if n > 1 else ''} "
+                    f"each ({nucleos()} threads available). "
+                    f"They finish out of order.")
         print(cab)
         if aviso:
-            print(f"  AVISO: {aviso}")
+            print(f"  WARNING: {aviso}")
         libre = memoria_libre_gb()
         if par > 1 and libre is not None and libre / par < 1.0:
-            print(f"  AVISO: quedan {libre:.1f} GB libres, o sea "
-                  f"{libre / par:.1f} GB por cálculo. Si pw.x se queda sin "
-                  f"memoria el sistema empieza a intercambiar y todo se para; "
-                  f"baja --jobs.")
+            print(f"  WARNING: {libre:.1f} GB free remain, that is "
+                  f"{libre / par:.1f} GB per calculation. If pw.x runs out of "
+                  f"memory the system starts swapping and everything stalls; "
+                  f"lower --jobs.")
         if presupuesto:
             txt = (f"{presupuesto:.0f} s" if presupuesto < 120
                    else f"{presupuesto / 60:.0f} min" if presupuesto < 7200
                    else f"{presupuesto / 3600:.1f} h")
-            print(f"  Presupuesto: {txt}. Al agotarse no se lanzan más, y los "
-                  f"que estén corriendo terminan.")
+            print(f"  Budget: {txt}. Once exhausted no more are launched, and "
+                  f"those already running finish.")
 
     def _uno(idx_job):
         idx, job = idx_job
         if agotado.is_set():
             r = JobResult(job=job)
-            r.error = "no se lanzó: se agotó el presupuesto de tiempo"
+            r.error = "not launched: the time budget ran out"
             return idx, r
         r = run_one(job, cmd, timeout=timeout, rehacer=rehacer)
         if presupuesto and (time.time() - t0) >= presupuesto:
@@ -432,27 +432,27 @@ def run_all(jobs: list, pw_cmd: str = None, nproc: int = None,
     if verbose:
         transcurrido = time.time() - t0
         hechos = [r for r in results if r.ok]
-        sin_lanzar = [r for r in results if "presupuesto" in (r.error or "")]
+        sin_lanzar = [r for r in results if "time budget" in (r.error or "")]
         bad = [r for r in results if not r.ok and r not in sin_lanzar]
         tt = (f"{transcurrido:.0f} s" if transcurrido < 120
               else f"{transcurrido / 60:.1f} min" if transcurrido < 7200
               else f"{transcurrido / 3600:.2f} h")
-        print(f"\nTiempo total: {tt} ({len(hechos)} de {total} bien)")
+        print(f"\nTotal time: {tt} ({len(hechos)} of {total} succeeded)")
         if sin_lanzar:
-            print(f"\n{len(sin_lanzar)} cálculos NO se lanzaron por el "
-                  f"presupuesto de tiempo:")
+            print(f"\n{len(sin_lanzar)} calculations were NOT launched because of "
+                  f"the time budget:")
             for r in sin_lanzar[:8]:
                 print(f"  {r.job.name}")
             if len(sin_lanzar) > 8:
-                print(f"  ... y {len(sin_lanzar) - 8} más")
-            print("Vuelve a lanzar el mismo comando: los que ya terminaron se "
-                  "saltan solos.")
+                print(f"  ... and {len(sin_lanzar) - 8} more")
+            print("Run the same command again: those already finished are "
+                  "skipped automatically.")
         if bad:
-            print(f"\n{len(bad)} de {total} cálculos fallaron:")
+            print(f"\n{len(bad)} of {total} calculations failed:")
             for r in bad:
                 print(f"  {r.job.name}: {r.error}")
-            print("Revisa las salidas correspondientes; el resto del análisis "
-                  "continúa con los puntos que sí terminaron.")
+            print("Check the corresponding outputs; the rest of the analysis "
+                  "continues with the points that did finish.")
     return results
 
 
@@ -482,53 +482,53 @@ def collect(path: str, pattern: str = "*", prefix: str = None) -> list:
 #: porque la primera que empata es la que se reporta.
 CAUSAS = (
     ("attempt to run as root",
-     "mpirun se niega a correr como root. Corre como usuario normal, o "
-     "exporta OMPI_ALLOW_RUN_AS_ROOT=1 y OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1."),
+     "mpirun refuses to run as root. Run as a normal user, or "
+     "export OMPI_ALLOW_RUN_AS_ROOT=1 and OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1."),
     ("command not found",
-     "el ejecutable no está en el PATH. Revisa 'olla-dft config show' y "
-     "apunta pw_cmd al binario correcto."),
+     "the executable is not in the PATH. Check 'olla-dft config show' and "
+     "point pw_cmd to the correct binary."),
     ("cannot open file",
-     "no encontró un archivo que esperaba: casi siempre el pseudopotencial "
-     "o la carpeta outdir. Revisa pseudo_dir y que el cálculo previo haya "
-     "dejado su .save."),
+     "a file it expected was not found: almost always the pseudopotential "
+     "or the outdir folder. Check pseudo_dir and that the previous calculation "
+     "left its .save."),
     ("reading pseudopotential",
-     "el pseudopotencial no se pudo leer: nombre mal escrito, archivo "
-     "truncado o un formato que este QE no soporta."),
+     "the pseudopotential could not be read: misspelled name, truncated "
+     "file or a format this QE does not support."),
     ("buffer overflow detected",
-     "pw.x abortó dentro de su propio binario. Si también ocurre con un "
-     "input conocido, esa compilación de Quantum ESPRESSO es incompatible "
-     "con el sistema actual: instala una versión más reciente o recompílala. "
-     "Si solo ocurre con un UPF, cambia ese pseudopotencial."),
+     "pw.x aborted inside its own binary. If it also happens with a "
+     "known input, that Quantum ESPRESSO build is incompatible "
+     "with the current system: install a more recent version or recompile it. "
+     "If it only happens with one UPF, change that pseudopotential."),
     ("wrong ibrav",
-     "la celda no cuadra con el ibrav declarado."),
+     "the cell does not match the declared ibrav."),
     ("charge is wrong",
-     "la carga no cuadra con los electrones de valencia de los "
-     "pseudopotenciales: casi siempre falta uno o sobra un átomo."),
+     "the charge does not match the valence electrons of the "
+     "pseudopotentials: almost always an atom is missing or extra."),
     ("S matrix not positive definite",
-     "la base está mal condicionada: sube ecutwfc o revisa átomos "
-     "demasiado cerca."),
+     "the basis is ill-conditioned: raise ecutwfc or check for atoms "
+     "that are too close."),
     ("Not enough space allocated for radial FFT",
-     "sube ecutrho (suele bastar con 8-12 veces ecutwfc para "
-     "ultrasuaves)."),
+     "raise ecutrho (8-12 times ecutwfc is usually enough for "
+     "ultrasoft pseudopotentials)."),
     ("out of memory",
-     "se quedó sin memoria. Baja la malla k, usa menos procesos MPI o "
-     "reduce la supercelda."),
+     "it ran out of memory. Reduce the k mesh, use fewer MPI processes or "
+     "shrink the supercell."),
     ("k-point algorithm is not tested",
-     "TDDFPT solo implementa el caso gamma: el scf tiene que llevar "
-     "K_POINTS gamma, que NO es lo mismo que una malla 1x1x1."),
+     "TDDFPT only implements the gamma case: the scf must use "
+     "K_POINTS gamma, which is NOT the same as a 1x1x1 mesh."),
     ("Linear response calculation" ,
-     "TDDFPT no admite simetria: el scf previo tiene que llevar "
-     "nosym=.true. y noinv=.true."),
+     "TDDFPT does not support symmetry: the previous scf must use "
+     "nosym=.true. and noinv=.true."),
     ("some of the original symmetry operations not satisfied",
-     "los átomos se movieron y rompieron la simetría que pw.x detectó al "
-     "principio. En dinámica molecular y en relajaciones desde una "
-     "configuración simétrica hay que poner nosym=.true."),
+     "the atoms moved and broke the symmetry that pw.x detected at the "
+     "start. In molecular dynamics and in relaxations from a symmetric "
+     "configuration you must set nosym=.true."),
     ("too many bands are not converged",
-     "el diagonalizador no converge: baja mixing_beta, sube "
-     "electron_maxstep, o prueba diagonalization='cg'."),
+     "the diagonalizer does not converge: lower mixing_beta, raise "
+     "electron_maxstep, or try diagonalization='cg'."),
     ("SCF correction compared to forces is large",
-     "el scf no está lo bastante convergido para las fuerzas que se están "
-     "pidiendo: baja conv_thr."),
+     "the scf is not converged tightly enough for the forces being "
+     "requested: lower conv_thr."),
 )
 
 
@@ -554,10 +554,10 @@ def failure_message(stem: str, out_file, text: str = None,
             text = out_file.read_text(errors="ignore")
         except OSError:
             text = ""
-    partes = [f"{stem} falló; revisa {out_file}"]
+    partes = [f"{stem} failed; check {out_file}"]
     pista = failure_hint(text)
     if pista:
-        partes.append(f"Causa probable: {pista}")
+        partes.append(f"Probable cause: {pista}")
     cola = [ln.rstrip() for ln in text.splitlines() if ln.strip()]
     # Si QE alcanzó a escribir su propio bloque de error, ese es el que
     # importa; si no, las últimas líneas de lo que haya.
@@ -568,6 +568,6 @@ def failure_message(stem: str, out_file, text: str = None,
     else:
         cola = cola[-lineas:]
     if cola:
-        partes.append("Final del log:")
+        partes.append("End of the log:")
         partes += [f"  {ln}" for ln in cola]
     return "\n".join(partes)

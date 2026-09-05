@@ -114,9 +114,9 @@ def test_cli_charges_rellena_la_columna_neta_con_pseudo_dir(tmp_path, capsys):
                "--pseudo-dir", str(pdir)])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "n/d" not in out
-    assert "Electrones de valencia según los UPF: 8.0000 e" in out
-    assert "no coincide" not in out
+    assert 'n/a' not in out
+    assert 'Valence electrons according to the UPF files: 8.0000 e' in out
+    assert 'does not match' not in out
     # una carga neta de ~0 para cada átomo (recuperan su Z_valencia)
     filas = [l for l in out.splitlines() if l.strip().startswith(("1 ", "2 "))]
     assert len(filas) == 2
@@ -164,7 +164,7 @@ def test_alineamiento_devuelve_dv_en_ev(tmp_path):
     # el mismo cube declarado en eV no se convierte
     al_ev = defects.alineamiento(str(fd), str(fp), unidades_cube="eV")
     assert al_ev["dV"] == pytest.approx(0.1, abs=1e-4)
-    with pytest.raises(ErrorDeUso, match="unidades"):
+    with pytest.raises(ErrorDeUso, match='units'):
         defects.alineamiento(str(fd), str(fp), unidades_cube="Ha")
 
 
@@ -278,12 +278,12 @@ def test_cli_surface_fix_avisa_si_el_formato_pierde_los_fijos(tmp_path, capsys):
                "-o", str(tmp_path / "losa.cif")])
     err = capsys.readouterr().err
     assert rc == 0
-    assert "no guarda qué átomos están congelados" in err
+    assert "does not store which atoms are frozen" in err
     assert "losa.vasp" in err
     rc = main(["surface", str(cif_in), "-m", "1 0 0", "-l", "6", "--fix", "2",
                "-o", str(tmp_path / "losa.vasp")])
     err = capsys.readouterr().err
-    assert rc == 0 and "congelados" not in err
+    assert rc == 0 and 'frozen' not in err
 
 
 # ----------------------------------------------------------------------
@@ -357,12 +357,12 @@ def test_collect_fija_el_ensanchamiento_y_el_umbral_del_exciton(tmp_path):
     # borde ~ 4.95 eV, gap 5.1: 0.15 eV por debajo
     run = tddft.collect(tmp_path, gap_ip=5.1, broadening=0.05)
     assert run.broadening == pytest.approx(0.05)
-    assert any("excitón" in a for a in run.avisos)
+    assert any('signature of a bound' in a for a in run.avisos)
     # con ensanchamiento grande la misma diferencia NO se distingue
     run2 = tddft.collect(tmp_path, gap_ip=5.1, broadening=0.5)
     assert run2.broadening == pytest.approx(0.5)
-    assert not any("excitón" in a for a in run2.avisos)
-    assert any("no se puede distinguir" in a or "limite" in a
+    assert not any('signature of a bound' in a for a in run2.avisos)
+    assert any('distinguished with this broadening' in a or 'limit' in a
                for a in run2.avisos)
     # sin valor explícito se lee de spectrum.in (epsil en Ry)
     (tmp_path / "spectrum.in").write_text(
@@ -451,11 +451,11 @@ def test_reporte_de_diagnostico_dice_cuantos_ciclos_vio(tmp_path):
     d = diagnose.Diagnosis(scf=diagnose.read_scf_history(f),
                            traj=diagnose.read_trajectory(f))
     rep = diagnose.report(d)
-    assert "3 ciclos SCF" in rep and "solo el último" in rep
+    assert '3 SCF cycles' in rep and 'only the last' in rep
     # un scf normal no menciona ciclos
     d1 = diagnose.Diagnosis(scf=diagnose.read_scf_history(
         _relax_falso(tmp_path, [(bien, True)])))
-    assert "ciclos SCF" not in diagnose.report(d1)
+    assert 'SCF cycles' not in diagnose.report(d1)
 
 
 # ----------------------------------------------------------------------
@@ -488,7 +488,7 @@ def test_planitud_de_la_funcion_trabajo_se_mide_en_el_vacio():
     assert wf.v_vacuum == pytest.approx(0.5 * qeout.RY_EV, abs=0.05)
     assert wf.flatness < 0.05
     assert wf.phi == pytest.approx(wf.v_vacuum + 3.0)
-    assert "evaluada en z" in fields.report_wf(wf)
+    assert 'evaluated at z' in fields.report_wf(wf)
     # sin posiciones se usa la ventana alrededor del máximo (documentado)
     wf0 = fields.work_function(cube, fermi_ev=-3.0, axis=2)
     assert wf0.vacuum_z[0] < 20.0 < wf0.vacuum_z[1]     # centrada en z~17
@@ -515,7 +515,7 @@ def test_echem_ph_cero_iguala_she_y_rhe_y_el_ph_convierte():
     e.U, e.pH = u_she, ph
     rep = echem.report(e)
     assert "V vs SHE" in rep and "V vs RHE" in rep
-    assert "positivo = en U_eq" in rep
+    assert 'positive = at U_eq' in rep
 
 
 # ----------------------------------------------------------------------
@@ -542,17 +542,17 @@ def test_selftest_escala_oer_usa_echem(monkeypatch):
 
 
 # ----------------------------------------------------------------------
-# ayudas y mensajes: --edge, bordes M, neb sin banderas de Hubbard
+# ayudas y mensajes: --edge, M edges, neb sin banderas de Hubbard
 # ----------------------------------------------------------------------
 def test_xanes_rechaza_bordes_m_y_acepta_los_de_xspectra():
     from qekit.modules import xanes
     for b in ("K", "L1", "L2", "L3", "L23", "k"):
         assert xanes.validar_borde(b) == b.upper()
-    with pytest.raises(ErrorDeUso, match="bordes M"):
+    with pytest.raises(ErrorDeUso, match="M edges"):
         xanes.validar_borde("M45")
-    with pytest.raises(ErrorDeUso, match="desconocido"):
+    with pytest.raises(ErrorDeUso, match="unknown"):
         xanes.validar_borde("N7")
-    with pytest.raises(ErrorDeUso, match="bordes M"):
+    with pytest.raises(ErrorDeUso, match="M edges"):
         xanes.build_xspectra_input("x", 1, (1, 0, 0), "x.wfc", borde="M23")
     ayuda = build_parser().parse_args(["xanes", "x.cif"])
     assert ayuda.edge == "K"
@@ -565,7 +565,7 @@ def test_cli_xanes_borde_m_da_error_de_uso(tmp_path, capsys):
     rc = main(["xanes", str(cif), "--element", "Si", "--edge", "M45",
                "-o", str(tmp_path / "x")])
     err = capsys.readouterr().err
-    assert rc != 0 and "bordes M" in err
+    assert rc != 0 and "M edges" in err
 
 
 def test_mensajes_sugieren_edge_y_no_borde():
@@ -592,6 +592,6 @@ def test_recomendador_distingue_uno_de_dos_casos():
                        razon="x")
     s2 = rc.Sugerencia(campo="ecutwfc", valor=50.0, n_casos=2, confianza="baja",
                        razon="x")
-    assert "UN SOLO CASO" in rc.report([s1], ["Si"], 1)
+    assert "A SINGLE CASE" in rc.report([s1], ["Si"], 1)
     t2 = rc.report([s2], ["Si"], 2)
-    assert "UN SOLO CASO" not in t2 and "SOLO 2 CASOS" in t2
+    assert "A SINGLE CASE" not in t2 and "ONLY 2 CASES" in t2

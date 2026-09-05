@@ -101,7 +101,7 @@ def test_el_reporte_ordena_por_magnitud(con_v):
     txt = hb.report_v(pares, sup, umbral=0.01)
     assert "0.7521" in txt
     assert "0.0031" not in txt, "por debajo del umbral no se lista"
-    assert "1 pares por debajo" in txt
+    assert '1 pairs below' in txt
 
 
 # ----------------------------------------------------------------------

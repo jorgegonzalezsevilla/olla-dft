@@ -54,7 +54,7 @@ def plot(
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError(
-            "matplotlib no está instalado. Instálalo con:\n"
+            "matplotlib is not installed. Install it with:\n"
             "  pip install matplotlib --break-system-packages"
         ) from exc
 
@@ -98,7 +98,7 @@ def plot(
                     continue
                 lab = None
                 if ib == 0 and s0 == 0 and res.nspin == 2:
-                    lab = qstyle.tex_safe("espín ↑" if spin == 0 else "espín ↓")
+                    lab = qstyle.tex_safe("spin ↑" if spin == 0 else "spin ↓")
                 axb.plot(bs.kdist[s0:s1], energies[s0:s1, ib], label=lab, **kw)
 
     axb.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"],
@@ -116,14 +116,15 @@ def plot(
         axb.set_xlabel(f"$k$ ({qstyle.angstrom()}$^{{-1}}$)")
     axb.set_xlim(bs.kdist[0], bs.kdist[-1])
     axb.set_ylim(emin, emax)
-    axb.set_ylabel(r"$E - E_\mathrm{F}$ (eV)" if ref_desc.startswith("energía")
-                   else r"$E - E_\mathrm{VBM}$ (eV)")
+    axb.set_ylabel(r"$E - E_\mathrm{F}$ (eV)" if ref_desc.startswith("Fermi energy")
+                  else r"$E - E_\mathrm{VBM}$ (eV)" if ref_desc.startswith("VBM")
+                  else r"$E$ (eV)")
 
     info = bands_mod.analyze_gap(bs, 0)
     if mark_extrema and not info.is_metal and info.gap is not None:
         bands_mod._mark_extrema(axb, bs, info, shift, mono)
         if gap_label:
-            tipo = "directo" if info.is_direct else "indirecto"
+            tipo = "direct" if info.is_direct else "indirect"
             axb.annotate(
                 f"$E_\\mathrm{{g}}$ = {info.gap:.2f} eV ({tipo})",
                 xy=(0.5, 0.02), xycoords="axes fraction", ha="center",
@@ -137,7 +138,7 @@ def plot(
     # ---------------- panel (b): DOS ----------------
     dos_mod.draw(axd, dd, shift, st, mode=dos_mode, mono=mono,
                  dash_mode=dash_mode, vertical=True, emin=emin, emax=emax)
-    axd.set_xlabel("DOS (estados eV$^{-1}$)")
+    axd.set_xlabel("DOS (states eV$^{-1}$)")
     axd.set_ylim(emin, emax)
     axd.tick_params(labelleft=False)
     axd.xaxis.set_major_locator(plt.MaxNLocator(nbins=3, prune="lower"))

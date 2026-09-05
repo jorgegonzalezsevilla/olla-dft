@@ -193,18 +193,18 @@ def run(project=".", masas=None, volumen=None, natoms=None,
         datos = np.loadtxt(encontrados["fonones_bandas"], comments="#")
         qdist, band_freqs = datos[:, 0], datos[:, 1:]
 
-    for k, v in (("constantes elásticas", C is not None),
-                 ("κ de red (fc3)", "kappa" in encontrados),
-                 ("fase de Berry", "berry" in encontrados),
-                 ("centros de Wannier", "wannier" in encontrados),
-                 ("función trabajo (ESM)", "esm" in encontrados),
-                 ("función trabajo (potencial planar)", "wf" in encontrados),
-                 ("barrido de deformación", "strain" in encontrados),
-                 ("ecuación de estado", b0_eos is not None),
-                 ("DOS de fonones", dos_w is not None),
-                 ("dispersión de fonones", qdist is not None),
-                 ("gap de bandas", gap_bandas is not None),
-                 ("gap de Tauc", gap_tauc is not None)):
+    for k, v in (("elastic constants", C is not None),
+                 ("lattice κ (fc3)", "kappa" in encontrados),
+                 ("Berry phase", "berry" in encontrados),
+                 ("Wannier centres", "wannier" in encontrados),
+                 ("work function (ESM)", "esm" in encontrados),
+                 ("work function (planar potential)", "wf" in encontrados),
+                 ("strain sweep", "strain" in encontrados),
+                 ("equation of state", b0_eos is not None),
+                 ("phonon DOS", dos_w is not None),
+                 ("phonon dispersion", qdist is not None),
+                 ("band gap", gap_bandas is not None),
+                 ("Tauc gap", gap_tauc is not None)):
         (res.disponibles if v else res.faltantes).append(k)
 
     # --- 1. modulo volumetrico: EOS contra Cij -----------------------
@@ -212,15 +212,15 @@ def run(project=".", masas=None, volumen=None, natoms=None,
         from qekit.modules import elastic
         m = elastic.moduli(C)
         res.checks.append(Check(
-            nombre="módulo volumétrico B₀",
-            ruta_a="ajuste de la ecuación de estado", valor_a=b0_eos,
-            ruta_b="traza de las constantes elásticas",
+            nombre="bulk modulus B₀",
+            ruta_a="equation of state fit", valor_a=b0_eos,
+            ruta_b="trace of the elastic constants",
             valor_b=m.B_hill, unidad="GPa", tolerancia=0.05,
             diagnostico=(
-                "Son la MISMA cantidad por dos vías. Si difieren: revisa "
-                "que la celda de las\nelásticas estuviera relajada (esfuerzo "
-                "residual bajo) y que la EOS tenga\npuntos suficientes a "
-                "ambos lados del mínimo.")))
+                "They are the SAME quantity by two routes. If they differ: check "
+                "that the cell of the\nelastic constants was relaxed (low residual "
+                "stress) and that the EOS has\nenough points on both sides of "
+                "the minimum.")))
 
     # --- 2. velocidades del sonido -----------------------------------
     if (C is not None and qdist is not None and masas is not None
@@ -230,28 +230,28 @@ def run(project=".", masas=None, volumen=None, natoms=None,
         ac = derived.acoustic_velocities(qdist, band_freqs)
         if dirs and ac:
             res.checks.append(Check(
-                nombre="velocidad longitudinal [100]",
-                ruta_a="constantes elásticas: √(C₁₁/ρ)",
+                nombre="longitudinal velocity [100]",
+                ruta_a="elastic constants: √(C₁₁/ρ)",
                 valor_a=dirs["v_l_100"],
-                ruta_b="pendiente de la rama LA en Γ",
+                ruta_b="slope of the LA branch at Γ",
                 valor_b=ac["v_l"], unidad="m/s", tolerancia=0.10,
                 diagnostico=(
-                    "La pendiente acústica en q→0 es lo que peor interpola "
-                    "una malla de q gruesa.\nSi falla, sospecha de la malla "
-                    "antes que de las Cij.")))
+                    "The acoustic slope at q→0 is what a coarse q-grid "
+                    "interpolates worst.\nIf it fails, suspect the grid "
+                    "before the Cij.")))
             res.checks.append(Check(
-                nombre="velocidad transversal [100]",
-                ruta_a="constantes elásticas: √(C₄₄/ρ)",
+                nombre="transverse velocity [100]",
+                ruta_a="elastic constants: √(C₄₄/ρ)",
                 valor_a=dirs["v_t_100"],
-                ruta_b="pendiente de la rama TA en Γ",
+                ruta_b="slope of the TA branch at Γ",
                 valor_b=ac["v_t1"], unidad="m/s", tolerancia=0.10,
                 diagnostico=(
-                    "Las ramas TRANSVERSALES son las más planas y las que "
-                    "peor salen de una malla\nde q pequeña — en el silicio "
-                    "con 2x2x2 el error pasa del 40 %. Si la\n"
-                    "longitudinal cuadra y esta no, es la malla de q, no las "
-                    "elásticas.\nDensifícala (4x4x4 o más) antes de creerle "
-                    "a ninguna de las dos.")))
+                    "The TRANSVERSE branches are the flattest and the ones "
+                    "that come out worst from a small\nq-grid — in silicon "
+                    "with 2x2x2 the error exceeds 40 %. If the\n"
+                    "longitudinal one agrees and this one does not, it is the q-grid, not the "
+                    "elastic constants.\nDensify it (4x4x4 or more) before trusting "
+                    "either of the two.")))
 
     # --- 3. temperatura de Debye -------------------------------------
     if (C is not None and dos_w is not None and masas is not None
@@ -264,30 +264,30 @@ def run(project=".", masas=None, volumen=None, natoms=None,
         td_dos = derived.debye_from_dos(dos_w, dos, natoms)
         if td_el and td_dos:
             res.checks.append(Check(
-                nombre="temperatura de Debye",
-                ruta_a="velocidades del sonido (límite acústico)",
+                nombre="Debye temperature",
+                ruta_a="sound velocities (acoustic limit)",
                 valor_a=td_el,
-                ruta_b="segundo momento de la DOS de fonones",
+                ruta_b="second moment of the phonon DOS",
                 valor_b=td_dos, unidad="K", tolerancia=0.30,
                 diagnostico=(
-                    "OJO: NO son la misma definición. La elástica es el "
-                    "límite de baja temperatura\n(solo acústicas); la de la "
-                    "DOS usa todo el espectro, ópticas incluidas, y sale\n"
-                    "más alta. Se cruzan para detectar un disparate, no para "
-                    "que coincidan:\ncoincidir al 1 % sería sospechoso.")))
+                    "NOTE: they are NOT the same definition. The elastic one is the "
+                    "low-temperature limit\n(acoustic only); the DOS one "
+                    "uses the whole spectrum, optical modes included, and comes out\n"
+                    "higher. They are cross-checked to catch a blunder, not to "
+                    "coincide:\nagreement to 1 % would be suspicious.")))
 
     # --- 4. gap: bandas contra Tauc ----------------------------------
     if gap_bandas is not None and gap_tauc is not None:
         res.checks.append(Check(
-            nombre="gap óptico",
-            ruta_a="estructura de bandas (gap directo)", valor_a=gap_bandas,
-            ruta_b="extrapolación de Tauc sobre α(E)", valor_b=gap_tauc,
+            nombre="optical gap",
+            ruta_a="band structure (direct gap)", valor_a=gap_bandas,
+            ruta_b="Tauc extrapolation on α(E)", valor_b=gap_tauc,
             unidad="eV", tolerancia=0.06,
             diagnostico=(
-                "epsilon.x no incluye transiciones asistidas por fonones, "
-                "así que el borde de\nabsorción es el gap DIRECTO, no el "
-                "fundamental. Si comparas contra el\nfundamental de un "
-                "semiconductor indirecto, la diferencia es física, no un "
+                "epsilon.x does not include phonon-assisted transitions, "
+                "so the absorption\nedge is the DIRECT gap, not the "
+                "fundamental one. If you compare against the\nfundamental gap of an "
+                "indirect semiconductor, the difference is physics, not an "
                 "error.")))
 
     # --- 5. C_v a alta T contra Dulong-Petit -------------------------
@@ -296,28 +296,28 @@ def run(project=".", masas=None, volumen=None, natoms=None,
         dp = 3.0 * natoms * KB_EV * 1000.0        # meV/K por celda
         if cv:
             res.checks.append(Check(
-                nombre="C_v en el límite clásico",
+                nombre="C_v in the classical limit",
                 ruta_a="Dulong–Petit: 3N·k_B", valor_a=dp,
-                ruta_b="integral de la DOS de fonones a 1500 K",
-                valor_b=cv, unidad="meV/K por celda", tolerancia=0.03,
+                ruta_b="integral of the phonon DOS at 1500 K",
+                valor_b=cv, unidad="meV/K per cell", tolerancia=0.03,
                 diagnostico=(
-                    "A temperatura alta toda C_v armónica tiende a 3N·k_B. "
-                    "Si no llega, la DOS\nestá mal normalizada o le falta "
-                    "espectro; si se pasa, hay modos de más.")))
+                    "At high temperature every harmonic C_v tends to 3N·k_B. "
+                    "If it falls short, the DOS\nis badly normalized or is missing "
+                    "spectrum; if it overshoots, there are extra modes.")))
 
     # --- 6. numero de modos ------------------------------------------
     if dos_w is not None and natoms:
         from qekit.core.compat import trapezoid
         total = float(trapezoid(np.asarray(dos), np.asarray(dos_w)))
         res.checks.append(Check(
-            nombre="número de modos",
-            ruta_a="3N por construcción", valor_a=3.0 * natoms,
-            ruta_b="integral de la DOS de fonones", valor_b=total,
-            unidad="modos", tolerancia=0.05,
+            nombre="number of modes",
+            ruta_a="3N by construction", valor_a=3.0 * natoms,
+            ruta_b="integral of the phonon DOS", valor_b=total,
+            unidad="modes", tolerancia=0.05,
             diagnostico=(
-                "La integral de la DOS tiene que dar exactamente 3N. Si no, "
-                "la malla de\ninterpolación de matdyn es demasiado pobre o "
-                "el rango de frecuencias corta\nespectro.")))
+                "The integral of the DOS must give exactly 3N. If not, "
+                "the matdyn\ninterpolation grid is too poor or "
+                "the frequency range cuts off\nspectrum.")))
     # --- 7. kappa de red: tercer orden contra el modelo de Slack ------
     if "kappa" in encontrados and C is not None and masas is not None \
             and volumen and natoms:
@@ -332,19 +332,19 @@ def run(project=".", masas=None, volumen=None, natoms=None,
                            T=T_usada) if (td and gam) else None
         if ks:
             res.checks.append(Check(
-                nombre="conductividad térmica de red",
-                ruta_a=f"ecuación de Boltzmann de fonones con fc3 "
+                nombre="lattice thermal conductivity",
+                ruta_a=f"phonon Boltzmann equation with fc3 "
                        f"({T_usada:.0f} K)",
                 valor_a=k300,
-                ruta_b="modelo de Slack desde las elásticas",
+                ruta_b="Slack model from the elastic constants",
                 valor_b=ks, unidad="W/m/K", tolerancia=0.60,
                 diagnostico=(
-                    "La tolerancia es del 60 % A PROPÓSITO: Slack es una "
-                    "estimación de orden de\nmagnitud con un prefactor "
-                    "empírico, no un cálculo. Sirve para detectar que a la\n"
-                    "fc3 le falta convergencia o que el signo de algo está "
-                    "mal, no para afinar.\nSi difieren en un factor 3, "
-                    "sospecha primero de la supercelda de la fc3.")))
+                    "The tolerance is 60 % ON PURPOSE: Slack is an "
+                    "order-of-magnitude estimate\nwith an empirical prefactor, "
+                    "not a calculation. It serves to detect that the\n"
+                    "fc3 lacks convergence or that the sign of something is "
+                    "wrong, not to fine-tune.\nIf they differ by a factor of 3, "
+                    "suspect the fc3 supercell first.")))
 
     # --- 8. fase de Berry: lberry contra los centros de Wannier -------
     if "berry" in encontrados and "wannier" in encontrados and cell is not None:
@@ -354,17 +354,17 @@ def run(project=".", masas=None, volumen=None, natoms=None,
             # las dos están definidas módulo 2: se comparan en la misma rama
             fb = fb - 2.0 * np.round((fb - fa) / 2.0)
             res.checks.append(Check(
-                nombre="fase electrónica de Berry",
-                ruta_a="lberry: determinante de solapes en cuerdas de k",
+                nombre="electronic Berry phase",
+                ruta_a="lberry: determinant of overlaps along k-strings",
                 valor_a=fa,
-                ruta_b="centros de Wannier: −2·Σ (r̄·b)/2π",
-                valor_b=fb, unidad="(cuanto = 2)", tolerancia=0.05,
+                ruta_b="Wannier centres: −2·Σ (r̄·b)/2π",
+                valor_b=fb, unidad="(quantum = 2)", tolerancia=0.05,
                 diagnostico=(
-                    "Son la MISMA fase de Berry por dos rutinas que no "
-                    "comparten una línea de\ncódigo. Que coincidan es la "
-                    "validación más fuerte que hay aquí. Si no lo hacen,\n"
-                    "lo primero a mirar es que las dos usen la misma "
-                    "dirección (gdir) y la misma\nmalla de puntos k.")))
+                    "They are the SAME Berry phase from two routines that do not "
+                    "share a line of\ncode. Their agreement is the "
+                    "strongest validation available here. If they disagree,\n"
+                    "the first thing to check is that both use the same "
+                    "direction (gdir) and the same\nk-point grid.")))
         except Exception:                                   # noqa: BLE001
             pass
 
@@ -379,19 +379,19 @@ def run(project=".", masas=None, volumen=None, natoms=None,
             phi_wf = _leer_cabecera(encontrados["wf"], "Phi_eV")
             if phi_wf is not None:
                 res.checks.append(Check(
-                    nombre="función trabajo",
-                    ruta_a="ESM: el nivel de vacío vale cero por "
-                           "construcción",
+                    nombre="work function",
+                    ruta_a="ESM: the vacuum level is zero by "
+                           "construction",
                     valor_a=phi_esm,
-                    ruta_b="meseta del potencial planar del cube de pp.x",
+                    ruta_b="plateau of the planar potential from the pp.x cube",
                     valor_b=phi_wf, unidad="eV", tolerancia=0.05,
                     diagnostico=(
-                        "Con bc1 el nivel de vacío de ESM es cero exacto y "
-                        "no hay meseta que\najustar; el camino del cube sí "
-                        "la ajusta, y por eso necesita más vacío. Si\n"
-                        "difieren, mira la planitud que reporta el segundo: "
-                        "casi siempre es que al\ncálculo periódico le "
-                        "faltaba vacío, no que ESM esté mal.")))
+                        "With bc1 the ESM vacuum level is exactly zero and "
+                        "there is no plateau to\nfit; the cube route does "
+                        "fit it, and that is why it needs more vacuum. If\n"
+                        "they differ, look at the flatness reported by the second: "
+                        "it is almost always that the\nperiodic calculation "
+                        "lacked vacuum, not that ESM is wrong.")))
         except Exception:                                   # noqa: BLE001
             pass
 
@@ -407,17 +407,17 @@ def run(project=".", masas=None, volumen=None, natoms=None,
                 b0_strain = -pend / 3.0 * 0.1        # kbar -> GPa
                 if b0_strain > 0:
                     res.checks.append(Check(
-                        nombre="módulo volumétrico B₀ (tercera vía)",
-                        ruta_a="ajuste de la ecuación de estado",
+                        nombre="bulk modulus B₀ (third route)",
+                        ruta_a="equation of state fit",
                         valor_a=b0_eos,
-                        ruta_b="pendiente de la presión en el barrido de "
-                               "deformación",
+                        ruta_b="slope of the pressure in the strain "
+                               "sweep",
                         valor_b=b0_strain, unidad="GPa", tolerancia=0.10,
                         diagnostico=(
-                            "Solo vale si el barrido fue HIDROSTÁTICO: con "
-                            "deformación biaxial o\nuniaxial la relación "
-                            "entre presión y ε es otra y este cruce compara "
-                            "peras\ncon manzanas. Míralo antes de creerle.")))
+                            "Only valid if the sweep was HYDROSTATIC: with "
+                            "biaxial or\nuniaxial strain the relation "
+                            "between pressure and ε is different and this cross-check compares "
+                            "apples\nwith oranges. Check it before trusting it.")))
         except Exception:                                   # noqa: BLE001
             pass
 
@@ -446,34 +446,34 @@ def _cv_alta_T(w, g, natoms, T=1500.0):
 
 
 def report(res: CrossResult) -> str:
-    lines = ["--- Validación cruzada ---"]
+    lines = ["--- Cross-validation ---"]
     if res.disponibles:
-        lines.append("Resultados encontrados: " + ", ".join(res.disponibles))
+        lines.append("Results found: " + ", ".join(res.disponibles))
     if res.faltantes:
-        lines.append("No disponibles: " + ", ".join(res.faltantes))
+        lines.append("Not available: " + ", ".join(res.faltantes))
     lines.append("")
     if not res.checks:
         lines.append(
-            "No hay dos rutas independientes que cruzar todavía. Cada cruce "
-            "necesita DOS\nmódulos: por ejemplo elásticas + EOS, o "
-            "elásticas + fonones.")
+            "There are no two independent routes to cross-check yet. Each cross-check "
+            "needs TWO\nmodules: for example elastic constants + EOS, or "
+            "elastic constants + phonons.")
         return "\n".join(lines)
 
     fallos = [c for c in res.checks if c.ok is False]
-    lines.append(f"{len(res.checks)} cruces  |  "
-                 f"{len(res.checks) - len(fallos)} coinciden  |  "
-                 f"{len(fallos)} NO")
+    lines.append(f"{len(res.checks)} cross-checks  |  "
+                 f"{len(res.checks) - len(fallos)} agree  |  "
+                 f"{len(fallos)} do NOT")
     lines.append("")
     for c in res.checks:
-        marca = "OK  " if c.ok else ("FALLA" if c.ok is False else "  ?  ")
+        marca = "OK  " if c.ok else ("FAIL " if c.ok is False else "  ?  ")
         if c.desvio is None:
-            lines.append(f"[{marca}] {c.nombre}  (sin datos suficientes)")
+            lines.append(f"[{marca}] {c.nombre}  (insufficient data)")
         elif c.relativa:
-            lines.append(f"[{marca}] {c.nombre}  ({c.desvio * 100:.1f} % de "
-                         f"desvío, tolerancia {c.tolerancia * 100:.0f} %)")
+            lines.append(f"[{marca}] {c.nombre}  ({c.desvio * 100:.1f} % "
+                         f"deviation, tolerance {c.tolerancia * 100:.0f} %)")
         else:
-            lines.append(f"[{marca}] {c.nombre}  (tiene que dar cero; sale "
-                         f"{c.desvio:.2e}, tolerancia {c.tolerancia:g})")
+            lines.append(f"[{marca}] {c.nombre}  (must be zero; gives "
+                         f"{c.desvio:.2e}, tolerance {c.tolerancia:g})")
         va = "—" if c.valor_a is None else f"{c.valor_a:.4g}"
         vb = "—" if c.valor_b is None else f"{c.valor_b:.4g}"
         lines.append(f"         {c.ruta_a}: {va} {c.unidad}")
@@ -485,12 +485,12 @@ def report(res: CrossResult) -> str:
 
     if fallos:
         lines.append(
-            "Un cruce que falla NO dice cuál de los dos caminos está mal: "
-            "dice que uno de\nlos dos lo está. El diagnóstico de cada uno "
-            "indica qué mirar primero.")
+            "A failing cross-check does NOT say which of the two routes is wrong: "
+            "it says that one of\nthe two is. The diagnostic of each one "
+            "indicates what to look at first.")
     else:
         lines.append(
-            "Todos los cruces coinciden. Es la evidencia más fuerte que se "
-            "puede tener sin\nsalir del propio cálculo: dos rutas "
-            "independientes no se equivocan igual por\ncasualidad.")
+            "All cross-checks agree. This is the strongest evidence one "
+            "can have without\nleaving the calculation itself: two "
+            "independent routes do not make the same mistake by\nchance.")
     return "\n".join(lines)

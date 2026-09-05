@@ -63,7 +63,7 @@ def test_L_no_depende_de_la_temperatura_en_un_metal():
 def test_el_metal_no_dispara_la_alarma_de_cancelacion():
     run = gas_de_electrones()
     assert float(tr.cancelacion(run, 0)[0]) > 0.1
-    assert "NO TE FÍES" not in tr.report_lorenz(run)
+    assert "DO NOT TRUST" not in tr.report_lorenz(run)
 
 
 # ----------------------------------------------------------------------
@@ -90,7 +90,7 @@ def test_detecta_la_cancelacion_catastrofica():
     r = _run_falso([sig] * 3, [S] * 3, [kap] * 3)
     c = tr.cancelacion(r, 0)
     assert c[1] < 1e-3
-    assert "NO TE FÍES" in tr.report_lorenz(r)
+    assert "DO NOT TRUST" in tr.report_lorenz(r)
 
 
 def test_sin_cancelacion_no_avisa():
@@ -98,8 +98,8 @@ def test_sin_cancelacion_no_avisa():
     kap = tr.L0_SOMMERFELD * sig * T
     r = _run_falso([sig] * 3, [S] * 3, [kap] * 3)
     txt = tr.report_lorenz(r)
-    assert "NO TE FÍES" not in txt
-    assert "Wiedemann-Franz dentro de un 15" in txt
+    assert "DO NOT TRUST" not in txt
+    assert "Wiedemann-Franz holds within 15" in txt
 
 
 def test_por_encima_de_L0_habla_de_bipolar():
@@ -112,7 +112,7 @@ def test_por_debajo_de_L0_habla_de_no_degenerado():
     sig, S, T = 1e20, 20e-6, 300.0
     r = _run_falso([sig] * 3, [S] * 3, [0.6 * tr.L0_SOMMERFELD * sig * T] * 3)
     txt = tr.report_lorenz(r)
-    assert "NO es degenerado" in txt and "0.76" in txt
+    assert "is NOT degenerate" in txt and "0.76" in txt
 
 
 # ----------------------------------------------------------------------
@@ -151,12 +151,12 @@ def test_la_polarizacion_va_de_menos_uno_a_uno():
 
 def test_un_medio_metal_se_reconoce():
     te = _espin(1.0, 0.001, 20e-6, 20e-6)
-    assert "medio metal" in tr.report_espin(te)
+    assert "half-metal" in tr.report_espin(te)
 
 
 def test_sin_polarizacion_lo_dice():
     te = _espin(1.0, 1.0, 20e-6, 20e-6)
-    assert "no aporta nada" in tr.report_espin(te)
+    assert "adds nothing" in tr.report_espin(te)
 
 
 def test_la_termopotencia_de_espin_es_la_diferencia():

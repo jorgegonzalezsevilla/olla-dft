@@ -162,7 +162,7 @@ def run(check_only: bool = False, yes: bool = False, target: str | None = None) 
             ans = input("\n" + _T("¿Actualizar ahora? [s/N] ")).strip().lower()
         except EOFError:
             ans = ""
-        if ans not in ("s", "si", "sí", "y", "yes"):
+        if ans not in ("s", "si", "sí", "y", "yes", "j", "ja"):
             print(_T("No se hizo nada."))
             return 0
     return apply(plan)

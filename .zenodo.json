@@ -1,6 +1,6 @@
 {
   "title": "Olla-DFT: a command-line toolkit for Quantum ESPRESSO",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "upload_type": "software",
   "license": "AGPL-3.0-or-later",
   "language": "eng",
@@ -9,7 +9,7 @@
       "name": "González Sevilla, Jorge Enrique"
     }
   ],
-  "description": "<p>Olla-DFT prepares Quantum ESPRESSO inputs, analyzes material properties and organizes results with provenance. It includes an offline interactive explorer with SVG, PNG, CSV, JSON and HTML export, and checkpoint-based recovery for supported pw.x jobs.</p><p>Version 1.4.0 unifies English and Spanish in one application, package and release stream. The terminal menu offers a language selector and remembers the choice; commands remain non-interactive. Both documentation sets and example guides are included. Scientific algorithms and checkpoint formats are unchanged. Some scientific reports retain Spanish text.</p><p><a href=\"https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html\">Explore the visual gallery and download the bilingual PDFs on GitHub Pages</a>.</p><p>Recovery evidence remains three local matched pairs (SCF, relax, vc-relax), one pair per case, with simulated process interruptions. Physical power loss and disk loss recovery remain unmeasured. <a href=\"https://doi.org/10.5281/zenodo.22316032\">Benchmark and archived evidence</a>.</p><p>Author / Autor: Jorge Enrique González Sevilla. <a href=\"https://github.com/jorgegonzalezsevilla/olla-dft/blob/v1.4.0/LICENSING.md\">License scope / Alcance de la licencia</a>.</p>",
+  "description": "<p>Olla-DFT prepares Quantum ESPRESSO inputs, analyzes material properties and organizes results with provenance. It includes an offline interactive explorer with SVG, PNG, CSV, JSON and HTML export, and checkpoint-based recovery for supported pw.x jobs.</p><p>Version 1.5.0 uses English for scientific reports, diagnostic text and new figure labels, and adds a German interface alongside English and Spanish. German menus, command help, guided setup, recipes and the offline result explorer share the same calculations and data. The German interface uses the detailed English scientific reference. Structured identifiers and result formats retain their compatibility contracts.</p><p><a href=\"https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html\">Explore the visual gallery and download the bilingual PDFs on GitHub Pages</a>.</p><p>Recovery evidence remains three local matched pairs (SCF, relax, vc-relax), one pair per case, with simulated process interruptions. Physical power loss and disk loss recovery remain unmeasured. <a href=\"https://doi.org/10.5281/zenodo.22316032\">Benchmark and archived evidence</a>.</p><p>Author / Autor: Jorge Enrique González Sevilla. <a href=\"https://github.com/jorgegonzalezsevilla/olla-dft/blob/v1.5.0/LICENSING.md\">License scope / Alcance de la licencia</a>.</p>",
   "keywords": [
     "Quantum ESPRESSO",
     "density functional theory",

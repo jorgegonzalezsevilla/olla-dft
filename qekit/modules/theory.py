@@ -45,12 +45,13 @@ class Seccion:
 
 
 def _archivo(area: str, language: str) -> Path:
-    if language not in ("es", "en"):
-        raise ErrorDeUso("language debe ser es o en")
-    return THEORY_DIR / f"{area}.{language}.md"
+    if language not in ("es", "en", "de"):
+        raise ErrorDeUso("language must be en, es or de")
+    # The scientific reference is shared in English for the German interface.
+    return THEORY_DIR / f"{area}.{'en' if language == 'de' else language}.md"
 
 
-def area_titulo(area: str, language: str = "es") -> str:
+def area_titulo(area: str, language: str = "en") -> str:
     """El encabezado de nivel 2 del archivo de un área."""
     for line in _archivo(area, language).read_text(encoding="utf-8").splitlines():
         if line.startswith("## "):
@@ -58,7 +59,7 @@ def area_titulo(area: str, language: str = "es") -> str:
     return area
 
 
-def secciones(language: str = "es", areas=AREAS) -> list:
+def secciones(language: str = "en", areas=AREAS) -> list:
     """Todas las secciones, en el orden del documento."""
     fuera = []
     for area in areas:
@@ -83,7 +84,7 @@ def secciones(language: str = "es", areas=AREAS) -> list:
     return fuera
 
 
-def buscar(comando: str, language: str = "es"):
+def buscar(comando: str, language: str = "en"):
     """La sección de un comando, o None si no está documentado."""
     comando = comando.strip().lower()
     for sec in secciones(language):
@@ -92,12 +93,14 @@ def buscar(comando: str, language: str = "es"):
     return None
 
 
-def indice(language: str = "es") -> str:
+def indice(language: str = "en") -> str:
     """Lista legible de todo lo documentado, agrupado por área."""
     intro = {"es": f"Fundamento físico por comando. Uso:  {__command_name__} "
                    "teoria COMANDO   (o --all para todo, -o para guardarlo)",
              "en": f"Physics behind each command. Usage:  {__command_name__} "
-                   "theory COMMAND   (or --all for everything, -o to save it)"}
+                   "theory COMMAND   (or --all for everything, -o to save it)",
+             "de": "Wissenschaftliche Referenz (Englisch). Verwendung: "
+                   f"{__command_name__} theory COMMAND   (--all: alles, -o: speichern)"}
     lines = [intro[language], ""]
     for area in AREAS:
         lines.append(area_titulo(area, language))
@@ -121,7 +124,7 @@ def _quitar_markdown(texto: str) -> str:
     return "\n".join(fuera)
 
 
-def texto(comando: str = None, language: str = "es", crudo: bool = False) -> str:
+def texto(comando: str = None, language: str = "en", crudo: bool = False) -> str:
     """El texto que imprime el comando: una sección, o el índice."""
     if not comando:
         return indice(language)
@@ -129,15 +132,17 @@ def texto(comando: str = None, language: str = "es", crudo: bool = False) -> str
     if sec is None:
         conocidos = sorted({c for s in secciones(language) for c in s.comandos})
         raise ErrorDeUso(
-            f"no hay fundamento escrito para '{comando}'. Los que hay: "
+            f"no scientific background is documented for '{comando}'. Available: "
             + ", ".join(conocidos))
     return sec.texto if crudo else _quitar_markdown(sec.texto)
 
 
-def documento(language: str = "es") -> str:
+def documento(language: str = "en") -> str:
     """El documento completo de un idioma, tal como se publica en docs/."""
     titulo = {"es": "# Fundamento físico de Olla-DFT",
-              "en": "# The physics behind Olla-DFT"}
+              "en": "# The physics behind Olla-DFT",
+              "de": "# Wissenschaftliche Referenz — Englisch\n\n"
+                    "Die wissenschaftliche Referenz wird auf Englisch bereitgestellt."}
     partes = [titulo[language], ""]
     for area in AREAS:
         partes.append(_archivo(area, language).read_text(encoding="utf-8").rstrip())

@@ -87,29 +87,29 @@ def comprobar_extremos(inicial, final) -> list:
     s2 = list(final.get_chemical_symbols())
     if len(s1) != len(s2):
         problemas.append(
-            f"las dos estructuras tienen distinto número de átomos "
-            f"({len(s1)} y {len(s2)}). Un camino de reacción conserva los "
-            "átomos.")
+            f"the two structures have a different number of atoms "
+            f"({len(s1)} and {len(s2)}). A reaction path conserves the "
+            "atoms.")
         return problemas
     if s1 != s2:
         distintos = [i for i, (a, b) in enumerate(zip(s1, s2)) if a != b]
         problemas.append(
-            f"los átomos no están en el mismo ORDEN: difieren en las "
-            f"posiciones {distintos[:6]}"
+            f"the atoms are not in the same ORDER: they differ at "
+            f"positions {distintos[:6]}"
             f"{'...' if len(distintos) > 6 else ''}.\n"
-            "La interpolación va átomo por átomo, así que con el orden "
-            "cambiado los átomos se\natraviesan y el camino no significa "
-            "nada. Reordena una de las dos.")
+            "The interpolation goes atom by atom, so with the order "
+            "changed the atoms pass\nthrough each other and the path means "
+            "nothing. Reorder one of the two.")
     c1 = np.array(inicial.get_cell())
     c2 = np.array(final.get_cell())
     if not np.allclose(c1, c2, atol=1e-4):
         problemas.append(
-            "las celdas no son iguales. neb.x no relaja la celda: los dos "
-            "extremos tienen\nque estar en la misma.")
+            "the cells are not equal. neb.x does not relax the cell: both "
+            "endpoints must\nbe in the same one.")
     d = np.linalg.norm(final.get_positions() - inicial.get_positions(), axis=1)
     if d.max() < 1e-6:
         problemas.append(
-            "las dos estructuras son idénticas: no hay camino que buscar.")
+            "the two structures are identical: there is no path to search for.")
     return problemas
 
 
@@ -201,7 +201,7 @@ def prepare(inicial, final, outdir: str = "neb", n_imagenes: int = 7,
 
     problemas = comprobar_extremos(inicial, final)
     if problemas:
-        raise ErrorDeUso("los extremos del camino no son compatibles:\n\n" +
+        raise ErrorDeUso("the endpoints of the path are not compatible:\n\n" +
                          "\n\n".join("  " + p for p in problemas))
 
     common = sweep.prepare_common(inicial, pseudo_dir, ecutwfc, ecutrho,
@@ -220,27 +220,27 @@ def prepare(inicial, final, outdir: str = "neb", n_imagenes: int = 7,
 
     d = np.linalg.norm(final.get_positions() - inicial.get_positions(), axis=1)
     mueve = int(np.sum(d > 0.1))
-    rep = ["--- Camino de reacción (NEB) ---",
-           f"Estructura: {inicial.get_chemical_formula()} "
-           f"({len(inicial)} átomos)",
-           f"Átomos que se mueven más de 0.1 Å: {mueve}  "
-           f"(desplazamiento mayor: {d.max():.2f} Å)",
-           f"Imágenes: {n_imagenes}   imagen trepadora: "
-           f"{'sí' if ci else 'NO'}",
-           f"Umbral de fuerza del camino: {path_thr} eV/Å",
+    rep = ["--- Reaction path (NEB) ---",
+           f"Structure: {inicial.get_chemical_formula()} "
+           f"({len(inicial)} atoms)",
+           f"Atoms moving more than 0.1 Å: {mueve}  "
+           f"(largest displacement: {d.max():.2f} Å)",
+           f"Images: {n_imagenes}   climbing image: "
+           f"{'yes' if ci else 'NO'}",
+           f"Path force threshold: {path_thr} eV/Å",
            "",
-           f"Archivo en '{out.resolve()}': neb.in",
-           "Se corre con:  neb.x -inp neb.in > neb.out",
+           f"File in '{out.resolve()}': neb.in",
+           "Run it with:  neb.x -inp neb.in > neb.out",
            ""]
     if not ci:
-        rep += ["AVISO: sin imagen trepadora la barrera sale SUBESTIMADA. La "
-                "imagen más alta\nse queda cerca del máximo pero no encima, "
-                "y el error típico es de\ndécimas de eV.", ""]
+        rep += ["WARNING: without a climbing image the barrier is UNDERESTIMATED. The "
+                "highest image\nstays close to the maximum but not on top of it, "
+                "and the typical error is\ntenths of an eV.", ""]
     if n_imagenes < 5:
-        rep += [f"AVISO: {n_imagenes} imágenes son pocas. Con tan pocas el "
-                "máximo puede caer entre\ndos imágenes y perderse.", ""]
-    rep += ["Los dos extremos tienen que estar RELAJADOS con estos mismos "
-            "parámetros.\nSi no, la barrera incluye la relajación que faltaba."]
+        rep += [f"WARNING: {n_imagenes} images is too few. With so few the "
+                "maximum can fall between\ntwo images and be missed.", ""]
+    rep += ["Both endpoints must be RELAXED with these same "
+            "parameters.\nOtherwise, the barrier includes the missing relaxation."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -258,8 +258,8 @@ def collect(path, prefix: str = None) -> NebRun:
         dats = [d for d in dats if d.stem == prefix] or dats
     if not dats:
         raise ErrorDeUso(
-            f"no hay ningún <prefix>.dat en {p}. neb.x lo escribe con el "
-            "perfil de energía;\nsi no está, revisa neb.out.")
+            f"there is no <prefix>.dat in {p}. neb.x writes it with the "
+            "energy profile;\nif it is not there, check neb.out.")
     d = np.loadtxt(dats[0])
     if d.ndim == 1:
         d = d.reshape(1, -1)
@@ -298,12 +298,12 @@ def collect(path, prefix: str = None) -> NebRun:
         if malas:
             run.imagenes_malas = malas
             run.avisos.append(
-                "El scf NO convergio en la(s) imagen(es) "
+                "The scf did NOT converge on image(s) "
                 + ", ".join(str(i) for i in malas) +
-                ".\nLa energia y la fuerza de esas imagenes no son fiables, y "
-                "el camino entero\nhereda el error: por eso el perfil sale "
-                "dentado. Baja mixing_beta, sube\nelectron_maxstep, o afloja "
-                "conv_thr del motor.")
+                ".\nThe energy and force of those images are not reliable, and "
+                "the whole path\ninherits the error: that is why the profile comes out "
+                "jagged. Lower mixing_beta, raise\nelectron_maxstep, or loosen "
+                "the engine's conv_thr.")
 
     e = run.energias
     run.imagen_cima = int(np.argmax(e))
@@ -316,30 +316,30 @@ def collect(path, prefix: str = None) -> NebRun:
 
 
 def report(run: NebRun) -> str:
-    lines = ["--- Camino de reacción (NEB) ---",
-             f"Imágenes: {run.n_imagenes}"]
+    lines = ["--- Reaction path (NEB) ---",
+             f"Images: {run.n_imagenes}"]
     if run.ci is not None:
-        lines.append(f"Imagen trepadora: {'sí' if run.ci else 'NO'}")
+        lines.append(f"Climbing image: {'yes' if run.ci else 'NO'}")
     if run.pasos is not None:
-        lines.append(f"Iteraciones del camino: {run.pasos}")
+        lines.append(f"Path iterations: {run.pasos}")
     if run.convergido is not None:
-        lines.append(f"Convergido: {'sí' if run.convergido else 'NO'}")
+        lines.append(f"Converged: {'yes' if run.convergido else 'NO'}")
     lines += ["",
-              f"Barrera directa   (reactivo -> producto): "
+              f"Forward barrier   (reactant -> product): "
               f"{run.barrera_ida:8.4f} eV  "
               f"({run.barrera_ida * 96.485:7.1f} kJ/mol)",
-              f"Barrera inversa   (producto -> reactivo): "
+              f"Reverse barrier   (product -> reactant): "
               f"{run.barrera_vuelta:8.4f} eV  "
               f"({run.barrera_vuelta * 96.485:7.1f} kJ/mol)",
-              f"Energía de reacción (producto - reactivo): "
+              f"Reaction energy (product - reactant): "
               f"{run.delta_E:+8.4f} eV  "
               f"({run.delta_E * 96.485:+7.1f} kJ/mol)",
               "",
-              f"{'imagen':>7s} {'s':>8s} {'E (eV)':>10s} "
+              f"{'image':>7s} {'s':>8s} {'E (eV)':>10s} "
               f"{'F (eV/Å)':>10s}"]
     for i in range(run.n_imagenes):
         f = run.fuerzas[i] if run.fuerzas is not None else float("nan")
-        marca = "  <- cima" if i == run.imagen_cima else ""
+        marca = "  <- top" if i == run.imagen_cima else ""
         lines.append(f"{i + 1:7d} {run.s[i]:8.4f} {run.energias[i]:10.4f} "
                      f"{f:10.4f}{marca}")
 
@@ -350,26 +350,26 @@ def report(run: NebRun) -> str:
         paso = float(np.mean(np.diff(run.s))) if run.n_imagenes > 1 else 1.0
         if cerca > 0.4 * paso:
             lines += ["",
-                      "El máximo de la curva interpolada cae entre dos "
-                      "imágenes calculadas.\nEso quiere decir que el estado "
-                      "de transición NO está muestreado: sube\n"
-                      "--images, o deja que la imagen trepadora se coloque "
-                      "encima."]
+                      "The maximum of the interpolated curve falls between two "
+                      "computed images.\nThat means the transition "
+                      "state is NOT sampled: raise\n"
+                      "--images, or let the climbing image settle "
+                      "on top of it."]
     if run.ci is False:
         lines += ["",
-                  "Sin imagen trepadora, esta barrera es una COTA INFERIOR: "
-                  "la imagen más alta\nse queda por debajo del máximo real."]
+                  "Without a climbing image, this barrier is a LOWER BOUND: "
+                  "the highest image\nstays below the real maximum."]
     for a in run.avisos:
         lines += ["", a]
     if run.convergido is False:
         lines += ["",
-                  "El camino NO convergió. Los números de arriba son "
-                  "provisionales: sube\nnstep_path, o afloja path_thr y "
-                  "vuelve a apretar en un segundo tramo."]
+                  "The path did NOT converge. The numbers above are "
+                  "provisional: raise\nnstep_path, or loosen path_thr and "
+                  "tighten it again in a second stage."]
     lines += ["",
-              "Esta barrera es ELECTRÓNICA, a 0 K y sin energía de punto "
-              "cero. Para\ncompararla con una energía de activación "
-              "experimental hacen falta las\ncorrecciones térmicas: "
+              "This barrier is ELECTRONIC, at 0 K and without zero-point "
+              "energy. To\ncompare it with an experimental activation "
+              "energy, the thermal\ncorrections are needed: "
               "'olla-dft thermochem'."]
     return "\n".join(lines)
 
@@ -383,12 +383,12 @@ def export(run: NebRun, outdir: str = ".") -> list:
         cols.append(run.fuerzas); nombres.append("F(eV/A)")
     np.savetxt(f, np.column_stack(cols), fmt="%14.6f",
                header=provenance.header_plain(
-                   "camino de reaccion",
+                   "reaction path",
                    {"barrera_ida_eV": round(run.barrera_ida, 5),
                     "barrera_vuelta_eV": round(run.barrera_vuelta, 5),
                     "delta_E_eV": round(run.delta_E, 5),
                     "imagenes": run.n_imagenes, "CI": run.ci},
-                   titulo="Perfil de energia NEB") + "\n" +
+                   titulo="NEB energy profile") + "\n" +
                "  ".join(f"{n:>14s}" for n in nombres), comments="# ")
     txt = out / "NEB.txt"
     txt.write_text(report(run) + "\n")
@@ -404,7 +404,7 @@ def plot(run: NebRun, outfile: str = "neb", formats="pdf,png",
         import matplotlib
         matplotlib.use("Agg")
     except ImportError as exc:                          # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -413,12 +413,12 @@ def plot(run: NebRun, outfile: str = "neb", formats="pdf,png",
 
     if run.s_int is not None:
         ax.plot(run.s_int, run.e_int, lw=1.4, color=colores[0],
-                label="interpolación")
+                label="interpolation")
     ax.plot(run.s, run.energias, "o", ms=4.5, color=colores[1],
-            label="imágenes", zorder=3)
+            label="images", zorder=3)
     ax.plot(run.s[run.imagen_cima], run.energias[run.imagen_cima], "o",
             ms=7, mfc="none", mew=1.4, color=colores[2],
-            label="estado de transición", zorder=4)
+            label="transition state", zorder=4)
     ax.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"],
                dashes=[3.5, 2.0])
     ax.annotate("", xy=(run.s[run.imagen_cima], run.energias.max()),
@@ -428,7 +428,7 @@ def plot(run: NebRun, outfile: str = "neb", formats="pdf,png",
     ax.text(run.s[run.imagen_cima], 0.5 * (run.energias.max() +
                                            run.energias[0]),
             f"  {run.barrera_ida:.3f} eV", va="center", fontsize="small")
-    ax.set_xlabel("coordenada de reacción")
+    ax.set_xlabel("reaction coordinate")
     ax.set_ylabel("E (eV)")
     ax.legend(frameon=False, fontsize="small")
     return qstyle.save(fig, outfile, formats, dpi=dpi)

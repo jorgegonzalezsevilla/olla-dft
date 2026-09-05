@@ -159,9 +159,9 @@ def her(E_ads_H: float, correccion: float = None, T: float = 298.15) -> Echem:
                ("H* → ½H₂ + *", -g)]
     if correccion is None:
         e.avisos.append(
-            "La corrección térmica de H* (ZPE − TΔS = +0.24 eV) es el valor "
-            "estándar de\n  la literatura, no una calculada para tu "
-            "superficie. Para calcularla:\n  frecuencias del adsorbato y "
+            "The thermal correction of H* (ZPE − TΔS = +0.24 eV) is the "
+            "standard literature value,\n  not one computed for your "
+            "surface. To compute it:\n  adsorbate frequencies and "
             "'olla-dft thermochem'.")
     return e
 
@@ -184,9 +184,9 @@ def oer(energias: dict, correcciones: dict = None,
     faltan = [k for k in ("OH", "O", "OOH") if k not in energias]
     if faltan:
         raise ErrorDeUso(
-            f"para la OER hacen falta las energías de OH, O y OOH; faltan "
-            f"{', '.join(faltan)}. Sácalas de 'olla-dft adsorb' con cada "
-            f"adsorbato, referidas al agua.")
+            f"the OER needs the energies of OH, O and OOH; missing "
+            f"{', '.join(faltan)}. Get them from 'olla-dft adsorb' with each "
+            f"adsorbate, referred to water.")
     corr = dict(CORRECCIONES)
     corr.update(correcciones or {})
     e = Echem(reaccion="oer", T=T, energias=dict(energias), correcciones=corr)
@@ -200,15 +200,15 @@ def oer(energias: dict, correcciones: dict = None,
                (PASOS_OER[2][0], dg3), (PASOS_OER[3][0], dg4)]
     if dg4 < 0:
         e.avisos.append(
-            f"El cuarto paso sale NEGATIVO ({dg4:+.2f} eV) por diferencia con "
-            f"los 4.92 eV\n  totales. Quiere decir que la suma de los tres "
-            f"calculados ya se pasa: o hay\n  un error en las referencias, o "
-            f"tu superficie liga los intermedios muchísimo.")
+            f"The fourth step comes out NEGATIVE ({dg4:+.2f} eV) by difference from "
+            f"the 4.92 eV\n  total. It means the sum of the three "
+            f"computed steps already exceeds it: either there is\n  an error in the references, or "
+            f"your surface binds the intermediates extremely strongly.")
     if correcciones is None:
         e.avisos.append(
-            "Correcciones térmicas por omisión (OH 0.35, O 0.05, OOH 0.40 eV), "
-            "de la\n  literatura estándar sobre metales de transición. Si tu "
-            "superficie es otra cosa,\n  calcula las frecuencias y pásalas.")
+            "Default thermal corrections (OH 0.35, O 0.05, OOH 0.40 eV), "
+            "from the\n  standard literature on transition metals. If your "
+            "surface is something else,\n  compute the frequencies and pass them.")
     return e
 
 
@@ -227,8 +227,8 @@ def escala_ooh_oh(e: Echem) -> float:
     especial o hay un error en las referencias.
     """
     if e.reaccion != "oer" or "OOH" not in e.energias or "OH" not in e.energias:
-        raise FaltanDatos("la relación de escala OOH−OH solo tiene sentido "
-                          "en un perfil de OER con OH y OOH.")
+        raise FaltanDatos("the OOH−OH scaling relation only makes sense "
+                          "in an OER profile with OH and OOH.")
     return float(e.energias["OOH"] + e.correcciones.get("OOH", 0.0)
                  - e.energias["OH"] - e.correcciones.get("OH", 0.0))
 
@@ -248,67 +248,67 @@ def sobrepotencial_minimo_escala(delta: float = ESCALA_OOH_OH,
 # Reporte
 # ----------------------------------------------------------------------
 def report(e: Echem) -> str:
-    nombre = {"her": "evolución de hidrógeno (HER)",
-              "oer": "evolución de oxígeno (OER)"}[e.reaccion]
-    L = [f"--- Electrodo de hidrógeno computacional: {nombre} ---",
+    nombre = {"her": "hydrogen evolution (HER)",
+              "oer": "oxygen evolution (OER)"}[e.reaccion]
+    L = [f"--- Computational hydrogen electrode: {nombre} ---",
          f"T = {e.T:.2f} K   |   U = {e.U:.2f} V vs SHE   |   pH = {e.pH:g}"
          + (f"   (= {e.U_rhe():.2f} V vs RHE)" if e.pH else ""),
          ""]
-    L.append(f"  {'paso':44s} {'ΔG(0 V)':>10s} {'ΔG(U,pH)':>11s}")
+    L.append(f"  {'step':44s} {'ΔG(0 V)':>10s} {'ΔG(U,pH)':>11s}")
     L.append("  " + "-" * 68)
     for (nom, g0), (_, gu) in zip(e.pasos, e.dG(e.U, e.pH)):
         L.append(f"  {nom:44s} {g0:>10.3f} {gu:>11.3f}")
 
     paso, gmax = e.limitante
-    L += ["", f"Paso limitante: {paso}   (ΔG = {gmax:+.3f} eV)",
-          f"Potencial limitante U_L = {e.U_limitante:+.3f} V vs RHE"]
+    L += ["", f"Limiting step: {paso}   (ΔG = {gmax:+.3f} eV)",
+          f"Limiting potential U_L = {e.U_limitante:+.3f} V vs RHE"]
     eq = U_EQ_OER if e.reaccion == "oer" else U_EQ_HER
-    L.append(f"Sobrepotencial η = U_L − {eq:.3f} = "
-             f"{e.sobrepotencial:+.3f} V   (positivo = en U_eq el paso "
-             "limitante sigue cuesta arriba)")
+    L.append(f"Overpotential η = U_L − {eq:.3f} = "
+             f"{e.sobrepotencial:+.3f} V   (positive = at U_eq the limiting "
+             "step is still uphill)")
 
     if e.reaccion == "her":
         g = e.dG_H
         L += ["", f"Descriptor ΔG_H* = {g:+.3f} eV"]
         if abs(g) < 0.10:
-            L.append("  Muy cerca de cero: está en la cumbre del volcán, como "
-                     "el Pt (−0.09 eV).")
+            L.append("  Very close to zero: at the top of the volcano, like "
+                     "Pt (−0.09 eV).")
         elif g < 0:
-            L.append("  Negativo: el hidrógeno se pega demasiado y cuesta "
-                     "soltarlo. La rama\n  izquierda del volcán; el paso "
-                     "lento es la desorción.")
+            L.append("  Negative: hydrogen binds too strongly and is hard to "
+                     "release. The left\n  branch of the volcano; the slow step "
+                     "is desorption.")
         else:
-            L.append("  Positivo: el hidrógeno apenas se adsorbe. La rama "
-                     "derecha del volcán;\n  el paso lento es la adsorción.")
-        L.append("  Regla práctica: |ΔG_H*| < 0.2 eV es un buen catalizador "
-                 "de HER.")
+            L.append("  Positive: hydrogen barely adsorbs. The right "
+                     "branch of the volcano;\n  the slow step is adsorption.")
+        L.append("  Rule of thumb: |ΔG_H*| < 0.2 eV is a good HER "
+                 "catalyst.")
     else:
         eta = e.sobrepotencial
         if eta < 0.3:
-            L.append("  η < 0.3 V es excelente; los mejores óxidos medidos "
-                     "rondan 0.3 V.")
+            L.append("  η < 0.3 V is excellent; the best measured oxides "
+                     "are around 0.3 V.")
         elif eta > 0.8:
-            L.append("  η > 0.8 V: poco prometedor. Mira si algún paso está "
-                     "descompensado.")
+            L.append("  η > 0.8 V: not promising. Check whether some step is "
+                     "unbalanced.")
         # relación de escala OOH-OH
         d = escala_ooh_oh(e)
         eta_min = sobrepotencial_minimo_escala()
-        L += ["", f"Diferencia ΔG(OOH*) − ΔG(OH*) = {d:.3f} eV",
-              f"  La relación de escala universal la fija en {ESCALA_OOH_OH} "
-              "± 0.2 eV para casi cualquier\n  superficie, y de ahí sale el "
-              f"límite de ~{eta_min:.2f} V en el sobrepotencial de la OER.\n"
-              f"  Si tu número se sale mucho de {ESCALA_OOH_OH}, o has "
-              "encontrado algo interesante o hay un\n  error en las "
-              "referencias."]
+        L += ["", f"Difference ΔG(OOH*) − ΔG(OH*) = {d:.3f} eV",
+              f"  The universal scaling relation fixes it at {ESCALA_OOH_OH} "
+              "± 0.2 eV for almost any\n  surface, and from it follows the "
+              f"limit of ~{eta_min:.2f} V on the OER overpotential.\n"
+              f"  If your number departs much from {ESCALA_OOH_OH}, either you have "
+              "found something interesting or there is an\n  error in the "
+              "references."]
         if abs(d - 3.2) > 0.5:
-            L.append(f"  El tuyo está a {abs(d - 3.2):.2f} eV de 3.2: "
-                     "revísalo antes de celebrarlo.")
+            L.append(f"  Yours is {abs(d - 3.2):.2f} eV away from 3.2: "
+                     "check it before celebrating.")
 
-    L += ["", "El CHE es termodinámica de intermedios: NO hay barreras "
-              "cinéticas, ni\n  disolvente explícito, ni doble capa. Compara "
-              "catalizadores muy bien y\n  predice corrientes regular."]
+    L += ["", "The CHE is thermodynamics of intermediates: there are NO kinetic "
+              "barriers, no\n  explicit solvent, no double layer. It compares "
+              "catalysts very well and\n  predicts currents poorly."]
     for a in e.avisos:
-        L.append(f"\nAVISO: {a}")
+        L.append(f"\nWARNING: {a}")
     return "\n".join(L)
 
 
@@ -327,11 +327,11 @@ def export(e: Echem, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "ECHEM.dat"
     lines = [provenance.header(
-        f"electrodo de hidrogeno computacional ({e.reaccion})",
+        f"computational hydrogen electrode ({e.reaccion})",
         {"T_K": e.T, "U_V": e.U, "pH": e.pH,
          "U_limitante_V": e.U_limitante,
          "sobrepotencial_V": e.sobrepotencial}),
-        f"# {'paso':46s} {'dG0(eV)':>10s}"]
+        f"# {'step':46s} {'dG0(eV)':>10s}"]
     for nom, g in e.pasos:
         lines.append(f"  {nom:46s} {g:10.5f}")
     f.write_text("\n".join(lines) + "\n")
@@ -351,9 +351,9 @@ def plot(e: Echem, outfile: str = "echem", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     if not e.pasos:
-        raise FaltanDatos("no hay pasos que graficar.")
+        raise FaltanDatos("there are no steps to plot.")
 
     if potenciales is None:
         eq = U_EQ_OER if e.reaccion == "oer" else U_EQ_HER
@@ -380,8 +380,8 @@ def plot(e: Echem, outfile: str = "echem", formats="pdf,png",
                     lw=st["line"] * 0.8, color=cols[k % len(cols)],
                     dashes=[2.5, 2.0])
     ax.set_xticks(range(n + 1))
-    ax.set_xlabel("coordenada de reacción")
-    ax.set_ylabel(r"$\Delta G$ acumulada (eV)")
+    ax.set_xlabel("reaction coordinate")
+    ax.set_ylabel(r"cumulative $\Delta G$ (eV)")
     ax.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"],
                dashes=[3.5, 2.0])
     ax.legend(frameon=False, fontsize=st["legend"])

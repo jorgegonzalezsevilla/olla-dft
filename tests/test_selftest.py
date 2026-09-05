@@ -81,11 +81,11 @@ def test_una_prueba_con_error_no_cuenta_como_buena():
 def test_el_reporte_lleva_las_fuentes():
     res = st.ejecutar(claves=["madelung", "lorenz"], verbose=False)
     txt = st.report(res)
-    assert "fuente:" in txt
+    assert 'source:' in txt
     assert "Sommerfeld" in txt
 
 
 def test_el_reporte_cuenta_bien():
     res = st.ejecutar(con_qe=False, verbose=False)
     txt = st.report(res)
-    assert f"{len(res)} pruebas" in txt
+    assert f"{len(res)} tests" in txt

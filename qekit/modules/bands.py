@@ -159,7 +159,7 @@ def analyze_gap(bs: BandStructure, spin: int = 0) -> GapInfo:
     info = GapInfo(spin=spin, fermi=res.fermi)
 
     if energies.ndim != 2 or not energies.size or not np.isfinite(energies).all():
-        raise FaltanDatos("eigenvalores vacíos o no finitos; no se puede determinar el gap")
+        raise FaltanDatos("empty or non-finite eigenvalues; the gap cannot be determined")
 
     # Nivel de referencia para separar bandas ocupadas de vacías
     ref = res.fermi
@@ -192,7 +192,7 @@ def analyze_gap(bs: BandStructure, spin: int = 0) -> GapInfo:
         info.vbm = float(energies[:, below].max())
         return info
     if not np.any(below):
-        raise FaltanDatos("no hay bandas ocupadas para determinar el gap")
+        raise FaltanDatos("there are no occupied bands to determine the gap")
 
     vb_index = int(np.max(np.where(below)[0]))
     cb_index = int(np.min(np.where(above)[0]))
@@ -229,36 +229,36 @@ def analyze_gap(bs: BandStructure, spin: int = 0) -> GapInfo:
 def gap_report(bs: BandStructure) -> str:
     """Reporte legible del análisis de gap (todos los canales de espín)."""
     res = bs.result
-    lines = ["--- Análisis de band gap ---"]
-    lines.append(f"Archivo XML: {res.xml_path}")
-    lines.append(f"Cálculo: {res.calculation or '?'}  |  bandas: {res.nbnd}  |  "
-                 f"puntos k: {res.nk}  |  electrones: {res.nelec:g}")
+    lines = ["--- Band gap analysis ---"]
+    lines.append(f"XML file: {res.xml_path}")
+    lines.append(f"Calculation: {res.calculation or '?'}  |  bands: {res.nbnd}  |  "
+                 f"k-points: {res.nk}  |  electrons: {res.nelec:g}")
     if res.fermi is not None:
-        lines.append(f"Energía de Fermi: {res.fermi:.4f} eV")
+        lines.append(f"Fermi energy: {res.fermi:.4f} eV")
     if res.converged is False:
-        lines.append("ADVERTENCIA: el cálculo no convergió; el gap no está validado.")
+        lines.append("WARNING: the calculation did not converge; the gap is not validated.")
     lines.append("")
 
     for spin in range(res.nspin):
         if res.nspin == 2:
-            lines.append(f"[Canal de espín {'up' if spin == 0 else 'down'}]")
+            lines.append(f"[Spin channel {'up' if spin == 0 else 'down'}]")
         info = analyze_gap(bs, spin)
         if info.is_metal:
-            lines.append("  Sistema METÁLICO: hay bandas que cruzan el nivel de Fermi.")
+            lines.append("  METALLIC system: there are bands crossing the Fermi level.")
             lines.append("")
             continue
         if info.gap is None:
-            lines.append("  No hay bandas de conducción en el cálculo "
-                         "(aumenta nbnd para obtener el gap).")
+            lines.append("  There are no conduction bands in the calculation "
+                         "(increase nbnd to obtain the gap).")
             lines.append("")
             continue
-        tipo = "DIRECTO" if info.is_direct else "INDIRECTO"
-        lines.append(f"  Band gap fundamental: {info.gap:.4f} eV  ({tipo})")
-        lines.append(f"    VBM = {info.vbm:.4f} eV  en  {info.vbm_label}")
-        lines.append(f"    CBM = {info.cbm:.4f} eV  en  {info.cbm_label}")
+        tipo = "DIRECT" if info.is_direct else "INDIRECT"
+        lines.append(f"  Fundamental band gap: {info.gap:.4f} eV  ({tipo})")
+        lines.append(f"    VBM = {info.vbm:.4f} eV  at  {info.vbm_label}")
+        lines.append(f"    CBM = {info.cbm:.4f} eV  at  {info.cbm_label}")
         if not info.is_direct:
-            lines.append(f"  Gap directo mínimo: {info.direct_gap:.4f} eV  "
-                         f"en  {info.direct_label}")
+            lines.append(f"  Minimum direct gap: {info.direct_gap:.4f} eV  "
+                         f"at  {info.direct_label}")
         lines.append("")
 
     tiene_gap = any(
@@ -266,8 +266,8 @@ def gap_report(bs: BandStructure) -> str:
         for s in range(res.nspin)
     )
     if tiene_gap:
-        lines.append("Recuerda: los funcionales GGA/LDA subestiman el gap "
-                     "sistemáticamente (típicamente 30–50 %).")
+        lines.append("Remember: GGA/LDA functionals systematically underestimate "
+                     "the gap (typically by 30–50 %).")
     return "\n".join(lines).rstrip()
 
 
@@ -285,20 +285,20 @@ def reference_energy(bs: BandStructure, ref: str = "auto") -> tuple:
     """
     res = bs.result
     if ref == "none":
-        return 0.0, "sin desplazar (energías absolutas)"
+        return 0.0, "not shifted (absolute energies)"
     if ref == "fermi":
         if res.fermi is None:
-            return 0.0, "sin desplazar (no hay energía de Fermi en el XML)"
-        return res.fermi, "energía de Fermi"
+            return 0.0, "not shifted (no Fermi energy in the XML)"
+        return res.fermi, "Fermi energy"
     info = analyze_gap(bs, 0)
     if ref == "vbm":
         if info.vbm is None:
-            return (res.fermi or 0.0), "energía de Fermi (no se determinó el VBM)"
+            return (res.fermi or 0.0), "Fermi energy (the VBM could not be determined)"
         return info.vbm, "VBM"
     # auto
     if info.is_metal or info.vbm is None:
-        return (res.fermi or 0.0), "energía de Fermi (sistema metálico)"
-    return info.vbm, "VBM (sistema con gap)"
+        return (res.fermi or 0.0), "Fermi energy (metallic system)"
+    return info.vbm, "VBM (gapped system)"
 
 
 def export(bs: BandStructure, outdir: str = ".", ref: str = "auto") -> list:
@@ -314,10 +314,10 @@ def export(bs: BandStructure, outdir: str = ".", ref: str = "auto") -> list:
         suffix = "" if res.nspin == 1 else ("_up" if spin == 0 else "_dw")
         fname = out / f"BAND{suffix}.dat"
         header = [
-            provenance.header("bandas", {"origen_energias": ref_desc},
-                              titulo="Estructura de bandas"),
-            "# Columnas: k(Ang^-1)  " +
-            "  ".join(f"banda_{i + 1}" for i in range(res.nbnd)),
+            provenance.header("bands", {"origen_energias": ref_desc},
+                              titulo="Band structure"),
+            "# Columns: k(Ang^-1)  " +
+            "  ".join(f"band_{i + 1}" for i in range(res.nbnd)),
         ]
         table = np.column_stack([bs.kdist, energies])
         np.savetxt(fname, table, fmt="%14.8f", header="\n".join(header), comments="")
@@ -325,7 +325,7 @@ def export(bs: BandStructure, outdir: str = ".", ref: str = "auto") -> list:
 
     if bs.labels:
         fname = out / "KLABELS.dat"
-        lines = ["# etiqueta   k(Ang^-1)   indice_k"]
+        lines = ["# label   k(Ang^-1)   k_index"]
         for idx, lab in bs.labels:
             lines.append(f"{lab:12s} {bs.kdist[idx]:14.8f} {idx:8d}")
         Path(fname).write_text("\n".join(lines) + "\n")
@@ -400,7 +400,7 @@ def plot(
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError(
-            "matplotlib no está instalado. Instálalo con:\n"
+            "matplotlib is not installed. Install it with:\n"
             "  pip install matplotlib --break-system-packages"
         ) from exc
 
@@ -442,7 +442,7 @@ def plot(
                 label = None
                 if ib == 0 and s0 == 0 and res.nspin == 2 and fat is None:
                     label = qstyle.tex_safe(
-                        "espín ↑" if spin == 0 else "espín ↓")
+                        "spin ↑" if spin == 0 else "spin ↓")
                 ax.plot(bs.kdist[s0:s1], energies[s0:s1, ib], label=label, **kw)
         if fat is not None:
             w = np.clip(np.asarray(fat)[min(spin, fat.shape[0] - 1)], 0.0, None)
@@ -478,15 +478,16 @@ def plot(
         ax.set_xlabel(f"$k$ ({qstyle.angstrom()}$^{{-1}}$)")
     ax.set_xlim(bs.kdist[0], bs.kdist[-1])
 
-    ax.set_ylabel(r"$E - E_\mathrm{F}$ (eV)" if _ref_desc.startswith("energía")
-                  else r"$E - E_\mathrm{VBM}$ (eV)")
+    ax.set_ylabel(r"$E - E_\mathrm{F}$ (eV)" if _ref_desc.startswith("Fermi energy")
+                  else r"$E - E_\mathrm{VBM}$ (eV)" if _ref_desc.startswith("VBM")
+                  else r"$E$ (eV)")
     ax.set_ylim(emin, emax)
 
     info = analyze_gap(bs, 0)
     if mark_extrema and not info.is_metal and info.gap is not None:
         _mark_extrema(ax, bs, info, shift, mono)
         if gap_label:
-            tipo = "directo" if info.is_direct else "indirecto"
+            tipo = "direct" if info.is_direct else "indirect"
             ax.annotate(
                 f"$E_\\mathrm{{g}}$ = {info.gap:.2f} eV ({tipo})",
                 xy=(0.5, 0.02), xycoords="axes fraction",
@@ -568,9 +569,9 @@ def leer_proyecciones(path) -> Proyecciones:
                 break
         else:
             raise FileNotFoundError(
-                f"no encontré la salida de projwfc.x en '{path}'. Debe "
-                f"llamarse projwfc.out y venir del cálculo de BANDAS (el mismo "
-                f"camino de k), no del nscf de la DOS.")
+                f"could not find the projwfc.x output in '{path}'. It must "
+                f"be named projwfc.out and come from the BANDS calculation (the "
+                f"same k-path), not from the DOS nscf.")
     texto = p.read_text(errors="ignore")
 
     estados = []
@@ -581,8 +582,8 @@ def leer_proyecciones(path) -> Proyecciones:
                         "l": int(l), "orb": _LETRA.get(int(l), f"l{l}")})
     if not estados:
         raise ErrorDeUso(
-            f"'{p}' no tiene la lista de estados atómicos de projwfc.x. "
-            f"¿Es de verdad una salida de projwfc.x?")
+            f"'{p}' has no list of atomic states from projwfc.x. "
+            f"Is it really a projwfc.x output?")
     nest = max(e["n"] for e in estados)
 
     bloques, actual, spin = [], None, 0
@@ -613,9 +614,9 @@ def leer_proyecciones(path) -> Proyecciones:
 
     if not bloques:
         raise ErrorDeUso(
-            f"'{p}' no trae los bloques 'psi = ...' con la composición de cada "
-            f"banda. projwfc.x solo los escribe si NO se le pasa filproj a "
-            f"secas; comprueba que la salida esté completa.")
+            f"'{p}' does not contain the 'psi = ...' blocks with the composition "
+            f"of each band. projwfc.x only writes them if filproj is NOT passed "
+            f"alone; check that the output is complete.")
 
     por_spin = {}
     for b in bloques:
@@ -650,11 +651,11 @@ def peso_de(proy: Proyecciones, selector: str) -> np.ndarray:
         try:
             n = int(sel.split(":", 1)[1])
         except ValueError:
-            raise ErrorDeUso(f"'{selector}' debería ser atomo:N.") from None
+            raise ErrorDeUso(f"'{selector}' should be atomo:N.") from None
         idx = [e["n"] - 1 for e in proy.estados if e["atomo"] == n]
         if not idx:
             raise ErrorDeUso(
-                f"no hay ningún estado del átomo {n}; los átomos van de 1 a "
+                f"there is no state for atom {n}; atoms run from 1 to "
                 f"{max(e['atomo'] for e in proy.estados)}.")
         return proy.pesos[:, :, :, idx].sum(axis=3)
 
@@ -669,7 +670,7 @@ def peso_de(proy: Proyecciones, selector: str) -> np.ndarray:
            and (orbital is None or e["orb"] == orbital)]
     if not idx:
         raise ErrorDeUso(
-            f"'{selector}' no encaja con nada. Lo que hay: "
+            f"'{selector}' does not match anything. Available: "
             f"{', '.join(proy.etiquetas)}.")
     return proy.pesos[:, :, :, idx].sum(axis=3)
 
@@ -684,43 +685,43 @@ def comprobar_compatibilidad(bs: BandStructure, proy: Proyecciones) -> None:
     """
     e = bs.energies
     if e is None:
-        raise FaltanDatos("no hay bandas que decorar.")
+        raise FaltanDatos("there are no bands to decorate.")
     nk_b, nb_b = e.shape[1], e.shape[2]
     nk_p, nb_p = proy.pesos.shape[1], proy.pesos.shape[2]
     if nk_b != nk_p:
         raise ErrorDeUso(
-            f"las bandas tienen {nk_b} puntos k y las proyecciones {nk_p}. "
-            f"No son del mismo cálculo: projwfc.x tiene que correr sobre el "
-            f"cálculo de BANDAS (el del camino de alta simetría), no sobre el "
-            f"nscf de la DOS.")
+            f"the bands have {nk_b} k-points and the projections {nk_p}. "
+            f"They are not from the same calculation: projwfc.x must run on "
+            f"the BANDS calculation (the high-symmetry path one), not on the "
+            f"DOS nscf.")
     if nb_p < nb_b:
         raise ErrorDeUso(
-            f"las proyecciones solo llegan a la banda {nb_p} y hay {nb_b}. "
-            f"Vuelve a correr projwfc.x sobre el mismo cálculo.")
+            f"the projections only reach band {nb_p} and there are {nb_b}. "
+            f"Rerun projwfc.x on the same calculation.")
 
 
 def report_fat(proy: Proyecciones, selector: str, bs: BandStructure = None,
                shift: float = 0.0) -> str:
     w = peso_de(proy, selector)
-    L = [f"--- Proyección '{selector}' sobre las bandas ---",
-         f"Fuente: {proy.fuente}",
-         f"{len(proy.estados)} estados atómicos, "
-         f"{proy.pesos.shape[1]} puntos k, {proy.pesos.shape[2]} bandas"
-         + ("  (dos canales de espín)" if proy.nspin == 2 else ""),
-         f"Disponibles: {', '.join(proy.etiquetas)}",
+    L = [f"--- Projection '{selector}' onto the bands ---",
+         f"Source: {proy.fuente}",
+         f"{len(proy.estados)} atomic states, "
+         f"{proy.pesos.shape[1]} k-points, {proy.pesos.shape[2]} bands"
+         + ("  (two spin channels)" if proy.nspin == 2 else ""),
+         f"Available: {', '.join(proy.etiquetas)}",
          "",
-         f"Peso medio del selector sobre todas las bandas: {w.mean():.4f}",
-         f"Peso máximo en una banda: {w.max():.4f}"]
+         f"Mean weight of the selector over all bands: {w.mean():.4f}",
+         f"Maximum weight in a band: {w.max():.4f}"]
     total = proy.pesos.sum(axis=3)
     perdido = 1.0 - float(total.mean())
     if perdido > 0.10:
-        L.append(f"\nDe media, un {perdido * 100:.0f} % de cada función de "
-                 f"onda NO cae dentro de ninguna\n  esfera atómica. En un "
-                 f"material abierto o con mucho vacío es normal, pero quiere "
-                 f"decir\n  que los pesos de la gráfica no suman uno.")
+        L.append(f"\nOn average, {perdido * 100:.0f} % of each wave function "
+                 f"does NOT fall inside any\n  atomic sphere. In an open "
+                 f"material or one with a lot of vacuum this is normal, but it "
+                 f"means\n  that the weights in the plot do not add up to one.")
     if bs is not None and bs.energies is not None:
         e = bs.energies[0] - shift
         pesada = np.unravel_index(int(np.argmax(w[0])), w[0].shape)
-        L.append(f"\nLa banda con más peso es la {pesada[1] + 1} en el punto k "
-                 f"{pesada[0] + 1}, a {e[pesada]:+.3f} eV.")
+        L.append(f"\nThe band with the largest weight is band {pesada[1] + 1} at k-point "
+                 f"{pesada[0] + 1}, at {e[pesada]:+.3f} eV.")
     return "\n".join(L)

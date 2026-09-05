@@ -132,7 +132,7 @@ def test_se_niega_a_mezclar_dos_calculos(proy):
 def test_el_reporte_avisa_del_peso_que_falta(proy):
     """En la banda 3 del segundo k solo se proyecta el 50 %: hay que decirlo."""
     txt = bands.report_fat(proy, "Si")
-    assert "NO cae dentro de ninguna" in txt
+    assert 'does NOT fall inside any' in txt
 
 
 def test_lee_una_carpeta(tmp_path):

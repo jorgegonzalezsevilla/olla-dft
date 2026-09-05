@@ -63,7 +63,7 @@ def test_la_malla_de_exx_tiene_que_dividir_la_de_k(tmp_path):
     """pw.x se detiene con 'nqx must be a divisor of nk'."""
     with pytest.raises(ErrorDeUso) as exc:
         _generar(tmp_path, hibrido="hse", exx_grid=(3, 3, 3))
-    assert "DIVIDIR" in str(exc.value)
+    assert 'DIVIDE' in str(exc.value)
 
 
 def test_una_malla_valida_pasa(tmp_path):
@@ -91,20 +91,20 @@ def test_el_coste_se_da_con_un_numero(tmp_path):
     r1 = _generar(tmp_path / "a", hibrido="hse", exx_grid=(1, 1, 1))
     r8 = _generar(tmp_path / "b", hibrido="hse", exx_grid=(2, 2, 2))
     r64 = _generar(tmp_path / "c", hibrido="hse", exx_grid=(4, 4, 4))
-    assert "unas 6 veces" in r1
-    assert "unas 24 veces" in r8
-    assert "unas 169 veces" in r64
+    assert 'about 6 times' in r1
+    assert 'about 24 times' in r8
+    assert 'about 169 times' in r64
 
 
 def test_avisa_de_que_la_malla_q_cambia_el_resultado(tmp_path):
     rep = _generar(tmp_path, hibrido="hse", exx_grid=(2, 2, 2))
-    assert "CONVERGENCIA" in rep
+    assert 'CONVERGENCE' in rep
     assert "2.68" in rep and "1.41" in rep, "los numeros medidos, no adjetivos"
 
 
 def test_con_una_sola_q_avisa_de_que_no_sirve_para_citar(tmp_path):
     rep = _generar(tmp_path, hibrido="hse", exx_grid=(1, 1, 1))
-    assert "sobrestimado" in rep
+    assert 'overestimated' in rep
 
 
 def test_avisa_de_que_no_hay_bandas_con_hibrido(tmp_path):
@@ -112,7 +112,7 @@ def test_avisa_de_que_no_hay_bandas_con_hibrido(tmp_path):
                                pseudo_dir="/no/existe", kspacing=0.55,
                                hibrido="hse")
     rep2 = inputgen.generate(bulk("Si", "diamond", 5.4073), opts)
-    assert "NO puede hacer un cálculo 'bands' con EXX" in rep2
+    assert "NOT do a 'bands' calculation with EXX" in rep2
 
 
 def test_el_divisor_sugerido_es_valido():

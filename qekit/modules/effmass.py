@@ -46,6 +46,7 @@ Lo que el reporte deja explícito, porque es donde se cuela el error:
 """
 
 import json
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -163,7 +164,7 @@ def from_bands(bs: bands_mod.BandStructure, spin: int = 0,
         window = WINDOW_DEFAULT
     info = bands_mod.analyze_gap(bs, spin=spin)
     run = EffMassRun(is_metal=info.is_metal, vbm=info.vbm, cbm=info.cbm,
-                     source="camino de bandas")
+                     source="band path")
     if info.is_metal:
         return run
 
@@ -225,16 +226,16 @@ def from_bands(bs: bands_mod.BandStructure, spin: int = 0,
                 r2=_r2(x, y, coef),
             )
             if len(idx) < 5:
-                fit.warning = ("solo %d puntos: el ajuste no es confiable; "
-                               "haz el cálculo dedicado (effmass sin "
-                               "--collect y luego --collect)" % len(idx))
+                fit.warning = ("only %d points: the fit is not reliable; "
+                               "run the dedicated calculation (effmass without "
+                               "--collect and then --collect)" % len(idx))
             elif fit.window > PARABOLIC_MAX + _TOL_VENTANA:
                 # las dos son extensiones totales del tramo: se compara
                 # lo mismo con lo mismo
                 fit.warning = (
-                    "tramo ajustado de %.3f Å⁻¹ (límite parabólico %.2f): "
-                    "el camino no tiene puntos más finos; haz el cálculo "
-                    "dedicado (effmass sin --collect y luego --collect)"
+                    "fitted segment of %.3f Å⁻¹ (parabolic limit %.2f): "
+                    "the path has no finer points; run the dedicated "
+                    "calculation (effmass without --collect and then --collect)"
                     % (fit.window, PARABOLIC_MAX))
             run.fits.append(fit)
     return run
@@ -304,8 +305,8 @@ def prepare(atoms, bs: bands_mod.BandStructure, outdir: str = "masa_efectiva",
         npts += 1
     info = bands_mod.analyze_gap(bs, spin=spin)
     if info.is_metal:
-        raise ErrorDeUso("el sistema es metálico: la masa efectiva por "
-                         "ajuste parabólico no aplica")
+        raise ErrorDeUso("the system is metallic: the effective mass by "
+                         "parabolic fit does not apply")
 
     atoms = struct_mod.primitive(atoms)
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho,
@@ -350,19 +351,19 @@ def prepare(atoms, bs: bands_mod.BandStructure, outdir: str = "masa_efectiva",
     )
     sweep.write_input(out / "scf.in", scf)
 
-    rep = ["--- Masa efectiva: camino fino ---",
-           f"VBM en {info.vbm_label} ({info.vbm:.4f} eV)  |  "
-           f"CBM en {info.cbm_label} ({info.cbm:.4f} eV)",
-           f"{len(meta)} líneas ({npts} puntos cada una, "
+    rep = ["--- Effective mass: fine path ---",
+           f"VBM at {info.vbm_label} ({info.vbm:.4f} eV)  |  "
+           f"CBM at {info.cbm_label} ({info.cbm:.4f} eV)",
+           f"{len(meta)} lines ({npts} points each, "
            f"±{half_width} Å⁻¹):",
            "  " + "  |  ".join(
-               f"{c}: {', '.join(d for cc, d, _, _ in meta if cc == c)}"
+               f"{_CARRIER_EN.get(c, c)}: {', '.join(_direction_en(d) for cc, d, _, _ in meta if cc == c)}"
                for c in dict.fromkeys(x[0] for x in meta)),
-           f"Total: {len(lineas)} puntos k",
+           f"Total: {len(lineas)} k-points",
            "",
-           f"Archivos en '{out.resolve()}': scf.in, masa.in",
-           "Orden: pw.x -in scf.in  ->  pw.x -in masa.in",
-           "Después: olla-dft effmass estructura.cif --collect -o " + str(outdir)]
+           f"Files in '{out.resolve()}': scf.in, masa.in",
+           "Order: pw.x -in scf.in  ->  pw.x -in masa.in",
+           "Then: olla-dft effmass structure.cif --collect -o " + str(outdir)]
     if sweep.writing_inputs():
         (out / "masa_meta.json").write_text(json.dumps(
             {"lineas": [{"portador": c, "direccion": d, "npts": n,
@@ -379,8 +380,8 @@ def load_meta(outdir) -> list:
     f = Path(outdir) / "masa_meta.json"
     if not f.exists():
         raise FileNotFoundError(
-            f"falta {f}: corre primero 'olla-dft effmass ... --bands-dir ...' "
-            "para preparar el cálculo fino")
+            f"{f} is missing: first run 'olla-dft effmass ... --bands-dir ...' "
+            "to prepare the fine calculation")
     d = json.loads(f.read_text())
     return [(x["portador"], x["direccion"], x["npts"], x["kindex"])
             for x in d["lineas"]]
@@ -392,7 +393,7 @@ def collect_fine(xml_path, meta, spin: int = 0,
     res = qeout.read_xml(xml_path)
     E = res.eigenvalues[spin]
     kc = res.kpoints_cart
-    run = EffMassRun(source="camino fino dedicado")
+    run = EffMassRun(source="dedicated fine path")
 
     # Identificar valencia/conducción por el CONTEO DE ELECTRONES, no por el
     # nivel de Fermi: un cálculo 'bands' se corre sobre puntos k arbitrarios
@@ -412,8 +413,8 @@ def collect_fine(xml_path, meta, spin: int = 0,
         vb = int(np.max(candidatos)) if len(candidatos) else 0
     cb = min(vb + 1, E.shape[1] - 1)
     if cb == vb:
-        raise FaltanDatos("el cálculo no tiene bandas de conducción; "
-                         "aumenta nbnd")
+        raise FaltanDatos("the calculation has no conduction bands; "
+                         "increase nbnd")
 
     pos = 0
     for carrier, nombre, npts, _ in meta:
@@ -449,53 +450,65 @@ def collect_fine(xml_path, meta, spin: int = 0,
 
 
 # ----------------------------------------------------------------------
+#: English display names of the carrier identifiers ("hueco"/"electrón"
+#: are kept as stored in MassFit.carrier and in masa_meta.json).
+_CARRIER_EN = {"hueco": "hole", "electrón": "electron"}
+
+
+def _direction_en(value):
+    for old, new in (("transversal 1", "transverse 1"), ("transversal 2", "transverse 2"),
+                     ("ambos", "both"), ("izq", "left"), ("der", "right")):
+        value = re.sub(r"\b" + re.escape(old) + r"\b", new, value)
+    return value
+
+
 def report(run: EffMassRun) -> str:
     if run.is_metal:
-        return ("--- Masa efectiva ---\nEl sistema es metálico: no hay un "
-                "extremo de banda aislado que ajustar.\nPara un metal lo "
-                "comparable es la masa de banda en la superficie de Fermi,\n"
-                "que necesita otro tipo de cálculo.")
-    lines = ["--- Masa efectiva (m*/mₑ) ---",
-             f"Fuente: {run.source}"]
+        return ("--- Effective mass ---\nThe system is metallic: there is no "
+                "isolated band extremum to fit.\nFor a metal the "
+                "comparable quantity is the band mass at the Fermi surface,\n"
+                "which requires a different kind of calculation.")
+    lines = ["--- Effective mass (m*/mₑ) ---",
+             f"Source: {run.source}"]
     if run.vbm is not None and run.cbm is not None:
         lines.append(f"VBM = {run.vbm:.4f} eV   CBM = {run.cbm:.4f} eV   "
                      f"gap = {run.cbm - run.vbm:.4f} eV")
     lines += ["",
-              f"{'portador':10s} {'banda':>6s} {'m*/me':>9s} {'R²':>7s} "
-              f"{'pts':>4s} {'Δk(Å⁻¹)':>9s}  dirección"]
+              f"{'carrier':10s} {'band':>6s} {'m*/me':>9s} {'R²':>7s} "
+              f"{'pts':>4s} {'Δk(Å⁻¹)':>9s}  direction"]
     for f in run.fits:
-        m = "   n/d" if f.mass is None or not np.isfinite(f.mass) \
+        m = "   n/a" if f.mass is None or not np.isfinite(f.mass) \
             else f"{f.mass:9.3f}"
-        r2 = "  n/d" if f.r2 is None or not np.isfinite(f.r2) \
+        r2 = "  n/a" if f.r2 is None or not np.isfinite(f.r2) \
             else f"{f.r2:7.4f}"
         etiqueta = f"{f.k_label} " if f.k_label else ""
-        lines.append(f"{f.carrier:10s} {f.band + 1:6d} {m} {r2} "
-                     f"{f.npts:4d} {f.window:9.4f}  {etiqueta}{f.direction}")
+        lines.append(f"{_CARRIER_EN.get(f.carrier, f.carrier):10s} {f.band + 1:6d} {m} {r2} "
+                     f"{f.npts:4d} {f.window:9.4f}  {etiqueta}{_direction_en(f.direction)}")
         if f.warning:
             lines.append(f"           ↳ {f.warning}")
     lines += ["",
-              "El signo sale del ajuste: negativo = curvatura hacia abajo "
-              "(hueco).",
-              "Un R² de 1.0000 con 3 o 4 puntos no dice nada — una parábola "
-              "pasa exacta\npor tres puntos cualesquiera."]
+              "The sign comes from the fit: negative = downward curvature "
+              "(hole).",
+              "An R² of 1.0000 with 3 or 4 points says nothing — a parabola "
+              "passes exactly\nthrough any three points."]
     if any(f.carrier == "hueco" for f in run.fits):
         lines += ["",
-                  "OJO con los huecos: este cálculo NO incluye acoplamiento "
-                  "espín-órbita, así\nque cerca de Γ hay un triplete "
-                  "degenerado, no el par hueco pesado / hueco\nligero del "
-                  "modelo de Luttinger. Los valores tabulados en la "
-                  "literatura sí lo\nincluyen: coinciden bien en [100] y "
-                  "[111] y pueden discrepar en [110]."]
+                  "CAUTION with holes: this calculation does NOT include "
+                  "spin-orbit coupling, so\nnear Γ there is a degenerate "
+                  "triplet, not the heavy-hole / light-hole\npair of the "
+                  "Luttinger model. Values tabulated in the "
+                  "literature do\ninclude it: they agree well along [100] and "
+                  "[111] and may disagree along [110]."]
     return "\n".join(lines)
 
 
 def export(run: EffMassRun, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "MASA_EFECTIVA.dat"
-    lines = [provenance.header("masa efectiva", {"fuente": run.source},
-                               titulo="Masa efectiva"),
-             f"# {'portador':10s} {'banda':>6s} {'m*/me':>10s} {'R2':>8s} "
-             f"{'pts':>4s} {'dk(A^-1)':>10s}  direccion"]
+    lines = [provenance.header("effective mass", {"fuente": run.source},
+                               titulo="Effective mass"),
+             f"# {'carrier':10s} {'band':>6s} {'m*/me':>10s} {'R2':>8s} "
+             f"{'pts':>4s} {'dk(A^-1)':>10s}  direction"]
     for x in run.fits:
         lines.append(f"{x.carrier:12s} {x.band + 1:6d} {x.mass:10.4f} "
                      f"{x.r2:8.4f} {x.npts:4d} {x.window:10.4f}  "

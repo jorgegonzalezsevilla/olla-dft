@@ -64,8 +64,8 @@ def _voxel_volume(cube: fields.CubeData, density_units: str) -> tuple:
     """
     if density_units not in DENSITY_UNITS:
         raise ErrorDeUso(
-            f"unidades de densidad '{density_units}' desconocidas; "
-            f"opciones: {', '.join(DENSITY_UNITS)}")
+            f"unknown density units '{density_units}'; "
+            f"options: {', '.join(DENSITY_UNITS)}")
     celda = cube.axes * np.array(cube.shape)[:, None]
     dv_A3 = abs(np.linalg.det(celda)) / float(np.prod(cube.shape))
     dv = dv_A3 / BOHR ** 3 if density_units == "e/bohr3" else dv_A3
@@ -117,8 +117,8 @@ def read_lowdin(projwfc_out, symbols=None, valence=None) -> LowdinResult:
     pares = _RE_LOWDIN.findall(txt)
     if not pares:
         raise FaltanDatos(
-            f"no hay cargas de Löwdin en '{projwfc_out}'. projwfc.x las "
-            "imprime solo si corrió completo; revisa su salida.")
+            f"there are no Löwdin charges in '{projwfc_out}'. projwfc.x only "
+            "prints them if it ran to completion; check its output.")
     orden = sorted((int(i), float(q)) for i, q in pares)
     res = LowdinResult(charges=np.array([q for _, q in orden]))
     m = _RE_SPILL.search(txt)
@@ -132,28 +132,28 @@ def read_lowdin(projwfc_out, symbols=None, valence=None) -> LowdinResult:
 
 
 def report_lowdin(res: LowdinResult) -> str:
-    lines = ["--- Cargas de Löwdin ---"]
+    lines = ["--- Löwdin charges ---"]
     if res.spilling is not None:
-        lines.append(f"Parámetro de derrame (spilling): {res.spilling:.4f}")
+        lines.append(f"Spilling parameter: {res.spilling:.4f}")
         if res.spilling > 0.05:
             lines.append(
-                "  AVISO: por encima de ~0.05 la base atómica no describe "
-                "bien los estados;\n  las cargas proyectadas pierden "
-                "significado.")
-    lines += ["", f"{'átomo':>8s} {'especie':>8s} {'carga(e)':>10s} "
-                  f"{'neta':>8s}"]
+                "  WARNING: above ~0.05 the atomic basis does not describe "
+                "the states well;\n  the projected charges lose "
+                "meaning.")
+    lines += ["", f"{'atom':>8s} {'species':>8s} {'charge(e)':>10s} "
+                  f"{'net':>8s}"]
     for i, q in enumerate(res.charges):
         sym = res.symbols[i] if i < len(res.symbols) else "?"
         if res.valence is not None and i < len(res.valence):
             neta = res.valence[i] - q
             lines.append(f"{i+1:8d} {sym:>8s} {q:10.4f} {neta:+8.3f}")
         else:
-            lines.append(f"{i+1:8d} {sym:>8s} {q:10.4f} {'n/d':>8s}")
+            lines.append(f"{i+1:8d} {sym:>8s} {q:10.4f} {'n/a':>8s}")
     lines += ["",
-              "La 'neta' es Z_valencia − carga proyectada: positiva = el "
-              "átomo cedió carga.",
-              "Löwdin depende de la base de orbitales del pseudo; es útil "
-              "para COMPARAR\nátomos entre sí, no como carga absoluta."]
+              "The 'net' charge is Z_valence − projected charge: positive = the "
+              "atom donated charge.",
+              "Löwdin depends on the orbital basis of the pseudopotential; it is "
+              "useful to COMPARE\natoms with each other, not as an absolute charge."]
     return "\n".join(lines)
 
 
@@ -273,41 +273,41 @@ def bader(cube: fields.CubeData, positions: np.ndarray, symbols=None,
 
 
 def report_bader(res: BaderResult) -> str:
-    lines = ["--- Cargas de Bader (on-grid) ---",
-             f"Carga total en las cuencas: {res.total:.4f} e   "
-             f"(integral de la rejilla: {res.total_grid:.4f} e)"]
+    lines = ["--- Bader charges (on-grid) ---",
+             f"Total charge in the basins: {res.total:.4f} e   "
+             f"(grid integral: {res.total_grid:.4f} e)"]
     err = abs(res.total - res.total_grid)
     if err > 1e-3:
-        lines.append(f"  AVISO: se perdieron {err:.4f} e al repartir en "
-                     "cuencas; la malla del cube es demasiado gruesa.")
+        lines.append(f"  WARNING: {err:.4f} e were lost when partitioning into "
+                     "basins; the cube grid is too coarse.")
     if res.valence is not None and len(res.valence) == len(res.charges):
         z_tot = float(np.sum(res.valence))
-        lines.append(f"Electrones de valencia según los UPF: {z_tot:.4f} e")
+        lines.append(f"Valence electrons according to the UPF files: {z_tot:.4f} e")
         if abs(res.total_grid - z_tot) > 0.05 * max(z_tot, 1.0):
             lines.append(
-                f"  AVISO: la integral de la rejilla ({res.total_grid:.3f} e) "
-                f"no coincide con Z_valencia total ({z_tot:.3f} e).\n"
-                "  Revisa que el cube sea la densidad de valencia completa "
-                "(plot_num=0) y que\n  los UPF de --pseudo-dir sean los del "
-                "cálculo.")
-    lines += ["", f"{'átomo':>8s} {'especie':>8s} {'carga(e)':>10s} "
-                  f"{'neta':>8s} {'volumen(Å³)':>12s}"]
+                f"  WARNING: the grid integral ({res.total_grid:.3f} e) "
+                f"does not match the total Z_valence ({z_tot:.3f} e).\n"
+                "  Check that the cube is the full valence density "
+                "(plot_num=0) and that\n  the UPF files in --pseudo-dir are those of the "
+                "calculation.")
+    lines += ["", f"{'atom':>8s} {'species':>8s} {'charge(e)':>10s} "
+                  f"{'net':>8s} {'volume(Å³)':>12s}"]
     for i, (q, v) in enumerate(zip(res.charges, res.volumes)):
         sym = res.symbols[i] if i < len(res.symbols) else "?"
         if res.valence is not None and i < len(res.valence):
             lines.append(f"{i+1:8d} {sym:>8s} {q:10.4f} "
                          f"{res.valence[i]-q:+8.3f} {v:12.3f}")
         else:
-            lines.append(f"{i+1:8d} {sym:>8s} {q:10.4f} {'n/d':>8s} "
+            lines.append(f"{i+1:8d} {sym:>8s} {q:10.4f} {'n/a':>8s} "
                          f"{v:12.3f}")
     lines += ["",
-              "Método on-grid: la asignación sigue la subida más empinada "
-              "entre vecinos de\nla rejilla. Hereda el sesgo de malla del "
-              "método (centésimas de electrón);\npara números finos usa la "
-              "variante near-grid del código `bader` de Henkelman.",
-              "OJO: la densidad debe incluir la carga de valencia completa "
-              "(plot_num=0).\nCon pseudopotenciales, la carga de Bader se "
-              "compara contra Z_valencia, no Z."]
+              "On-grid method: the assignment follows the steepest ascent "
+              "between neighbouring\ngrid points. It inherits the grid bias of the "
+              "method (hundredths of an electron);\nfor precise numbers use the "
+              "near-grid variant of Henkelman's `bader` code.",
+              "NOTE: the density must include the full valence charge "
+              "(plot_num=0).\nWith pseudopotentials, the Bader charge is "
+              "compared against Z_valence, not Z."]
     return "\n".join(lines)
 
 
@@ -320,10 +320,10 @@ def difference(total: fields.CubeData, partes: list) -> fields.CubeData:
     for p in partes:
         if tuple(p.shape) != tuple(total.shape):
             raise ErrorDeUso(
-                f"las rejillas no coinciden: {total.shape} contra {p.shape}. "
-                "Las tres densidades tienen que salir de cálculos con la "
-                "MISMA celda, la misma malla FFT y los mismos cutoffs — si "
-                "no, la resta no significa nada.")
+                f"the grids do not match: {total.shape} versus {p.shape}. "
+                "The three densities must come from calculations with the "
+                "SAME cell, the same FFT grid and the same cutoffs — "
+                "otherwise the subtraction is meaningless.")
         d -= np.asarray(p.data, dtype=float)
     return fields.CubeData(origin=total.origin, axes=total.axes,
                            shape=total.shape, data=d, natoms=total.natoms)
@@ -338,17 +338,17 @@ def report_difference(cube: fields.CubeData, axis: int = 2,
     neto = float(d.sum()) * dv
     acum = float(d[d > 0].sum()) * dv
     return "\n".join([
-        "--- Diferencia de densidad de carga ---",
-        f"Carga neta transferida: {neto:+.4f} e   "
-        f"(debería ser ~0 si las partes suman el total)",
-        f"Carga acumulada (regiones positivas): {acum:.4f} e",
-        f"Máximo del perfil planar: {prof.max():+.5f}  en "
+        "--- Charge density difference ---",
+        f"Net transferred charge: {neto:+.4f} e   "
+        f"(should be ~0 if the parts add up to the total)",
+        f"Accumulated charge (positive regions): {acum:.4f} e",
+        f"Maximum of the planar profile: {prof.max():+.5f}  at "
         f"z = {z[int(np.argmax(prof))]:.2f} Å",
-        f"Mínimo del perfil planar: {prof.min():+.5f}  en "
+        f"Minimum of the planar profile: {prof.min():+.5f}  at "
         f"z = {z[int(np.argmin(prof))]:.2f} Å",
         "",
-        "Positivo = se acumula carga al formarse el sistema; negativo = se "
-        "vacía.",
+        "Positive = charge accumulates when the system forms; negative = "
+        "charge is depleted.",
     ])
 
 
@@ -374,7 +374,7 @@ def plot_difference(cube: fields.CubeData, outfile: str = "diferencia_carga",
     ax.fill_between(z, 0, prof, where=prof < 0, color=c[1], alpha=0.18, lw=0)
     ax.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"])
     ax.set_xlabel(f"{'xyz'[axis]} (Å)")
-    ax.set_ylabel(r"$\Delta\rho$ promediado en el plano (e/bohr$^3$)")
+    ax.set_ylabel(r"planar-averaged $\Delta\rho$ (e/bohr$^3$)")
     ax.set_xlim(z.min(), z.max())
     written = qstyle.save(fig, outfile, formats, dpi=dpi,
                           modulo="diferencia de densidad")

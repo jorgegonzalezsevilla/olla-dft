@@ -52,7 +52,7 @@ def test_qekit_importa_sin_los_paquetes_de_ml():
 
 def test_modelo_desconocido_se_rechaza():
     from qekit.modules import mlip
-    with pytest.raises(ValueError, match="modelo desconocido"):
+    with pytest.raises(ValueError, match='unknown model'):
         mlip.calculator("inventado")
 
 
@@ -67,7 +67,7 @@ def test_marca_de_procedencia_se_escribe_y_se_lee(tmp_path):
     assert Path(f).exists()
     d = mlip.read_provenance(tmp_path)
     assert d["origen"] == "mlip:mace"
-    assert "NO es comparable" in d["aviso"]
+    assert 'is NOT comparable' in d["aviso"]
 
 
 def test_audit_separa_energias_mlip_de_las_dft():
@@ -81,7 +81,7 @@ def test_audit_separa_energias_mlip_de_las_dft():
     assert not a["comparables"]
     claves = [c for c, _ in a["difieren"]]
     assert "origen" in claves
-    assert "potencial aprendido" in audit.report(a)
+    assert 'learned potential' in audit.report(a)
 
 
 def test_casco_se_niega_a_mezclar_origenes():
@@ -91,7 +91,7 @@ def test_casco_se_niega_a_mezclar_origenes():
     b.origen = "mlip:mace"
     res = thermo.from_runs([a, b])
     assert res.fases == []
-    assert any("potenciales aprendidos" in w for w in res.warnings)
+    assert any("learned potentials" in w for w in res.warnings)
 
 
 def test_la_base_registra_el_origen(tmp_path):
@@ -174,7 +174,7 @@ def test_exportar_lleva_encabezado_explicativo(tmp_path):
     fb.registrar("algo", dir_=tmp_path)
     out = fb.exportar(tmp_path / "inc.json", dir_=tmp_path)
     doc = json.loads(Path(out).read_text())
-    assert "reproducir el fallo" in doc["que_es"]
+    assert 'failure can be reproduced' in doc["que_es"]
     assert doc["incidencias"] and doc["estadisticas"]["total"] == 1
 
 
@@ -187,11 +187,11 @@ def test_malla_exige_tres_numeros():
     assert _malla("8x8x8") == (8, 8, 8)
     assert _malla("8,8,8") == (8, 8, 8)
     assert _malla(None) is None
-    with pytest.raises(ValueError, match="TRES numeros"):
+    with pytest.raises(ValueError, match="THREE numbers"):
         _malla("1x2")
-    with pytest.raises(ValueError, match="enteros"):
+    with pytest.raises(ValueError, match='integer numbers'):
         _malla("8x8xocho")
-    with pytest.raises(ValueError, match="positiva"):
+    with pytest.raises(ValueError, match='positive'):
         _malla("0x8x8")
 
 
@@ -225,8 +225,8 @@ def test_recomendador_no_inventa_sin_historial():
     from qekit.modules import recommend as rc
     sug = rc.sugerir([_fila(formula="Si2")], ["B", "N"])
     assert sug[0].campo == "(sin historial)"
-    assert "pseudopotencial" in sug[0].razon
-    assert "no una predicción" in sug[0].razon
+    assert "pseudopotential" in sug[0].razon
+    assert "not a prediction" in sug[0].razon
 
 
 def test_recomendador_marca_la_confianza():
@@ -236,12 +236,12 @@ def test_recomendador_marca_la_confianza():
     muchos = rc.sugerir([_fila() for _ in range(10)], ["Si"])
     assert [s for s in muchos if s.campo == "ecutwfc"][0].confianza == "alta"
     texto = rc.report(uno, ["Si"], 1)
-    assert "UN SOLO CASO" in texto
+    assert "A SINGLE CASE" in texto
 
 
 def test_recomendador_avisa_en_losas():
     from qekit.modules import recommend as rc
     sug = rc.sugerir([_fila() for _ in range(4)], ["Si"], es_losa=True)
     mixing = [s for s in sug if s.campo == "mixing_beta"]
-    assert mixing and "oscilación de carga" in mixing[0].razon
+    assert mixing and "charge sloshing" in mixing[0].razon
     assert mixing[0].n_casos == 0        # es regla general, no historial

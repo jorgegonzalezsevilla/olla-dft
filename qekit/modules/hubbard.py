@@ -155,8 +155,8 @@ def leer_parametros(path) -> list:
     p = Path(path)
     if not p.exists():
         raise ErrorDeUso(
-            f"no existe {p}. hp.x escribe ese archivo al terminar; si no "
-            "está, revisa la salida de hp.x.")
+            f"{p} does not exist. hp.x writes that file when it finishes; if it "
+            "is not there, check the hp.x output.")
     sitios, dentro = [], False
     for linea in p.read_text(errors="ignore").splitlines():
         if "Hubbard U parameters" in linea:
@@ -171,8 +171,8 @@ def leer_parametros(path) -> list:
                                  U=float(m.group(7))))
     if not sitios:
         raise ErrorDeUso(
-            f"{p.name} no trae ninguna U. Si hp.x terminó bien, revisa que "
-            "el scf llevara lda_plus_u=.true. y un Hubbard_U de arranque.")
+            f"{p.name} contains no U. If hp.x finished correctly, check that "
+            "the scf had lda_plus_u=.true. and a starting Hubbard_U.")
     return sitios
 
 
@@ -191,7 +191,7 @@ def leer_v(path) -> tuple:
     p = Path(path)
     if not p.exists():
         raise ErrorDeUso(
-            f"no existe {p}. hp.x escribe ese archivo al terminar.")
+            f"{p} does not exist. hp.x writes that file when it finishes.")
     texto = p.read_text(errors="ignore")
     if "Hubbard V parameters" not in texto:
         return [], None
@@ -243,23 +243,23 @@ def tarjeta_hubbard(sitios: list, pares: list = None,
 
 def report_v(pares: list, supercelda=None, umbral: float = 0.01) -> str:
     if not pares:
-        return ("No hay parámetros V en la salida de hp.x.\n"
-                "  hp.x solo los calcula si el scf pidió DFT+U+V "
-                "(lda_plus_u_kind=2 en QE <= 7.0,\n  o una tarjeta HUBBARD "
-                "con términos V en QE >= 7.1). Con un scf de U a secas, "
-                "hp.x\n  devuelve solo las U y eso es lo que hay.")
+        return ("There are no V parameters in the hp.x output.\n"
+                "  hp.x only computes them if the scf requested DFT+U+V "
+                "(lda_plus_u_kind=2 in QE <= 7.0,\n  or a HUBBARD card "
+                "with V terms in QE >= 7.1). With a plain U scf, "
+                "hp.x\n  returns only the U values and that is all there is.")
     sitio = [p for p in pares if p.es_sitio]
     inter = [p for p in pares if not p.es_sitio and abs(p.V) >= umbral]
-    L = ["--- Parámetros V intersitio ---"]
+    L = ["--- Intersite V parameters ---"]
     if supercelda:
-        L.append(f"Vecinos buscados en una supercelda "
-                 f"{supercelda[0]}x{supercelda[1]}x{supercelda[2]}")
+        L.append(f"Neighbours searched in a "
+                 f"{supercelda[0]}x{supercelda[1]}x{supercelda[2]} supercell")
     if sitio:
-        L += ["", "En el sitio (equivalen a la U):"]
+        L += ["", "On-site (equivalent to U):"]
         for p in sitio:
             L.append(f"  {p.i:>3d} {p.el_i:<3s}                       "
                      f"{p.V:8.4f} eV")
-    L += ["", f"Entre vecinos (por encima de {umbral:g} eV):",
+    L += ["", f"Between neighbours (above {umbral:g} eV):",
           f"  {'i':>4s} {'':4s} {'j':>4s} {'':4s} {'d (bohr)':>10s} "
           f"{'V (eV)':>9s}"]
     for p in sorted(inter, key=lambda x: -abs(x.V)):
@@ -268,16 +268,16 @@ def report_v(pares: list, supercelda=None, umbral: float = 0.01) -> str:
     descartados = len([p for p in pares
                        if not p.es_sitio and abs(p.V) < umbral])
     if descartados:
-        L.append(f"  ({descartados} pares por debajo de {umbral:g} eV, "
-                 f"no se listan)")
+        L.append(f"  ({descartados} pairs below {umbral:g} eV, "
+                 f"not listed)")
     if inter:
         mayor = max(inter, key=lambda x: abs(x.V))
         L += ["",
-              f"El V mayor es {mayor.V:.4f} eV entre {mayor.el_i}{mayor.i} y "
-              f"{mayor.el_j}{mayor.j}, a {mayor.distancia:.3f} bohr.",
-              "  Un V del orden de una décima de eV ya cambia el gap de un "
-              "óxido de transición;\n  por eso el nivel U+V no es lo mismo "
-              "que U y no se pueden comparar entre sí."]
+              f"The largest V is {mayor.V:.4f} eV between {mayor.el_i}{mayor.i} and "
+              f"{mayor.el_j}{mayor.j}, at {mayor.distancia:.3f} bohr.",
+              "  A V of the order of a tenth of an eV already changes the gap of a "
+              "transition-metal oxide;\n  that is why the U+V level is not the same "
+              "as U and the two cannot be compared with each other."]
     return "\n".join(L)
 
 
@@ -323,16 +323,16 @@ def prepare(atoms, outdir: str = "hubbard", especies=None,
 
     if hubbard_style not in ("legacy", "card"):
         raise ErrorDeUso(
-            f"hubbard_style desconocido: {hubbard_style!r}. Usa 'legacy' "
-            f"(QE <= 7.0) o 'card' (QE >= 7.1).")
+            f"unknown hubbard_style: {hubbard_style!r}. Use 'legacy' "
+            f"(QE <= 7.0) or 'card' (QE >= 7.1).")
     especies = list(especies or elementos_hubbard(atoms))
     if not especies:
         raise ErrorDeUso(
-            "ninguna especie de la estructura es candidata habitual a DFT+U "
+            "no species in the structure is a usual candidate for DFT+U "
             f"({', '.join(dict.fromkeys(atoms.get_chemical_symbols()))}).\n"
-            "DFT+U corrige orbitales LOCALIZADOS: d de metales de "
-            "transición, f de tierras raras. Si de todas formas quieres "
-            "perturbar otra especie, dila con --species.")
+            "DFT+U corrects LOCALIZED orbitals: d of transition "
+            "metals, f of rare earths. If you still want to "
+            "perturb another species, specify it with --species.")
 
     hub = {s: float((U_inicial or {}).get(s, U_SEMILLA)) for s in especies}
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho,
@@ -359,28 +359,28 @@ def prepare(atoms, outdir: str = "hubbard", especies=None,
                       build_hp_input(common["prefix"], qgrid))
 
     ncel = int(np.prod(qgrid))
-    rep = ["--- U de Hubbard por respuesta lineal ---",
-           f"Estructura: {atoms.get_chemical_formula()} ({len(atoms)} átomos)",
-           f"Especies perturbadas: {', '.join(especies)}  "
+    rep = ["--- Hubbard U by linear response ---",
+           f"Structure: {atoms.get_chemical_formula()} ({len(atoms)} atoms)",
+           f"Perturbed species: {', '.join(especies)}  "
            f"(orbital {', '.join(ORBITAL_HUBBARD.get(s, '?') for s in especies)})",
-           "U de arranque: " + ", ".join(f"{k}={v:g} eV" for k, v in hub.items()),
-           f"Proyección: {proyeccion}",
-           f"Malla de q: {qgrid[0]}x{qgrid[1]}x{qgrid[2]}  "
-           f"(equivale a una supercelda de {ncel} celdas)",
+           "Starting U: " + ", ".join(f"{k}={v:g} eV" for k, v in hub.items()),
+           f"Projection: {proyeccion}",
+           f"q-grid: {qgrid[0]}x{qgrid[1]}x{qgrid[2]}  "
+           f"(equivalent to a supercell of {ncel} cells)",
            "",
-           f"Archivos en '{out.resolve()}': scf.in, hp.in",
-           "Orden:  pw.x -in scf.in   ->   hp.x -in hp.in",
+           f"Files in '{out.resolve()}': scf.in, hp.in",
+           "Order:  pw.x -in scf.in   ->   hp.x -in hp.in",
            ""]
     if ncel == 1:
-        rep += ["AVISO: con nq = 1x1x1 la perturbación ve sus propias "
-                "imágenes periódicas y\nel U sale mal. Usa al menos 2x2x2 y "
-                "comprueba que el número no cambie al\nsubir la malla.", ""]
-    rep += ["El U que salga de aquí es de PRIMERA ITERACIÓN: depende del U "
-            "que se usó\nen el scf. El autoconsistente sale de repetir el "
-            "ciclo (olla-dft hubbard --cycle).",
+        rep += ["WARNING: with nq = 1x1x1 the perturbation sees its own "
+                "periodic images and\nthe U comes out wrong. Use at least 2x2x2 and "
+                "check that the number does not change when\nincreasing the grid.", ""]
+    rep += ["The U that comes out of here is a FIRST-ITERATION U: it depends on the U "
+            "used\nin the scf. The self-consistent one comes from repeating the "
+            "cycle (olla-dft hubbard --cycle).",
             "",
-            f"El número solo vale con la MISMA proyección ('{proyeccion}'). "
-            "Un U de la\nliteratura calculado con otra proyección no es "
+            f"The number is only valid with the SAME projection ('{proyeccion}'). "
+            "A U from the\nliterature computed with another projection is not "
             "comparable."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
@@ -414,9 +414,9 @@ def run_hp(workdir, cmd: str = None, nproc: int = None,
     exe = Path(base[-1]).parent / "hp.x" if "/" in base[-1] else Path("hp.x")
     if not shutil.which(str(exe)) and not Path(exe).exists():
         raise ErrorDeUso(
-            f"no se encontró hp.x junto a pw.x ('{exe}'). Es parte de "
-            "Quantum ESPRESSO pero no se compila por defecto:\n"
-            "  cd <fuente de QE> && make hp")
+            f"hp.x was not found next to pw.x ('{exe}'). It is part of "
+            "Quantum ESPRESSO but is not compiled by default:\n"
+            "  cd <QE source> && make hp")
     with open(work / f"{stem}.in") as fin, open(work / f"{stem}.out", "w") as fo:
         proc = subprocess.run(base[:-1] + [str(exe)], stdin=fin, stdout=fo,
                               stderr=subprocess.STDOUT, cwd=str(work))
@@ -432,7 +432,7 @@ def collect(path, qgrid=None, proyeccion: str = "ortho-atomic") -> HubbardRun:
     dats = sorted(p.glob("*.Hubbard_parameters.dat"))
     if not dats:
         raise ErrorDeUso(
-            f"no hay ningún *.Hubbard_parameters.dat en {p}. Corre primero:\n"
+            f"there is no *.Hubbard_parameters.dat in {p}. First run:\n"
             "  pw.x -in scf.in  &&  hp.x -in hp.in")
     run = HubbardRun(sitios=leer_parametros(dats[0]), qgrid=qgrid,
                      proyeccion=proyeccion)
@@ -441,17 +441,17 @@ def collect(path, qgrid=None, proyeccion: str = "ortho-atomic") -> HubbardRun:
 
 
 def report(run: HubbardRun) -> str:
-    lines = ["--- U de Hubbard por respuesta lineal ---"]
+    lines = ["--- Hubbard U by linear response ---"]
     if run.qgrid:
-        lines.append(f"Malla de q: {run.qgrid[0]}x{run.qgrid[1]}x"
+        lines.append(f"q-grid: {run.qgrid[0]}x{run.qgrid[1]}x"
                      f"{run.qgrid[2]}")
-    lines.append(f"Proyección: {run.proyeccion}")
-    lines += ["", f"{'sitio':>6s} {'especie':>9s} {'U (eV)':>9s}"]
+    lines.append(f"Projection: {run.proyeccion}")
+    lines += ["", f"{'site':>6s} {'species':>9s} {'U (eV)':>9s}"]
     for s in run.sitios:
         lines.append(f"{s.sitio:6d} {s.etiqueta:>9s} {s.U:9.4f}")
 
     if len(run.iteraciones) > 1:
-        lines += ["", "Ciclo de autoconsistencia:"]
+        lines += ["", "Self-consistency cycle:"]
         etiquetas = sorted(run.iteraciones[-1])
         cab = "  iter  " + "  ".join(f"{e:>9s}" for e in etiquetas)
         lines.append(cab)
@@ -462,33 +462,33 @@ def report(run: HubbardRun) -> str:
         prim, ult = run.iteraciones[0], run.iteraciones[-1]
         mov = max(abs(ult[e] - prim.get(e, ult[e])) for e in etiquetas)
         lines += ["",
-                  f"El U se movió {mov:.3f} eV entre la primera vuelta y la "
-                  f"última."]
+                  f"U moved by {mov:.3f} eV between the first and the "
+                  f"last iteration."]
         if run.convergido:
-            lines.append(f"Convergido: el cambio bajó de {run.tol:g} eV.")
+            lines.append(f"Converged: the change dropped below {run.tol:g} eV.")
         else:
             lines.append(
-                "NO convergido: se agotaron las iteraciones. El número de "
-                "abajo es\nprovisional; sube --max-iter o afloja --tol.")
+                "NOT converged: the iterations ran out. The number "
+                "below is\nprovisional; raise --max-iter or loosen --tol.")
         if mov > 0.5:
             lines.append(
-                f"  Que se moviera {mov:.2f} eV es la razón por la que una "
-                "sola vuelta no basta:\n  un U de primera iteración habría "
-                "dado un número bastante distinto.")
+                f"  That it moved {mov:.2f} eV is the reason why a "
+                "single iteration is not enough:\n  a first-iteration U would have "
+                "given a rather different number.")
     else:
         lines += ["",
-                  "U de PRIMERA ITERACIÓN. Depende del U que llevaba el scf "
-                  "de partida.\nEl autoconsistente sale de repetir el ciclo: "
+                  "FIRST-ITERATION U. It depends on the U used in the starting "
+                  "scf.\nThe self-consistent one comes from repeating the cycle: "
                   "olla-dft hubbard ... --cycle"]
 
     for a in run.avisos:
         lines += ["", a]
     lines += ["",
-              f"Este U solo vale con la proyección '{run.proyeccion}'. Un U "
-              "de la literatura\ncalculado con otra proyección no es el mismo "
-              "número, aunque el elemento\ny el compuesto coincidan.",
+              f"This U is only valid with the '{run.proyeccion}' projection. A U "
+              "from the literature\ncomputed with another projection is not the same "
+              "number, even if the element\nand the compound coincide.",
               "",
-              "Cómo usarlo:  olla-dft gen estructura.cif --hubbard " +
+              "How to use it:  olla-dft gen structure.cif --hubbard " +
               " ".join(f"{k}={v:.2f}" for k, v in run.U.items())]
     return "\n".join(lines)
 
@@ -497,13 +497,13 @@ def export(run: HubbardRun, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "HUBBARD_U.dat"
     cab = provenance.header_plain(
-        "U de Hubbard por respuesta lineal",
+        "Hubbard U by linear response",
         {"proyeccion": run.proyeccion,
          "qgrid": "x".join(str(q) for q in (run.qgrid or ())) or None,
          "iteraciones": len(run.iteraciones),
          "convergido": run.convergido},
-        titulo="Parametros de Hubbard (hp.x)")
-    filas = ["# sitio  especie   U(eV)"]
+        titulo="Hubbard parameters (hp.x)")
+    filas = ["# site   species   U(eV)"]
     for s in run.sitios:
         filas.append(f"{s.sitio:7d} {s.etiqueta:>8s} {s.U:9.4f}")
     f.write_text(cab + "\n" + "\n".join(filas) + "\n")
@@ -566,8 +566,8 @@ def ciclo(atoms, outdir: str = "hubbard", especies=None, qgrid=(2, 2, 2),
 
     if not run.convergido:
         run.avisos.append(
-            f"Se hicieron {len(run.iteraciones)} vueltas sin bajar de "
-            f"{tol} eV. Mira la tabla: si el número oscila arriba y abajo, "
-            "baja --mixing a 0.5; si baja despacio pero siempre en el mismo "
-            "sentido, sube --max-iter.")
+            f"{len(run.iteraciones)} iterations were done without dropping below "
+            f"{tol} eV. Look at the table: if the number oscillates up and down, "
+            "lower --mixing to 0.5; if it decreases slowly but always in the same "
+            "direction, raise --max-iter.")
     return run

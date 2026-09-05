@@ -6,31 +6,17 @@
 # Software Foundation, either version 3 of the License, or (at your option)
 # any later version. See the LICENSE file for details.
 
-"""Idioma de la interfaz: inglés (por defecto) o español, en un solo paquete.
+"""Interface languages: English (default), Spanish and German.
 
-Olla-DFT se escribió en español y ese sigue siendo el idioma de los
-informes científicos. Lo que sí se traduce es la *interfaz*: la ayuda de
-cada comando y de cada bandera, el menú interactivo, el inicio guiado, el
-dashboard y la referencia HTML.
+Scientific reports are written in English. Help, menus, guided setup,
+recipes, dashboards and the offline explorer follow the selected locale.
 
-El idioma se decide, en este orden:
+Precedence: --language, OLLA_DFT_LANG, saved configuration, then English.
+Interactive startup offers a language selector and saves the choice.
 
-  1. la bandera global ``--language en`` (se acepta en cualquier posición);
-  2. la variable de entorno ``OLLA_DFT_LANG``;
-  3. la clave ``language`` de la configuración (``olla-dft config set language en``);
-  4. inglés.
-
-Al abrir el menú sin una bandera de idioma se ofrece un selector bilingüe.
-Su elección se guarda y se pasa explícitamente a los comandos del menú.
-
-Las traducciones viven en ``qekit/data/i18n/cli_en.json`` (ayuda de la CLI)
-y en los demás archivos de esa carpeta. Este módulo no traduce mensajes en
-tiempo de ejecución: solo textos de ayuda e interfaz.
-
-Los catálogos de datos (las recetas, las metas del asistente) no se
-duplican por idioma: ``translate_data`` recorre la estructura original y
-devuelve una copia con cada cadena pasada por una tabla ``{es: en}`` que
-vive en ``qekit/data/i18n/<nombre>.json`` (``load_table``).
+The original Spanish help/catalog strings remain stable message identifiers;
+JSON catalogs map them to English or German. Structured scientific data,
+command aliases, file paths and external program output are never translated.
 """
 
 import dataclasses
@@ -39,7 +25,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-LANGUAGES = ("es", "en")
+LANGUAGES = ("es", "en", "de")
 DEFAULT_LANGUAGE = "en"
 ENV_VAR = "OLLA_DFT_LANG"
 
@@ -54,7 +40,7 @@ def set_language(language) -> str:
         _current = None
         return get_language()
     if language not in LANGUAGES:
-        raise ValueError(f"idioma no admitido: {language!r} (usa es o en)")
+        raise ValueError(f"unsupported language: {language!r} (use en, es or de)")
     _current = language
     return _current
 
@@ -122,7 +108,7 @@ def translate(text: str, language=None) -> str:
     language = language or get_language()
     if language == "es" or not text:
         return text
-    table = _load("cli_en.json")
+    table = _load(f"cli_{language}.json")
     return table.get("help", {}).get(text) or text
 
 
@@ -132,7 +118,7 @@ def ui(key: str, language=None) -> str:
     es = _load("cli_es.json").get("ui", {})
     if language == "es":
         return es.get(key, key)
-    return _load("cli_en.json").get("ui", {}).get(key, es.get(key, key))
+    return _load(f"cli_{language}.json").get("ui", {}).get(key, es.get(key, key))
 
 
 def load_table(name: str) -> dict:

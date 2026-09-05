@@ -139,9 +139,9 @@ def fase_ionica(atoms, valencias, gdir=3, plegar=True):
     faltan = sorted({s for s in simb if s not in valencias})
     if faltan:
         raise FaltanDatos(
-            f"no sé cuántos electrones de valencia tiene el pseudo de "
-            f"{', '.join(faltan)}. Sale del propio UPF (z_valence) o de la "
-            f"salida de pw.x.")
+            f"the number of valence electrons of the pseudopotential for "
+            f"{', '.join(faltan)} is unknown. It comes from the UPF itself (z_valence) or from the "
+            f"pw.x output.")
     j = int(gdir) - 1
     total = 0.0
     for i, s in enumerate(simb):
@@ -266,25 +266,25 @@ def leer_berry(salida):
                 c.read_text(errors="replace")]
         if not cand:
             raise FaltanDatos(
-                f"en {p} no hay ninguna salida de pw.x con la sección "
-                f"POLARIZATION CALCULATION. ¿Corriste el paso con "
+                f"in {p} there is no pw.x output with the "
+                f"POLARIZATION CALCULATION section. Did you run the step with "
                 f"lberry = .true.?")
         p = cand[0]
     if not p.exists():
         raise FaltanDatos(
-            f"falta {p}. Es la salida del paso con lberry: córrelo con "
-            f"`--run`, o a mano con\n  `bash correr.sh` dentro de la carpeta "
-            f"del cálculo.")
+            f"{p} is missing. It is the output of the lberry step: run it with "
+            f"`--run`, or by hand with\n  `bash correr.sh` inside the calculation "
+            f"folder.")
     txt = p.read_text(errors="replace")
     m = _RE_FASES.search(txt)
     if not m:
         if "Wrong k-strings" in txt:
             raise FaltanDatos(
-                "pw.x se paró con 'Wrong k-strings': la lista de puntos k no "
-                "forma cuerdas.\nCasi siempre es que faltó nosym = .true. y "
-                "noinv = .true., y QE expandió la\nlista con las operaciones "
-                "de simetría. Vuelve a preparar el cálculo con Olla-DFT.")
-        raise FaltanDatos(f"{p} no trae el resumen de fases de lberry.")
+                "pw.x stopped with 'Wrong k-strings': the k-point list does not "
+                "form strings.\nAlmost always this means nosym = .true. and "
+                "noinv = .true. were missing, and QE expanded the\nlist with the symmetry "
+                "operations. Prepare the calculation again with Olla-DFT.")
+        raise FaltanDatos(f"{p} does not contain the lberry phase summary.")
     b = Berry(fase_ion=float(m.group(1)), fase_el=float(m.group(2)),
               fase_total=float(m.group(3)), modulo=float(m.group(4)),
               fuente=str(p))
@@ -315,7 +315,7 @@ def valencias_de(salida):
         cand = [c for c in sorted(p.glob("*.out"))
                 if "atomic species" in c.read_text(errors="replace")]
         if not cand:
-            raise FaltanDatos(f"no hay salidas de pw.x en {p}.")
+            raise FaltanDatos(f"there are no pw.x outputs in {p}.")
         p = cand[0]
     txt = p.read_text(errors="replace")
     m = re.search(r"atomic species\s+valence\s+mass\s+pseudopotential\s*\n"
@@ -347,12 +347,12 @@ def cuerdas(nppstr, gdir=3, kperp=(6, 6)):
     npp = int(nppstr)
     if npp < 3:
         raise ErrorDeUso(
-            f"nppstr = {npp} es demasiado corto: con menos de tres puntos la "
-            f"cuerda no muestrea la zona de Brillouin. Usa 7 o más, y "
-            f"comprueba que la fase no cambia al subirlo.")
+            f"nppstr = {npp} is too short: with fewer than three points the "
+            f"string does not sample the Brillouin zone. Use 7 or more, and "
+            f"check that the phase does not change when increasing it.")
     perp = [int(x) for x in kperp]
     if len(perp) != 2 or min(perp) < 1:
-        raise ErrorDeUso("--kperp son dos enteros positivos, por ejemplo 6x6.")
+        raise ErrorDeUso("--kperp takes two positive integers, for example 6x6.")
     otros = [d for d in (0, 1, 2) if d != int(gdir) - 1]
     ks = []
     for i in range(perp[0]):
@@ -375,9 +375,9 @@ def _interpolar_estructuras(a, b, lam):
     """
     if a.get_chemical_symbols() != b.get_chemical_symbols():
         raise ErrorDeUso(
-            "las dos estructuras tienen especies distintas o en otro orden. "
-            "El camino\nadiabático une la MISMA estructura en dos "
-            "configuraciones; si no, no hay camino.")
+            "the two structures have different species or a different order. "
+            "The adiabatic\npath joins the SAME structure in two "
+            "configurations; otherwise there is no path.")
     fa, fb = a.get_scaled_positions(), b.get_scaled_positions()
     d = fb - fa
     d -= np.round(d)                       # imagen mínima
@@ -400,8 +400,8 @@ class BerryRun:
     jobs: list = field(default_factory=list)
     puntos: list = field(default_factory=list)      # objetos Berry
     valencias: dict = field(default_factory=dict)
-    etiqueta_ref: str = "referencia"
-    etiqueta_fin: str = "estructura polar"
+    etiqueta_ref: str = "reference"
+    etiqueta_fin: str = "polar structure"
     es_desplazamiento: bool = False
     desplazamiento: np.ndarray = None               # Å, si es un Z*
     avisos: list = field(default_factory=list)
@@ -432,16 +432,16 @@ def prepare(atoms, outdir="berry", gdir=3, nppstr=9, kperp=(6, 6),
 
     gdir = int(gdir)
     if gdir not in (1, 2, 3):
-        raise ErrorDeUso(f"--gdir es 1, 2 o 3 (el vector de la red "
-                         f"recíproca); recibí {gdir}.")
+        raise ErrorDeUso(f"--gdir is 1, 2 or 3 (the reciprocal-lattice "
+                         f"vector); got {gdir}.")
     run = BerryRun(formula=atoms.get_chemical_formula(), gdir=gdir,
                    nppstr=int(nppstr), kperp=tuple(int(x) for x in kperp))
 
     if referencia is not None and desplazar is not None:
         raise ErrorDeUso(
-            "elige un camino: o interpolas hacia una estructura de "
-            "referencia, o desplazas\nun átomo. Los dos a la vez no definen "
-            "un camino.")
+            "choose one path: either interpolate towards a reference "
+            "structure, or displace\nan atom. Both at once do not define "
+            "a path.")
 
     if referencia is not None:
         lams = np.linspace(0.0, 1.0, int(nlambda))
@@ -452,7 +452,7 @@ def prepare(atoms, outdir="berry", gdir=3, nppstr=9, kperp=(6, 6),
         idx, vec = desplazar
         if not 0 <= int(idx) < len(atoms):
             raise ErrorDeUso(
-                f"el átomo {idx + 1} no existe: la estructura tiene "
+                f"atom {idx + 1} does not exist: the structure has "
                 f"{len(atoms)}.")
         lams = np.linspace(0.0, 1.0, int(nlambda))
         run.estructuras = []
@@ -463,8 +463,8 @@ def prepare(atoms, outdir="berry", gdir=3, nppstr=9, kperp=(6, 6),
         run.lambdas = list(map(float, lams))
         run.es_desplazamiento = True
         run.desplazamiento = np.asarray(vec, float)
-        run.etiqueta_ref = "sin desplazar"
-        run.etiqueta_fin = (f"átomo {int(idx) + 1} desplazado "
+        run.etiqueta_ref = "undisplaced"
+        run.etiqueta_fin = (f"atom {int(idx) + 1} displaced by "
                             f"{np.linalg.norm(vec):.3f} Å")
     else:
         run.estructuras = [atoms]
@@ -512,12 +512,12 @@ def prepare(atoms, outdir="berry", gdir=3, nppstr=9, kperp=(6, 6),
     plataforma.escribir_script(
         out / "correr.sh",
         "#!/bin/bash\nset -e\n"
-        "# En Windows, o sin bash:  python correr.py\n"
+        "# On Windows, or without bash:  python correr.py\n"
         "for d in p*/; do (cd \"$d\" && bash correr.sh) || exit 1; done\n")
     plataforma.escribir_script(
         out / "correr.py",
         "#!/usr/bin/env python3\n"
-        "# Corre todos los puntos del camino, en orden. Generado por Olla-DFT.\n"
+        "# Runs every point of the path, in order. Generated by Olla-DFT.\n"
         "import subprocess, sys\n"
         "from pathlib import Path\n"
         "aqui = Path(__file__).resolve().parent\n"
@@ -526,40 +526,40 @@ def prepare(atoms, outdir="berry", gdir=3, nppstr=9, kperp=(6, 6),
         "    r = subprocess.run([sys.executable, str(d / 'correr.py')])\n"
         "    if r.returncode:\n"
         "        sys.exit(r.returncode)\n"
-        "print('Listo.')\n")
+        "print('Done.')\n")
 
     q_eA2, q_cm2 = cuanto(atoms, gdir)
-    rep = [f"--- Polarización por fase de Berry: {run.formula} ---",
-           f"Dirección: vector {gdir} de la red recíproca",
-           f"Cuerdas: {nppstr} puntos por cuerda × "
-           f"{run.kperp[0]}×{run.kperp[1]} perpendiculares = {len(ks)} "
-           f"puntos k",
-           f"Cuanto de polarización: {q_eA2:.6f} e/Å² = {q_cm2:.4f} C/m²",
+    rep = [f"--- Berry-phase polarization: {run.formula} ---",
+           f"Direction: reciprocal-lattice vector {gdir}",
+           f"Strings: {nppstr} points per string × "
+           f"{run.kperp[0]}×{run.kperp[1]} perpendicular = {len(ks)} "
+           f"k-points",
+           f"Polarization quantum: {q_eA2:.6f} e/Å² = {q_cm2:.4f} C/m²",
            ""]
     if len(run.lambdas) > 1:
-        rep += [f"Camino adiabático de {len(run.lambdas)} puntos, de "
-                f"«{run.etiqueta_ref}» a «{run.etiqueta_fin}».",
-                "Solo la DIFERENCIA a lo largo del camino es física; cada "
-                "valor suelto está",
-                "definido módulo el cuanto.", ""]
+        rep += [f"Adiabatic path of {len(run.lambdas)} points, from "
+                f"«{run.etiqueta_ref}» to «{run.etiqueta_fin}».",
+                "Only the DIFFERENCE along the path is physical; each "
+                "isolated value is",
+                "defined modulo the quantum.", ""]
     else:
         run.avisos.append(
-            "Un solo punto. P está definida módulo el cuanto, así que este "
-            "número por sí solo\n  no significa nada: sirve para comprobar la "
-            "parte iónica y poco más. Para una\n  polarización espontánea "
-            "hace falta --reference con la estructura centrosimétrica;\n  "
-            "para una carga de Born, --displace.")
-    rep += [f"Archivos en '{out.resolve()}':",
-            f"  p00..p{len(run.jobs) - 1:02d}/   cada punto del camino "
-            f"(1_scf.in y 2_berry.in)",
-            "  bash correr.sh   los lanza todos en orden",
+            "A single point. P is defined modulo the quantum, so this "
+            "number on its own\n  means nothing: it serves to check the "
+            "ionic part and little else. For a\n  spontaneous polarization "
+            "you need --reference with the centrosymmetric structure;\n  "
+            "for a Born charge, --displace.")
+    rep += [f"Files in '{out.resolve()}':",
+            f"  p00..p{len(run.jobs) - 1:02d}/   each point of the path "
+            f"(1_scf.in and 2_berry.in)",
+            "  bash correr.sh   launches them all in order",
             "",
-            "El nscf lleva nosym y noinv a la fuerza. Sin eso Quantum "
-            "ESPRESSO expande la",
-            "lista de puntos k con las operaciones de simetría, las cuerdas "
-            "se rompen y pw.x",
-            "se para con 'Wrong k-strings weights?', que no menciona la "
-            "simetría por ningún lado."]
+            "The nscf forces nosym and noinv. Without them Quantum "
+            "ESPRESSO expands the",
+            "k-point list with the symmetry operations, the strings "
+            "break and pw.x",
+            "stops with 'Wrong k-strings weights?', which does not mention "
+            "symmetry anywhere."]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -580,7 +580,7 @@ def correr(run, pw_cmd=None, nproc=None, timeout=None, verbose=True,
             if (sal.exists() and not rehacer
                     and "JOB DONE" in sal.read_text(errors="replace")):
                 if verbose:
-                    print(f"  {d.name}/{nombre}  (ya estaba)")
+                    print(f"  {d.name}/{nombre}  (already done)")
                 continue
             if verbose:
                 print(f"  {d.name}/{nombre} ...", end="", flush=True)
@@ -591,11 +591,11 @@ def correr(run, pw_cmd=None, nproc=None, timeout=None, verbose=True,
             txt = sal.read_text(errors="replace")
             ok = r.returncode == 0 and "JOB DONE" in txt
             if verbose:
-                print("  ok" if ok else "  FALLÓ")
+                print("  ok" if ok else "  FAILED")
             if not ok:
                 cola = "\n".join(txt.strip().split("\n")[-15:])
                 raise FaltanDatos(
-                    f"{d.name}/{nombre} falló. Últimas líneas:\n\n{cola}")
+                    f"{d.name}/{nombre} failed. Last lines:\n\n{cola}")
     return run
 
 
@@ -606,8 +606,8 @@ def collect(run, outdir="berry"):
         sorted(p for p in out.glob("p[0-9][0-9]") if p.is_dir())
     if not dirs:
         raise FaltanDatos(
-            f"en {out} no hay carpetas p00, p01... ¿Preparaste el cálculo "
-            f"con `olla-dft berry`?")
+            f"in {out} there are no folders p00, p01... Did you prepare the calculation "
+            f"with `olla-dft berry`?")
     run.puntos = []
     for d in dirs:
         b = leer_berry(d / "2_berry.out")
@@ -642,10 +642,10 @@ def analizar(run):
         número sigue pareciendo razonable.
     """
     if not run.puntos:
-        raise FaltanDatos("no hay puntos que analizar.")
+        raise FaltanDatos("there are no points to analyze.")
     at = run.estructuras[-1] if run.estructuras else None
     if at is None:
-        raise FaltanDatos("hace falta la estructura para convertir a C/m².")
+        raise FaltanDatos("the structure is needed to convert to C/m².")
     mod = float(run.puntos[0].modulo or 2.0)
     fases = np.array([p.fase_total for p in run.puntos])
     seguidas, saltos = desenrollar(fases, modulo=mod)
@@ -660,20 +660,20 @@ def analizar(run):
              "dP": float(P[-1] - P[0]) if len(P) > 1 else None}
     if len(saltos) and (saltos / mod).max() > FRACCION_SOSPECHOSA:
         run.avisos.append(
-            "Un paso del camino mueve la fase "
-            f"{(saltos / mod).max() * 100:.0f} % del cuanto. El seguimiento "
-            "de la rama supone\n  que el paso es pequeño; con saltos así, "
-            "elegir la imagen más cercana es una\n  apuesta. Sube --nlambda "
-            "hasta que ΔP deje de cambiar.")
+            "One step of the path moves the phase by "
+            f"{(saltos / mod).max() * 100:.0f} % of the quantum. Branch "
+            "tracking assumes\n  the step is small; with jumps like this, "
+            "choosing the nearest image is a\n  gamble. Increase --nlambda "
+            "until ΔP stops changing.")
     if run.es_desplazamiento and run.desplazamiento is not None and len(P) > 1:
         Bg = (2 * np.pi * np.linalg.inv(cell).T)[run.gdir - 1]
         u = np.asarray(run.desplazamiento, float)
         proy = float(u @ Bg)
         if abs(proy) < 1e-8:
             run.avisos.append(
-                "El desplazamiento es perpendicular a la dirección de la "
-                "fase, así que esta\n  no ve nada y Z* no se puede sacar de "
-                "aquí. Cambia --gdir o la dirección del\n  desplazamiento.")
+                "The displacement is perpendicular to the phase "
+                "direction, so the phase\n  sees nothing and Z* cannot be obtained from "
+                "here. Change --gdir or the direction of the\n  displacement.")
         else:
             lam = np.array(run.lambdas[:len(seguidas)], float)
             if len(seguidas) > 2:
@@ -711,20 +711,20 @@ def comprobar_ionica(run):
 
 def report(run) -> str:
     an = analizar(run)
-    L = [f"--- Polarización por fase de Berry: {run.formula} ---",
-         f"Dirección {run.gdir}   |   {run.nppstr} puntos por cuerda × "
-         f"{run.puntos[0].ncuerdas or run.kperp[0] * run.kperp[1]} cuerdas",
-         f"Cuanto de polarización: {an['cuanto_eA2']:.6f} e/Å² = "
+    L = [f"--- Berry-phase polarization: {run.formula} ---",
+         f"Direction {run.gdir}   |   {run.nppstr} points per string × "
+         f"{run.puntos[0].ncuerdas or run.kperp[0] * run.kperp[1]} strings",
+         f"Polarization quantum: {an['cuanto_eA2']:.6f} e/Å² = "
          f"{an['cuanto_cm2']:.4f} C/m²   (MOD_TOT = {an['modulo']:g})",
          ""]
     if run.valencias:
-        L.append("Valencias del pseudo: "
+        L.append("Pseudopotential valences: "
                  + ", ".join(f"{k} {v:g}" for k, v in
                              sorted(run.valencias.items())))
-    L += ["", f"Fases (unidades de QE: el cuanto vale {an['modulo']:g}"
-              + (", porque alguna valencia es impar)"
-                 if an["modulo"] == 1 else ", todas las valencias son pares)"),
-          "   λ      iónica   electrón.   total    seguida      P (C/m²)"]
+    L += ["", f"Phases (QE units: the quantum is {an['modulo']:g}"
+              + (", because some valence is odd)"
+                 if an["modulo"] == 1 else ", all valences are even)"),
+          "   λ      ionic    electron.   total    tracked      P (C/m²)"]
     for i, b in enumerate(run.puntos):
         lam = run.lambdas[i] if i < len(run.lambdas) else float(i)
         L.append(f"  {lam:5.3f}  {b.fase_ion:9.5f} {b.fase_el:10.5f} "
@@ -734,36 +734,36 @@ def report(run) -> str:
     comp = comprobar_ionica(run)
     if comp:
         peor = max(c[2] for c in comp)
-        L += ["", f"Comprobación de la parte iónica contra Σ Z_a·f_a: "
-                  f"peor desviación {peor:.2e}"
+        L += ["", f"Check of the ionic part against Σ Z_a·f_a: "
+                  f"worst deviation {peor:.2e}"
                   + ("  ✓" if peor < 1e-4 else
-                     "  ← MAL: la geometría o las valencias no son las que "
-                     "crees")]
+                     "  ← WRONG: the geometry or the valences are not what "
+                     "you think")]
 
     if an["dP"] is not None:
-        L += ["", f"ΔP a lo largo del camino ({run.etiqueta_ref} → "
+        L += ["", f"ΔP along the path ({run.etiqueta_ref} → "
                   f"{run.etiqueta_fin}):",
               f"  {an['dP']:+.5f} C/m²   "
-              f"({an['dP'] / an['cuanto_cm2']:+.4f} cuantos)"]
+              f"({an['dP'] / an['cuanto_cm2']:+.4f} quanta)"]
         if abs(an["dP"]) > 0.9 * an["cuanto_cm2"]:
-            L.append("  Ojo: ΔP es casi un cuanto entero. Comprueba con más "
-                     "puntos que no es un salto de rama disfrazado.")
+            L.append("  Caution: ΔP is almost a whole quantum. Check with more "
+                     "points that it is not a disguised branch jump.")
     if "zeff" in an:
-        L += ["", f"Carga efectiva de Born a lo largo de la dirección "
+        L += ["", f"Born effective charge along direction "
                   f"{run.gdir}:",
               f"  Z* = {an['zeff']:+.4f} e"
-              + (f"   (ajuste lineal, R² = {an['zeff_r2']:.6f})"
+              + (f"   (linear fit, R² = {an['zeff_r2']:.6f})"
                  if an.get("zeff_r2") is not None else "")]
-        L.append("  Z* es la carga que hay que mover para producir la "
-                 "polarización observada;")
-        L.append("  no es la carga iónica nominal, y en un cristal "
-                 "homopolar vale cero exactamente.")
+        L.append("  Z* is the charge that must be moved to produce the "
+                 "observed polarization;")
+        L.append("  it is not the nominal ionic charge, and in a "
+                 "homopolar crystal it is exactly zero.")
     if len(run.puntos) == 1:
-        L += ["", "Con un solo punto no hay ΔP. El valor de P de arriba está "
-                  "definido módulo el",
-              "cuanto y no es publicable por sí mismo."]
+        L += ["", "With a single point there is no ΔP. The P value above is "
+                  "defined modulo the",
+              "quantum and is not publishable on its own."]
     for a in run.avisos:
-        L += ["", f"AVISO: {a}"]
+        L += ["", f"WARNING: {a}"]
     return "\n".join(L)
 
 
@@ -776,8 +776,8 @@ def export(run, outdir="berry") -> list:
         [p.fase_ion for p in run.puntos], [p.fase_el for p in run.puntos],
         [p.fase_total for p in run.puntos], an["seguidas"], an["P"]])
     np.savetxt(f, cols, fmt="%14.7f",
-               header="lambda    fase_ion    fase_el    fase_tot   "
-                      "fase_seguida    P(C/m2)")
+               header="lambda    phase_ion   phase_el   phase_tot  "
+                      "phase_tracked   P(C/m2)")
     g = out / "BERRY.txt"
     g.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(g)]
@@ -806,24 +806,24 @@ def plot(run, outfile="berry", formats="pdf,png", theme=None, size=None,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     an = analizar(run)
     if len(an["P"]) < 2:
-        raise FaltanDatos("con un solo punto no hay curva que dibujar.")
+        raise FaltanDatos("with a single point there is no curve to draw.")
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
     fig, ax = qstyle.new_figure(width, journal, aspect)
     cols = qstyle.palette(3, mono=mono)
     lam = np.array(run.lambdas[:len(an["P"])], float)
     ax.plot(lam, an["P"], marker="o", ms=4, lw=st["line"], color=cols[0],
-            label="rama seguida")
+            label="tracked branch")
     plegada = polarizacion_plegada(
         [p.fase_total for p in run.puntos], an)[:len(lam)]
     ax.plot(lam, plegada, ls="none", marker="x", ms=5, color=cols[1],
-            label="lo que escribe pw.x (plegado)")
+            label="as written by pw.x (folded)")
     ax.axhspan(an["P"][0] - an["cuanto_cm2"] / 2,
                an["P"][0] + an["cuanto_cm2"] / 2, color=cols[2], alpha=0.10,
-               lw=0, zorder=0, label="un cuanto")
+               lw=0, zorder=0, label="one quantum")
     ax.set_xlabel(r"$\lambda$")
     ax.set_ylabel("P (C/m$^2$)")
     ax.legend(frameon=False, fontsize=st["legend"])

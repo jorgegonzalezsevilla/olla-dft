@@ -87,13 +87,13 @@ def test_non_abelian_result_is_invariant_under_local_gauge():
 
 def test_gap_closing_is_rejected(tmp_path):
     model = _write_hr(tmp_path / "critical_hr.dat", *_qwz_terms(0.0))
-    with pytest.raises(ErrorDeUso, match="no está aislado"):
+    with pytest.raises(ErrorDeUso, match="is not isolated"):
         topology.analyze(model, occupied=1, grid=(40, 40))
 
 
 def test_occupation_is_explicit_and_model_resolution_is_unambiguous(tmp_path):
     model = _write_hr(tmp_path / "WANNIER_hr.dat", *_qwz_terms(3.0))
-    with pytest.raises(ErrorDeUso, match="exactamente una"):
+    with pytest.raises(ErrorDeUso, match="exactly one"):
         topology.analyze(model)
     run = topology.analyze(tmp_path, fermi=0.0, grid=(12, 12))
     assert run.model_path == str(model.resolve())
@@ -102,7 +102,7 @@ def test_occupation_is_explicit_and_model_resolution_is_unambiguous(tmp_path):
     model.unlink()
     _write_hr(tmp_path / "a_hr.dat", *_qwz_terms(3.0))
     _write_hr(tmp_path / "b_hr.dat", *_qwz_terms(3.0))
-    with pytest.raises(ErrorDeUso, match="varios modelos"):
+    with pytest.raises(ErrorDeUso, match="several models"):
         topology.resolve_model(tmp_path)
 
 
@@ -113,7 +113,7 @@ def test_export_and_cli(tmp_path):
                  "12x12", "--no-plot", "-o", str(out)])
     assert code == 0
     assert (out / "TOPOLOGY.txt").is_file()
-    assert "Chern entero:       -1" in (out / "TOPOLOGY.txt").read_text()
+    assert "Integer Chern:      -1" in (out / "TOPOLOGY.txt").read_text()
     curvature = np.loadtxt(out / "TOPOLOGY_curvature.dat")
     wilson = np.loadtxt(out / "TOPOLOGY_wilson.dat")
     assert curvature.shape == (12 * 12, 3)
@@ -126,7 +126,7 @@ def test_export_and_cli(tmp_path):
 
 
 def test_cli_catalog_covers_every_command_once(capsys):
-    parser = build_parser()
+    parser = build_parser("es")
     commands = set(parser._subparsers._group_actions[0].choices) - set(ALIASES)
     grouped = [name for _title, names in COMMAND_GROUPS for name in names]
     assert len(grouped) == len(set(grouped))
@@ -144,6 +144,6 @@ def test_el_reporte_no_mezcla_idiomas(tmp_path):
     model = _write_hr(tmp_path / "QWZ_hr.dat", *_qwz_terms(-1.0))
     run = topology.analyze(model, occupied=1, grid=(12, 12))
     rep = topology.report(run)
-    assert "Gap indirecto:" in rep
-    assert "Gap directo mínimo:" in rep
-    assert "indirect " not in rep and "Gap indirect:" not in rep
+    assert "Indirect gap:" in rep
+    assert "Minimum direct gap:" in rep
+    assert "Gap indirecto:" not in rep and "Gap directo mínimo:" not in rep

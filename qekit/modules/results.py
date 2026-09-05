@@ -236,7 +236,7 @@ def ingest(paths, db_path, tag=None) -> dict:
     """Ingiere carpetas/XML y devuelve estadísticas más los IDs nuevos."""
     paths = [Path(path).expanduser() for path in (paths or [])]
     if not paths:
-        raise ErrorDeUso("results ingest necesita al menos una carpeta o XML.")
+        raise ErrorDeUso("results ingest needs at least one folder or XML.")
     candidates = [path for path in paths if _contains_xml(path)]
     skipped = len(paths) - len(candidates)
     runs = audit.collect(candidates)
@@ -345,7 +345,7 @@ def list_results(db_path, formula=None, calculation=None, status=None,
     try:
         limit = max(1, min(int(limit), 10000))
     except (TypeError, ValueError):
-        raise ErrorDeUso("--limit debe ser un entero positivo.") from None
+        raise ErrorDeUso("--limit must be a positive integer.") from None
     if not Path(db_path).exists():
         return []
     where, values = _filters(formula, calculation, status)
@@ -362,7 +362,7 @@ def list_results(db_path, formula=None, calculation=None, status=None,
 
 def get(db_path, result_id) -> dict:
     if not Path(db_path).exists():
-        raise ErrorDeUso(f"no existe el índice de resultados '{db_path}'.")
+        raise ErrorDeUso(f"the results index '{db_path}' does not exist.")
     connection = sqlite3.connect(str(db_path))
     connection.row_factory = sqlite3.Row
     try:
@@ -371,7 +371,7 @@ def get(db_path, result_id) -> dict:
     finally:
         connection.close()
     if row is None:
-        raise ErrorDeUso(f"no encuentro el resultado '{result_id}'.")
+        raise ErrorDeUso(f"result '{result_id}' not found.")
     return _row(row)
 
 
@@ -379,7 +379,7 @@ def review(db_path, result_id, status, note="") -> dict:
     """Añade una revisión humana sin modificar la evidencia ingerida."""
     allowed = {"unreviewed", "accepted", "rejected"}
     if status not in allowed:
-        raise ErrorDeUso("--review-status debe ser unreviewed, accepted o rejected.")
+        raise ErrorDeUso("--review-status must be unreviewed, accepted or rejected.")
     connection = _connect(db_path)
     try:
         payload = {"status": status, "note": str(note or "").strip(),
@@ -389,7 +389,7 @@ def review(db_path, result_id, status, note="") -> dict:
             (json.dumps(payload, ensure_ascii=False, sort_keys=True),
              str(result_id)))
         if cursor.rowcount == 0:
-            raise ErrorDeUso(f"no encuentro el resultado '{result_id}'.")
+            raise ErrorDeUso(f"result '{result_id}' not found.")
         connection.commit()
     finally:
         connection.close()
@@ -412,14 +412,14 @@ def summary(db_path) -> dict:
 
 
 def report(rows: list, db_path=None) -> str:
-    lines = ["--- Resultados normalizados ---"]
+    lines = ["--- Normalized results ---"]
     if db_path:
-        lines.append(f"Índice: {Path(db_path).resolve()}")
+        lines.append(f"Index: {Path(db_path).resolve()}")
     if not rows:
-        lines.append("No hay resultados ingeridos.")
+        lines.append("No results ingested.")
         return "\n".join(lines)
-    lines.append(f"Registros mostrados: {len(rows)}")
-    header = f"{'id':10s} {'fórmula':12s} {'tipo':10s} {'estado':16s} {'E/átomo':>14s}"
+    lines.append(f"Records shown: {len(rows)}")
+    header = f"{'id':10s} {'formula':12s} {'type':10s} {'status':16s} {'E/atom':>14s}"
     lines += [header, "-" * len(header)]
     for row in rows:
         energy = row.get("metrics", {}).get("energy_per_atom", {}).get("value")

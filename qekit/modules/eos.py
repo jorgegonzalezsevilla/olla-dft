@@ -57,7 +57,7 @@ def vinet(V, E0, V0, B0, Bp):
 
 
 EQUATIONS = {
-    "birch-murnaghan": (birch_murnaghan, "Birch–Murnaghan (3.er orden)"),
+    "birch-murnaghan": (birch_murnaghan, "Birch–Murnaghan (3rd order)"),
     "murnaghan": (murnaghan, "Murnaghan"),
     "vinet": (vinet, "Vinet"),
 }
@@ -114,7 +114,7 @@ def prepare(atoms, outdir: str = "eos", npoints: int = 9, span: float = 0.10,
     from qekit.modules import sweep
 
     if npoints < 5:
-        raise ErrorDeUso("hacen falta al menos 5 puntos para un ajuste fiable")
+        raise ErrorDeUso("at least 5 points are needed for a reliable fit")
     common = sweep.prepare_common(atoms, pseudo_dir, ecutwfc, ecutrho, insulator)
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
 
@@ -143,19 +143,19 @@ def prepare(atoms, outdir: str = "eos", npoints: int = 9, span: float = 0.10,
     except Exception:
         run.cubic = False
 
-    report = ["--- Ecuación de estado E–V ---",
-              f"Estructura: {atoms.get_chemical_formula()} ({len(atoms)} átomos)",
-              f"Volumen de partida: {V_ref:.4f} Å³",
-              f"{npoints} puntos entre {centro_vol*(1-span)*100:.0f} % y {centro_vol*(1+span)*100:.0f} % "
-              "del volumen",
-              f"Malla k fija: {grid[0]}x{grid[1]}x{grid[2]}  "
-              f"(la misma en todos los puntos, para que las energías sean "
-              "comparables)"]
+    report = ["--- Equation of state E–V ---",
+              f"Structure: {atoms.get_chemical_formula()} ({len(atoms)} atoms)",
+              f"Starting volume: {V_ref:.4f} Å³",
+              f"{npoints} points between {centro_vol*(1-span)*100:.0f} % and {centro_vol*(1+span)*100:.0f} % "
+              "of the volume",
+              f"Fixed k-grid: {grid[0]}x{grid[1]}x{grid[2]}  "
+              f"(the same at all points, so that the energies are "
+              "comparable)"]
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
     if relax_ions:
-        report.append("Las posiciones internas se relajan en cada volumen "
+        report.append("The internal positions are relaxed at each volume "
                       "(calculation='relax').")
 
     for f in vol_factors:
@@ -172,8 +172,8 @@ def prepare(atoms, outdir: str = "eos", npoints: int = 9, span: float = 0.10,
         run.scales.append(lin); run.volumes.append(V); run.jobs.append(job)
 
     sweep.write_run_script(run.jobs, out / "run.sh")
-    report += ["", f"{len(run.jobs)} cálculos escritos en '{out.resolve()}'",
-               "Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta."]
+    report += ["", f"{len(run.jobs)} calculations written to '{out.resolve()}'",
+               "Run them with --run, or by hand with ./run.sh inside that folder."]
     return run, "\n".join(report)
 
 
@@ -201,14 +201,14 @@ def fit(run: EOSRun, equation: str = DEFAULT_EQ) -> EOSFit:
     from scipy.optimize import curve_fit
 
     if equation not in EQUATIONS:
-        raise ErrorDeUso(f"ecuación desconocida '{equation}'. "
-                         f"Opciones: {', '.join(EQUATIONS)}")
+        raise ErrorDeUso(f"unknown equation '{equation}'. "
+                         f"Options: {', '.join(EQUATIONS)}")
     func, _name = EQUATIONS[equation]
     V, E = run.valid()
     res = EOSFit(equation=equation)
     if len(V) < 4:
-        res.message = (f"solo {len(V)} puntos válidos; hacen falta al menos 4 "
-                       "para ajustar cuatro parámetros")
+        res.message = (f"only {len(V)} valid points; at least 4 are needed "
+                       "to fit four parameters")
         return res
 
     # semilla: parábola sobre E(V), que ya da V0, E0 y B0 aproximados
@@ -224,13 +224,13 @@ def fit(run: EOSRun, equation: str = DEFAULT_EQ) -> EOSFit:
                             p0=[E0_guess, V0_guess, B0_guess, 4.0],
                             maxfev=20000)
     except Exception as exc:
-        res.message = f"el ajuste no convergió: {exc}"
+        res.message = f"the fit did not converge: {exc}"
         return res
 
     E0, V0, B0, Bp = popt
     if not (V.min() * 0.6 < V0 < V.max() * 1.4) or B0 <= 0:
-        res.message = ("el ajuste dio parámetros fuera de rango; "
-                       "amplía o centra mejor el barrido de volúmenes")
+        res.message = ("the fit gave out-of-range parameters; "
+                       "widen or better centre the volume sweep")
         return res
 
     residuals = E - func(V, *popt)
@@ -255,24 +255,24 @@ def fit_all(run: EOSRun) -> dict:
 
 def report(run: EOSRun, cell_a: float = None) -> str:
     V, E = run.valid()
-    lines = ["--- Ecuación de estado ---",
-             f"Puntos válidos: {len(V)} de {len(run.volumes)}"]
+    lines = ["--- Equation of state ---",
+             f"Valid points: {len(V)} of {len(run.volumes)}"]
     if len(V) == 0:
-        lines.append("Ningún cálculo terminó; no hay nada que ajustar.")
+        lines.append("No calculation finished; there is nothing to fit.")
         return "\n".join(lines)
 
     lines.append("")
-    lines.append(f"{'V (Å³)':>12s} {'E (Ry/celda)':>18s} {'E (eV/átomo)':>16s}")
+    lines.append(f"{'V (Å³)':>12s} {'E (Ry/cell)':>18s} {'E (eV/atom)':>16s}")
     for v, e in zip(run.volumes, run.energies):
         if e is None:
-            lines.append(f"{v:12.4f} {'FALLÓ':>18s}")
+            lines.append(f"{v:12.4f} {'FAILED':>18s}")
         else:
             lines.append(f"{v:12.4f} {e / qeout.RY_EV:18.10f} "
                          f"{e / run.natoms:16.6f}")
 
     fits = run.fits or fit_all(run)
-    lines += ["", f"{'ecuación':>26s} {'V0 (Å³)':>10s} {'B0 (GPa)':>10s} "
-                  f"{'B0′':>7s} {'RMSE (meV/át)':>14s}"]
+    lines += ["", f"{'equation':>26s} {'V0 (Å³)':>10s} {'B0 (GPa)':>10s} "
+                  f"{'B0′':>7s} {'RMSE(meV/atom)':>14s}"]
     for key, f in fits.items():
         name = EQUATIONS[key][1]
         if not f.ok:
@@ -283,29 +283,29 @@ def report(run: EOSRun, cell_a: float = None) -> str:
 
     best = fits.get(DEFAULT_EQ)
     if best and best.ok:
-        lines += ["", "Resultado (Birch–Murnaghan):",
-                  f"  V₀ = {best.V0:.4f} Å³   ({best.V0 / run.natoms:.4f} Å³/átomo)",
+        lines += ["", "Result (Birch–Murnaghan):",
+                  f"  V₀ = {best.V0:.4f} Å³   ({best.V0 / run.natoms:.4f} Å³/atom)",
                   f"  E₀ = {best.E0 / qeout.RY_EV:.8f} Ry",
                   f"  B₀ = {best.B0:.2f} GPa",
                   f"  B₀′ = {best.Bp:.2f}"]
         if run.cubic and best.a0 is not None:
-            lines.append(f"  a₀ = {best.a0:.5f} Å   (parámetro de red cúbico)")
+            lines.append(f"  a₀ = {best.a0:.5f} Å   (cubic lattice parameter)")
 
         ok_vals = [f.B0 for f in fits.values() if f.ok]
         if len(ok_vals) > 1:
             spread = max(ok_vals) - min(ok_vals)
-            lines += ["", f"Las tres ecuaciones difieren en {spread:.1f} GPa "
+            lines += ["", f"The three equations differ by {spread:.1f} GPa "
                           f"({spread / best.B0 * 100:.1f} %)."]
             if spread / best.B0 > 0.05:
-                lines.append("  Es bastante: suele indicar que faltan puntos o "
-                             "que el rango de\n  volúmenes es muy estrecho.")
+                lines.append("  That is a lot: it usually indicates missing points or "
+                             "that the volume\n  range is very narrow.")
             else:
-                lines.append("  Buena señal: el ajuste no depende de la "
-                             "ecuación elegida.")
+                lines.append("  Good sign: the fit does not depend on the "
+                             "chosen equation.")
         V_in = (V.min() <= best.V0 <= V.max())
         if not V_in:
-            lines.append("\nAVISO: V₀ cae FUERA del rango calculado. Vuelve a "
-                         "correr el barrido\ncentrado en ese volumen.")
+            lines.append("\nWARNING: V₀ falls OUTSIDE the computed range. Rerun "
+                         "the sweep\ncentred on that volume.")
     return "\n".join(lines)
 
 
@@ -315,7 +315,7 @@ def export(run: EOSRun, outdir: str = ".", cell_a: float = None) -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     written = []
     fname = out / "EOS.dat"
-    lines = [provenance.header("ecuación de estado",
+    lines = [provenance.header("equation of state",
                                {"puntos": len(run.volumes)}),
              f"# {'V(A^3)':>14s} {'E(Ry)':>20s} {'E(eV)':>18s}"]
     for v, e in zip(run.volumes, run.energies):
@@ -344,17 +344,17 @@ def plot(run: EOSRun, outfile: str = "eos", equation: str = DEFAULT_EQ,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
     V, E = run.valid()
     if len(V) < 4:
-        raise FaltanDatos("no hay puntos suficientes para graficar el ajuste")
+        raise FaltanDatos("there are not enough points to plot the fit")
     f = (run.fits or fit_all(run)).get(equation)
     if not (f and f.ok):
-        raise FaltanDatos(f"el ajuste {equation} no es válido: "
-                         f"{f.message if f else 'sin datos'}")
+        raise FaltanDatos(f"the {equation} fit is not valid: "
+                         f"{f.message if f else 'no data'}")
 
     figsize = qstyle.figure_size(width, journal, aspect)
     fig = plt.figure(figsize=figsize, layout="constrained")
@@ -375,7 +375,7 @@ def plot(run: EOSRun, outfile: str = "eos", equation: str = DEFAULT_EQ,
             color=qstyle.INK, mfc=qstyle.CURRENT.get("background", "#FFF"),
             mew=st["line"], zorder=3)
     ax.axvline(f.V0, color=qstyle.INK_FAINT, lw=st["axis_line"], dashes=[3.5, 2.0])
-    ax.set_ylabel(r"$E - E_0$ (meV/átomo)")
+    ax.set_ylabel(r"$E - E_0$ (meV/atom)")
     ax.tick_params(labelbottom=False)
     ax.annotate(
         f"$V_0$ = {f.V0:.2f} Å$^3$\n$B_0$ = {f.B0:.1f} GPa\n$B_0'$ = {f.Bp:.2f}",
@@ -387,7 +387,7 @@ def plot(run: EOSRun, outfile: str = "eos", equation: str = DEFAULT_EQ,
     axr.axhline(0.0, color=qstyle.INK_FAINT, lw=st["axis_line"])
     axr.plot(V, resid, "o", ms=3, color=color[1])
     axr.set_xlabel(r"$V$ (Å$^3$)")
-    axr.set_ylabel("residual\n(meV/át)")
+    axr.set_ylabel("residual\n(meV/atom)")
     lim = max(abs(resid).max() * 1.4, 1e-3)
     axr.set_ylim(-lim, lim)
 

@@ -258,13 +258,13 @@
     "nombre visible del proyecto": "display name of the project",
     "no preguntar; requiere --structure en un proyecto nuevo": "do not ask; requires --structure in a new project",
     "no ejecutar la validación inicial": "do not run the initial validation",
-    "idioma del inicio guiado (default: es)": "language of the guided start (default: es)",
+    "idioma del inicio guiado (default: es)": "interface language (en, es, de; follows --language)",
     "clave de la receta; sin nada, las lista todas": "recipe key; with nothing, lists them all",
     "buscarla con tus palabras, sin saber la clave": "search for it in your own words, without knowing the key",
     "escribir la receta como un guion de shell comentado, listo para editar": "write the recipe as a commented shell script, ready to edit",
     "tu estructura (opcional)": "your structure (optional)",
     "clave de la meta; salen con --list": "goal key; they are listed with --list",
-    "describelo con tus palabras, por ejemplo 'quiero saber si absorbe luz'": "describe it in your own words (in Spanish, which is what the matcher understands), e.g. 'quiero saber si absorbe luz'",
+    "describelo con tus palabras, por ejemplo 'quiero saber si absorbe luz'": "describe your goal in English, Spanish or German, for example 'does it absorb light'",
     "listar todo lo que el asistente sabe hacer": "list everything the assistant knows how to do",
     "que significa un termino": "what a term means",
     "acción sobre el proyecto": "action on the project",
@@ -284,7 +284,7 @@
     "salida para dashboard, report o export": "output for dashboard, report or export",
     "en report, generar un informe PDF autocontenido": "in report, generate a self-contained PDF report",
     "tema del dashboard (default: auto)": "dashboard theme (default: auto)",
-    "idioma del dashboard (default: es)": "dashboard language (default: es)",
+    "idioma del dashboard (default: es)": "interface language (en, es, de; follows --language)",
     "generar dashboard español e inglés en archivos separados": "generate Spanish and English dashboards in separate files",
     "en environment, comprobar el bloqueo guardado": "in environment, check the saved lock",
     "en diff, snapshot o proyecto de comparación": "in diff, snapshot or project to compare against",
@@ -392,7 +392,7 @@
     "solo empaquetar, sin dinámica": "pack only, no dynamics",
     "archivo HTML de salida": "output HTML file",
     "abrirla en el navegador al terminar": "open it in the browser when done",
-    "idioma de la interfaz de referencia (default: es)": "language of the reference interface (default: es)",
+    "idioma de la interfaz de referencia (default: es)": "interface language (en, es, de; follows --language)",
     "generar referencias en español e inglés por separado": "generate separate Spanish and English references",
     "energía de adsorción de H en eV (reacción HER)": "H adsorption energy in eV (HER reaction)",
     "energías de adsorción de los tres intermedios de la OER, en eV y referidas al agua": "adsorption energies of the three OER intermediates, in eV and referenced to water",
@@ -648,6 +648,8 @@
     "archivo de servicio generado; se instala por separado": "generated service file; installation is separate",
     "máximo de registros: list=100, explore=10000": "maximum records: list=100, explore=10000",
     "archivo de salida: export=JSON, explore=HTML interactivo": "output file: export=JSON, explore=interactive HTML",
-    "identificador de la imagen inmutable del entorno": "immutable runtime image identifier"
+    "identificador de la imagen inmutable del entorno": "immutable runtime image identifier",
+    "idioma de la interfaz: en, es o de. También vale la variable OLLA_DFT_LANG o 'olla-dft config set language en'": "interface language: en, es or de. Also accepts OLLA_DFT_LANG or 'olla-dft config set language en'",
+    "generar interfaces en inglés, español y alemán": "generate English, Spanish and German interfaces"
   }
 }

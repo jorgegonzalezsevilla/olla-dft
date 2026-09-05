@@ -66,7 +66,7 @@ def scattering_params(symbol: str):
         _SCATTERING = _load_scattering()
     if symbol not in _SCATTERING:
         raise ErrorDeUso(
-            f"no hay factores de dispersión para '{symbol}' en la tabla."
+            f"there are no scattering factors for '{symbol}' in the table."
         )
     return np.array(_SCATTERING[symbol])
 
@@ -79,14 +79,14 @@ def wavelength_name(w) -> str:
     'Cu Kα' cuando el usuario pidió otra cosa.
     """
     if isinstance(w, (int, float)):
-        return "λ dada"
+        return "given λ"
     key = str(w).strip()
     if key in WAVELENGTHS:
         elemento, resto = key[:-3] if key[-1].isdigit() else key[:-2], \
             key[-3:] if key[-1].isdigit() else key[-2:]
         letra = "α" if resto[1] == "a" else "β"
         return f"{elemento} K{letra}{resto[2:]}"
-    return "λ dada"
+    return "given λ"
 
 
 def wavelength_value(w) -> float:
@@ -99,8 +99,8 @@ def wavelength_value(w) -> float:
         return float(key)
     except ValueError:
         raise ErrorDeUso(
-            f"radiación desconocida '{w}'. Opciones: "
-            f"{', '.join(WAVELENGTHS)}, o la longitud de onda en Å."
+            f"unknown radiation '{w}'. Options: "
+            f"{', '.join(WAVELENGTHS)}, or the wavelength in Å."
         )
 
 
@@ -168,7 +168,7 @@ def compute(atoms: Atoms, wavelength="CuKa", two_theta_range=(5.0, 70.0),
     lam = wavelength_value(wavelength)
     basis = (basis or "conventional").lower()
     if basis not in ("conventional", "input"):
-        raise ErrorDeUso("basis debe ser 'conventional' o 'input'")
+        raise ErrorDeUso("basis must be 'conventional' or 'input'")
     if basis == "conventional":
         from qekit.core import structure as _struct
         try:
@@ -316,7 +316,7 @@ def read_experimental(path: str):
             continue
     if len(rows) < 10:
         raise ErrorDeUso(
-            f"'{path}' no parece un difractograma de dos columnas (2θ, I)."
+            f"'{path}' does not look like a two-column (2θ, I) diffractogram."
         )
     arr = np.array(rows)
     arr = arr[np.argsort(arr[:, 0])]
@@ -330,21 +330,21 @@ def read_experimental(path: str):
 # Reporte, exportación y gráfica
 # ----------------------------------------------------------------------
 def report(pattern: Pattern, top: int = 12) -> str:
-    basis_txt = ("celda convencional (índices como en las fichas PDF)"
+    basis_txt = ("conventional cell (indices as in the PDF cards)"
                  if pattern.basis == "conventional"
-                 else "celda de entrada (¡los hkl NO son los de la ficha "
-                      "PDF si es primitiva!)")
-    lines = ["--- Difracción de polvos simulada ---",
+                 else "input cell (the hkl are NOT those of the PDF "
+                      "card if it is primitive!)")
+    lines = ["--- Simulated powder diffraction ---",
              f"λ = {pattern.wavelength:.5f} Å  |  "
-             f"{pattern.formula}  |  indexado en la {basis_txt}",
+             f"{pattern.formula}  |  indexed in the {basis_txt}",
              "",
              f"{'2θ (°)':>9s} {'d (Å)':>9s} {'I rel':>7s}   hkl"]
     for p in sorted(pattern.peaks, key=lambda q: -q.intensity)[:top]:
         lines.append(f"{p.two_theta:9.3f} {p.d:9.4f} {p.intensity:7.1f}   "
                      f"{p.label}")
     lines.append("")
-    lines.append(f"{len(pattern.peaks)} reflexiones en total "
-                 "(tabla completa en XRD_HKL.dat).")
+    lines.append(f"{len(pattern.peaks)} reflections in total "
+                 "(full table in XRD_HKL.dat).")
     return "\n".join(lines)
 
 
@@ -356,19 +356,19 @@ def export(pattern: Pattern, outdir: str = ".") -> list:
         np.savetxt(f, np.column_stack([pattern.two_theta, pattern.intensity]),
                    fmt="%12.4f",
                    header=provenance.header_plain(
-                       "difracción de polvos",
+                       "powder diffraction",
                        {"lambda_A": f"{pattern.wavelength:.5f}",
                         "base_hkl": pattern.basis,
                         "formula": pattern.formula},
-                       titulo="Difractograma simulado")
+                       titulo="Simulated diffractogram")
                    + f"\n{'2theta':>10s} {'I':>12s}", comments="# ")
         written.append(str(f))
     f = out / "XRD_HKL.dat"
     lines = [provenance.header(
-                 "reflexiones",
+                 "reflections",
                  {"lambda_A": f"{pattern.wavelength:.5f}",
                   "base_hkl": pattern.basis, "formula": pattern.formula},
-                 titulo="Reflexiones"),
+                 titulo="Reflections"),
              f"# {'2theta':>9s} {'d(A)':>10s} {'I':>9s}  hkl"]
     for p in sorted(pattern.peaks, key=lambda q: q.two_theta):
         lines.append(f"{p.two_theta:11.4f} {p.d:10.5f} {p.intensity:9.2f}  "
@@ -390,7 +390,7 @@ def plot(pattern: Pattern, outfile: str = "xrd", exp=None,
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -402,7 +402,7 @@ def plot(pattern: Pattern, outfile: str = "xrd", exp=None,
         ax.plot(xe, ye + 105.0, color=colors[1], lw=st["line"] * 0.9,
                 label=qstyle.tex_safe(exp_label))
         ax.plot(pattern.two_theta, pattern.intensity, color=colors[0],
-                lw=st["line"], label="simulado")
+                lw=st["line"], label="simulated")
         ax.set_ylim(0, 215)
         ax.legend(loc="upper right")
         ax.set_yticks([])
@@ -423,8 +423,8 @@ def plot(pattern: Pattern, outfile: str = "xrd", exp=None,
         )
 
     ax.set_xlim(pattern.two_theta.min(), pattern.two_theta.max())
-    ax.set_xlabel(r"$2\theta$ (°)" if not qstyle.USETEX else r"$2\theta$ (grados)")
-    ax.set_ylabel("intensidad (u. arb.)")
+    ax.set_xlabel(r"$2\theta$ (°)" if not qstyle.USETEX else r"$2\theta$ (degrees)")
+    ax.set_ylabel("intensity (arb. u.)")
     ax.tick_params(axis="y", which="both", left=False, right=False,
                    labelleft=False)
     written = qstyle.save(fig, outfile, formats, dpi=dpi,

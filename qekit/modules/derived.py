@@ -166,9 +166,9 @@ def analyze(B_GPa: float, G_GPa: float, masas_amu, volumen_A3: float,
                           float(np.mean(masas_amu)), natoms, volumen_A3, T)
     if r.poisson is not None and r.poisson < 0:
         r.avisos.append(
-            f"razón de Poisson negativa ({r.poisson:.3f}): es posible "
-            "(materiales auxéticos) pero raro;\nrevisa las Cij antes de "
-            "creerlo.")
+            f"negative Poisson ratio ({r.poisson:.3f}): possible "
+            "(auxetic materials) but rare;\ncheck the Cij before "
+            "believing it.")
     return r
 
 
@@ -277,11 +277,11 @@ def export(r: Termoelastico, outdir: str = ".") -> list:
              ("razon_de_Poisson", r.poisson, ""),
              ("gruneisen", r.gruneisen, ""),
              (f"kappa_Slack_{r.T:g}K", r.kappa_slack, "W/m/K")]
-    L = [provenance.header("derivadas termoelásticas",
+    L = [provenance.header("thermoelastic derived quantities",
                            {"atomos": r.natoms,
                             "volumen_A3": f"{r.volumen:.4f}"
                             if r.volumen else "?"}),
-         f"# {'magnitud':<24s} {'valor':>16s}  unidad"]
+         f"# {'quantity':<24s} {'value':>16s}  unit"]
     for nom, val, uni in filas:
         if val is None:
             continue
@@ -291,30 +291,30 @@ def export(r: Termoelastico, outdir: str = ".") -> list:
 
 
 def report(r: Termoelastico) -> str:
-    lines = ["--- Propiedades termoelásticas ---",
-             f"Densidad: {r.rho:.1f} kg/m³  "
-             f"({r.natoms} átomos en {r.volumen:.2f} Å³)"]
+    lines = ["--- Thermoelastic properties ---",
+             f"Density: {r.rho:.1f} kg/m³  "
+             f"({r.natoms} atoms in {r.volumen:.2f} Å³)"]
     if r.v_l:
-        lines += [f"Velocidades del sonido:  longitudinal {r.v_l:.0f} m/s  |  "
-                  f"transversal {r.v_t:.0f} m/s",
-                  f"                         promedio     {r.v_m:.0f} m/s"]
+        lines += [f"Sound velocities:  longitudinal {r.v_l:.0f} m/s  |  "
+                  f"transverse {r.v_t:.0f} m/s",
+                  f"                   mean         {r.v_m:.0f} m/s"]
     if r.theta_D:
-        lines.append(f"Temperatura de Debye (elástica): {r.theta_D:.0f} K")
+        lines.append(f"Debye temperature (elastic): {r.theta_D:.0f} K")
     if r.poisson is not None:
-        lines.append(f"Razón de Poisson: {r.poisson:.4f}")
+        lines.append(f"Poisson ratio: {r.poisson:.4f}")
     if r.gruneisen:
-        lines.append(f"Grüneisen (correlación de Poisson): {r.gruneisen:.2f}")
+        lines.append(f"Grüneisen (Poisson correlation): {r.gruneisen:.2f}")
     if r.kappa_slack:
-        lines.append(f"Conductividad térmica de red (Slack, {r.T:g} K): "
+        lines.append(f"Lattice thermal conductivity (Slack, {r.T:g} K): "
                      f"{r.kappa_slack:.1f} W/(m·K)")
     for a in r.avisos:
-        lines.append(f"\nAVISO: {a}")
+        lines.append(f"\nWARNING: {a}")
     lines += ["",
-              "La Debye de aquí es la ELÁSTICA: sale de las velocidades del "
-              "sonido y describe\nel límite de baja temperatura. La que "
-              "sale de la DOS de fonones usa todo el\nespectro y da otro "
-              "número; no son la misma cantidad.",
-              "El Grüneisen viene de una correlación empírica con la razón "
-              "de Poisson y la\nconductividad de Slack es una estimación de "
-              "orden de magnitud, no un valor\npara reportar sin más."]
+              "The Debye temperature here is the ELASTIC one: it comes from the "
+              "sound velocities and describes\nthe low-temperature limit. The one "
+              "from the phonon DOS uses the whole\nspectrum and gives another "
+              "number; they are not the same quantity.",
+              "The Grüneisen parameter comes from an empirical correlation with the "
+              "Poisson ratio and the\nSlack conductivity is an order-of-magnitude "
+              "estimate, not a value\nto report as is."]
     return "\n".join(lines)

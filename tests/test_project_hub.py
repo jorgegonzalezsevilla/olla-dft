@@ -41,8 +41,8 @@ def test_project_workflow_calidad_dashboard_y_snapshot(tmp_path):
     html = dashboard.generate(root, data)
     snapshot = project.export_snapshot(root, data)
     html_text = html.read_text(encoding="utf-8")
-    assert html.is_file() and "Puerta de calidad" in html_text
-    assert "Qué hacer ahora" in html_text and "Campañas" in html_text
+    assert html.is_file() and "Quality gate" in html_text
+    assert "What to do now" in html_text and "Campaigns" in html_text
     assert "data-command" in html_text and "task-filter" in html_text
     assert "theme-select" in html_text and "table-wrap" in html_text
     assert "aria-live=\"polite\"" in html_text and "fallbackCopy" in html_text
@@ -63,7 +63,7 @@ def test_cache_detecta_fuente_cambiada_y_persiste_invalidacion(tmp_path):
     project.save(root, data)
 
     cached = project.run(root, data, execute=False)
-    assert cached[0][2] == "omitida: caché válida"
+    assert cached[0][2] == 'skipped: valid cache'
 
     source.write_text(source.read_text(encoding="utf-8") + "# cambio\n",
                       encoding="utf-8")
@@ -155,7 +155,7 @@ def test_comparador_no_resta_corridas_incompatibles(monkeypatch):
     result = compare.compare(["a", "b"])
     assert not result["comparable_energy"]
     assert result["runs"][1]["delta_energia_eV"] is None
-    assert "NO se restan" in compare.report(result)
+    assert 'NOT subtracted' in compare.report(result)
 
 
 def test_tuning_recomienda_confirmar_o_extender(tmp_path):
@@ -165,7 +165,7 @@ def test_tuning_recomienda_confirmar_o_extender(tmp_path):
     result = tuning.analyze(data, threshold=1.0)
     assert result["status"] == "confirm"
     assert result["recommended_value"] > 50
-    assert "CONFIRMAR" in tuning.report(result)
+    assert 'CONFIRM' in tuning.report(result)
 
 
 def test_validacion_avanzada_lee_estructura_y_detecta_colision(tmp_path):
@@ -400,7 +400,7 @@ def test_dashboard_admite_tema_y_pdf(tmp_path):
     html = dashboard.generate(root, data, theme="dark")
     html_text = html.read_text(encoding="utf-8")
     assert 'data-theme="dark"' in html_text
-    assert '<option value="dark" selected>Oscuro</option>' in html_text
+    assert '<option value="dark" selected>Dark</option>' in html_text
     english = dashboard.generate(root, data, tmp_path / "dashboard-en.html",
                                 language="en")
     english_text = english.read_text(encoding="utf-8")

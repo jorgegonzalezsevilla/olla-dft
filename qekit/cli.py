@@ -90,8 +90,8 @@ _MENU_I18N_DIR = Path(__file__).resolve().parent / "data" / "i18n"
 
 def _menu_labels(language="es") -> dict:
     """Carga las etiquetas del menú inicial desde un archivo independiente."""
-    if language not in ("es", "en"):
-        raise ErrorDeUso("language debe ser es o en")
+    if language not in ("es", "en", "de"):
+        raise ErrorDeUso("language must be en, es or de")
     target = _MENU_I18N_DIR / f"menu_{language}.json"
     try:
         labels = json.loads(target.read_text(encoding="utf-8"))
@@ -267,17 +267,17 @@ def _malla(texto: str, nombre: str = "--grid") -> tuple:
     partes = [q for q in partes if q != ""]
     if len(partes) != 3:
         raise ErrorDeUso(
-            f"{nombre} necesita TRES numeros separados por x, por ejemplo "
-            f"8x8x8; recibi '{texto}' ({len(partes)} valor"
-            f"{'es' if len(partes) != 1 else ''}).")
+            f"{nombre} needs THREE numbers separated by x, for example "
+            f"8x8x8; got '{texto}' ({len(partes)} value"
+            f"{'s' if len(partes) != 1 else ''}).")
     try:
         vals = tuple(int(q) for q in partes)
     except ValueError:
         raise ErrorDeUso(
-            f"{nombre} solo admite numeros enteros; recibi '{texto}'."
+            f"{nombre} only accepts integer numbers; got '{texto}'."
         ) from None
     if any(v < 1 for v in vals):
-        raise ErrorDeUso(f"{nombre} debe ser positiva; recibi '{texto}'.")
+        raise ErrorDeUso(f"{nombre} must be positive; got '{texto}'.")
     return vals
 
 
@@ -287,15 +287,15 @@ def _malla_2d(texto: str, nombre: str = "--grid") -> tuple:
     partes = [q for q in partes if q]
     if len(partes) != 2:
         raise ErrorDeUso(
-            f"{nombre} necesita DOS enteros separados por x, por ejemplo "
-            f"40x40; recibí '{texto}'.")
+            f"{nombre} needs TWO integers separated by x, for example "
+            f"40x40; got '{texto}'.")
     try:
         vals = tuple(int(q) for q in partes)
     except ValueError:
         raise ErrorDeUso(
-            f"{nombre} solo admite enteros; recibí '{texto}'.") from None
+            f"{nombre} only accepts integers; got '{texto}'.") from None
     if min(vals) < 3:
-        raise ErrorDeUso(f"{nombre} debe ser de al menos 3x3.")
+        raise ErrorDeUso(f"{nombre} must be at least 3x3.")
     return vals
 
 
@@ -341,10 +341,10 @@ def _duracion(texto) -> float:
             total = float(t)
         except ValueError:
             raise ErrorDeUso(
-                f"--max-time se escribe como 90m, 2h, 1h30m o un número de "
-                f"segundos; recibí '{texto}'.") from None
+                f"--max-time is written as 90m, 2h, 1h30m or a number of "
+                f"seconds; got '{texto}'.") from None
     if total <= 0:
-        raise ErrorDeUso(f"--max-time tiene que ser positivo; recibí '{texto}'.")
+        raise ErrorDeUso(f"--max-time must be positive; got '{texto}'.")
     return total
 
 
@@ -359,16 +359,16 @@ def _validar_ejecucion(args) -> None:
     _duracion(getattr(args, "max_time", None))
     j = getattr(args, "jobs", None)
     if j is not None and j < 1:
-        raise ErrorDeUso(f"--jobs es cuántos cálculos correr a la vez, así "
-                         f"que al menos 1; recibí {j}.")
+        raise ErrorDeUso(f"--jobs is how many calculations to run at once, so "
+                         f"at least 1; got {j}.")
     n = getattr(args, "nproc", None)
     if n is not None and n < 1:
-        raise ErrorDeUso(f"--nproc es cuántos procesos MPI por cálculo, así "
-                         f"que al menos 1; recibí {n}.")
+        raise ErrorDeUso(f"--nproc is how many MPI processes per calculation, so "
+                         f"at least 1; got {n}.")
     t = getattr(args, "timeout", None)
     if t is not None and t <= 0:
-        raise ErrorDeUso(f"--timeout es el límite en segundos por cálculo y "
-                         f"tiene que ser positivo; recibí {t}.")
+        raise ErrorDeUso(f"--timeout is the limit in seconds per calculation and "
+                         f"must be positive; got {t}.")
     if j and j > 1 and not getattr(args, "run", False):
         # no es un error: los inputs se escriben igual y ./run.sh N sirve
         pass
@@ -386,15 +386,15 @@ def _parse_hubbard(valores) -> dict:
                 continue
             if "=" not in trozo:
                 raise ErrorDeUso(
-                    f"--hubbard se escribe ELEMENTO=U, por ejemplo Ni=4.1; "
-                    f"recibí '{trozo}'.")
+                    f"--hubbard is written ELEMENT=U, for example Ni=4.1; "
+                    f"got '{trozo}'.")
             sym, _, val = trozo.partition("=")
             sym = sym.strip().capitalize()
             try:
                 out[sym] = float(val)
             except ValueError:
                 raise ErrorDeUso(
-                    f"el U de {sym} tiene que ser un número en eV; recibí "
+                    f"the U of {sym} must be a number in eV; got "
                     f"'{val.strip()}'.") from None
     return out or None
 
@@ -410,8 +410,8 @@ def _print_prepare(rep: str) -> None:
     if _sweep.writing_inputs():
         print(rep)
     else:
-        print("Modo --collect: se leen los resultados ya existentes "
-              "(los inputs no se tocan).")
+        print("--collect mode: existing results are read "
+              "(the inputs are not touched).")
 
 
 def _cmd_gen(args) -> int:
@@ -437,9 +437,9 @@ def _cmd_gen(args) -> int:
     hubbard = _parse_hubbard(getattr(args, "hubbard", None))
     if getattr(args, "soc", False) and nspin == 2:
         raise ErrorDeUso(
-            "--soc y --nspin 2 no se combinan: el espín-órbita ya es un "
-            "cálculo no colineal (noncolin), donde el espín no se separa en "
-            "dos canales. Usa --soc solo, o --nspin 2 sin --soc.")
+            "--soc and --nspin 2 cannot be combined: spin-orbit is already a "
+            "non-collinear calculation (noncolin), where spin is not split into "
+            "two channels. Use --soc alone, or --nspin 2 without --soc.")
     md = None
     if args.preset == "md":
         md = dict(dt_fs=args.dt, nstep=args.nstep,
@@ -447,8 +447,8 @@ def _cmd_gen(args) -> int:
     elif any(getattr(args, k, None) != d for k, d in
              (("dt", 1.0), ("nstep", 1000), ("thermostat", "none"))):
         raise ErrorDeUso(
-            "--dt, --nstep y --thermostat solo tienen sentido con el preset de "
-            "dinámica molecular. Añade  -p md.")
+            "--dt, --nstep and --thermostat only make sense with the molecular "
+            "dynamics preset. Add  -p md.")
 
     opts = inputgen.GenOptions(
         preset=args.preset,
@@ -498,7 +498,7 @@ def _cmd_prim(args) -> int:
     atoms = structure.load(args.file)
     prim = structure.primitive(atoms)
     out = structure.convert(prim, args.output)
-    print(f"Celda primitiva ({len(prim)} átomos) escrita en: {out}")
+    print(f"Primitive cell ({len(prim)} atoms) written to: {out}")
     return 0
 
 
@@ -506,7 +506,7 @@ def _cmd_conv(args) -> int:
     atoms = structure.load(args.file)
     conv = structure.conventional(atoms)
     out = structure.convert(conv, args.output)
-    print(f"Celda convencional ({len(conv)} átomos) escrita en: {out}")
+    print(f"Conventional cell ({len(conv)} atoms) written to: {out}")
     return 0
 
 
@@ -515,7 +515,7 @@ def _cmd_supercell(args) -> int:
     sc = structure.supercell(atoms, args.nx, args.ny, args.nz)
     out = structure.convert(sc, args.output)
     print(
-        f"Supercelda {args.nx}x{args.ny}x{args.nz} ({len(sc)} átomos) escrita en: {out}"
+        f"Supercell {args.nx}x{args.ny}x{args.nz} ({len(sc)} atoms) written to: {out}"
     )
     return 0
 
@@ -523,12 +523,12 @@ def _cmd_supercell(args) -> int:
 def _cmd_convert(args) -> int:
     destino = args.output or args.output_flag
     if not destino:
-        print("Error: falta el archivo de salida "
-              "(olla-dft convert entrada.cif salida.vasp)", file=sys.stderr)
+        print("Error: missing output file "
+              "(olla-dft convert input.cif output.vasp)", file=sys.stderr)
         return 1
     atoms = structure.load(args.file)
     out = structure.convert(atoms, destino)
-    print(f"Estructura convertida: {args.file} -> {out}")
+    print(f"Structure converted: {args.file} -> {out}")
     return 0
 
 
@@ -564,7 +564,7 @@ def _cmd_bands(args) -> int:
     print(bands_mod.gap_report(bs))
     print()
     written = bands_mod.export(bs, outdir=args.outdir, ref=args.ref)
-    print("Datos exportados:")
+    print("Data exported:")
     for f in written:
         print(f"  {f}")
     if not args.no_plot:
@@ -600,7 +600,7 @@ def _cmd_dos(args) -> int:
     print(dos_mod.report(dd, ref=args.ref))
     print()
     written = dos_mod.export(dd, outdir=args.outdir, ref=args.ref)
-    print("Datos exportados:")
+    print("Data exported:")
     for f in written:
         print(f"  {f}")
     if not args.no_plot:
@@ -640,7 +640,7 @@ def _cmd_plot(args) -> int:
         aspect=args.aspect or 0.46, mono=args.mono, dash_mode=args.dashes,
         title=args.title, gap_label=args.gap_label,
     )
-    print("Figura combinada:")
+    print("Combined figure:")
     for f in imgs:
         print(f"  {f}")
     return 0
@@ -649,27 +649,27 @@ def _cmd_plot(args) -> int:
 def _cmd_templates(args) -> int:
     action = args.action or "list"
     if action == "list":
-        print("Plantillas disponibles:\n")
+        print("Available templates:\n")
         user = qthemes.user_templates()
         for name in qthemes.names():
-            origen = "usuario" if name in user else "incluida"
+            origen = "user" if name in user else "built-in"
             desc = qthemes.load(name).get("description", "")
             print(f"  {name:12s} [{origen}]  {desc}")
-        print(f"\nLas plantillas propias se leen de {qthemes.USER_DIR}")
-        print("Para partir de una y modificarla:  olla-dft templates export <nombre>")
+        print(f"\nUser templates are read from {qthemes.USER_DIR}")
+        print("To start from one and modify it:  olla-dft templates export <name>")
     elif action == "show":
         if not args.name:
-            print("uso: olla-dft templates show <nombre>", file=sys.stderr)
+            print("usage: olla-dft templates show <name>", file=sys.stderr)
             return 1
         print(qthemes.describe(args.name))
     elif action == "export":
         if not args.name:
-            print("uso: olla-dft templates export <nombre> [archivo.json]",
+            print("usage: olla-dft templates export <name> [file.json]",
                   file=sys.stderr)
             return 1
         out = qthemes.export(args.name, args.output)
-        print(f"Plantilla escrita en: {out}")
-        print("Edítala y úsala con:  olla-dft plot . --template " +
+        print(f"Template written to: {out}")
+        print("Edit it and use it with:  olla-dft plot . --template " +
               Path(out).stem)
     return 0
 
@@ -710,9 +710,9 @@ def _run_or_explain(jobs, args, what: str):
             print(cost.report(est, modelo))
         except Exception as exc:                            # noqa: BLE001
             if getattr(args, "estimate", False):
-                print(f"\n(no se pudo estimar el coste: {exc})")
+                print(f"\n(could not estimate the cost: {exc})")
     if getattr(args, "estimate", False):
-        print("\nNo se ha corrido nada. Quita --estimate para lanzarlo.")
+        print("\nNothing has been run. Remove --estimate to launch it.")
         return None
 
     if getattr(args, "collect", False) and not args.run:
@@ -724,17 +724,17 @@ def _run_or_explain(jobs, args, what: str):
         hilos = run_mod.nucleos()
         sugerido = max(2, hilos // 2) if hilos >= 4 and len(jobs) > 2 else None
         print()
-        print("Los inputs están listos pero no se han corrido. Para ejecutarlos:")
-        print(f"  olla-dft {what} ... --run          (Olla-DFT los lanza)")
+        print("The inputs are ready but have not been run. To execute them:")
+        print(f"  olla-dft {what} ... --run          (Olla-DFT launches them)")
         if sugerido:
             print(f"  olla-dft {what} ... --run -j {sugerido}     "
-                  f"({sugerido} a la vez; son {len(jobs)} cálculos "
-                  f"independientes)")
-        print(f"  cd {args.outdir} && ./run.sh    (los lanzas tú"
-              + (f"; ./run.sh {sugerido} para {sugerido} a la vez)"
+                  f"({sugerido} at a time; there are {len(jobs)} independent "
+                  f"calculations)")
+        print(f"  cd {args.outdir} && ./run.sh    (you launch them"
+              + (f"; ./run.sh {sugerido} for {sugerido} at a time)"
                  if sugerido else ")"))
-        print("Cuando terminen, vuelve a ejecutar el mismo comando con "
-              "--collect para analizarlos.")
+        print("When they finish, run the same command again with "
+              "--collect to analyze them.")
         return None
     print()
     return run_mod.run_all(jobs, pw_cmd=args.pw_cmd, nproc=args.nproc,
@@ -775,7 +775,7 @@ def _cmd_converge(args) -> int:
                                    aspect=args.aspect or 0.75, **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -809,7 +809,7 @@ def _cmd_eos(args) -> int:
                                   **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -842,7 +842,7 @@ def _cmd_elastic(args) -> int:
                                  **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -881,7 +881,7 @@ def _cmd_strain(args) -> int:
                                  **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -920,7 +920,7 @@ def _cmd_adsorb(args) -> int:
                                  **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -934,10 +934,10 @@ def _cmd_eform(args) -> int:
                   if x.strip()]
     except ValueError:
         raise ErrorDeUso(
-            "--charges son enteros separados por coma, por ejemplo "
-            f"-2,-1,0,1,2; recibí '{args.charges}'.") from None
+            "--charges are comma-separated integers, for example "
+            f"-2,-1,0,1,2; got '{args.charges}'.") from None
     if not cargas:
-        raise ErrorDeUso("--charges necesita al menos un estado de carga.")
+        raise ErrorDeUso("--charges needs at least one charge state.")
     pos = [float(x) for x in args.position.split(",")] if args.position else None
     nspin = getattr(args, "nspin", 1)
     mag = {}
@@ -952,15 +952,15 @@ def _cmd_eform(args) -> int:
                 continue
             if "=" not in trozo:
                 raise ErrorDeUso(
-                    f"--mu se escribe ELEMENTO=eV, por ejemplo Si=-107.5; "
-                    f"recibí '{trozo}'.")
+                    f"--mu is written ELEMENT=eV, for example Si=-107.5; "
+                    f"got '{trozo}'.")
             sym, _, val = trozo.partition("=")
             try:
                 mu[sym.strip().capitalize()] = float(val)
             except ValueError:
                 raise ErrorDeUso(
-                    f"el μ de {sym.strip()} tiene que ser un número en eV; "
-                    f"recibí '{val.strip()}'.") from None
+                    f"the μ of {sym.strip()} must be a number in eV; "
+                    f"got '{val.strip()}'.") from None
 
     run, rep = df_mod.prepare(
         atoms, kind=args.kind, site=args.site, new_element=args.new_element,
@@ -997,7 +997,7 @@ def _cmd_eform(args) -> int:
                                  **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -1009,19 +1009,19 @@ def _cmd_gamma(args) -> int:
         miller = [int(x) for x in args.miller.replace(",", " ").split()]
     except ValueError:
         raise ErrorDeUso(
-            f"--miller son tres enteros, por ejemplo '1 1 1'; recibí "
+            f"--miller are three integers, for example '1 1 1'; got "
             f"'{args.miller}'.") from None
     if len(miller) != 3:
         raise ErrorDeUso(
-            f"--miller necesita TRES índices; recibí {len(miller)} "
-            f"en '{args.miller}'.")
+            f"--miller needs THREE indices; got {len(miller)} "
+            f"in '{args.miller}'.")
     try:
         capas = [int(x) for x in args.layers.replace(";", ",").split(",")
                  if x.strip()]
     except ValueError:
         raise ErrorDeUso(
-            f"--layers son enteros separados por coma, por ejemplo 3,4,5,6; "
-            f"recibí '{args.layers}'.") from None
+            f"--layers are comma-separated integers, for example 3,4,5,6; "
+            f"got '{args.layers}'.") from None
     nspin = getattr(args, "nspin", 1)
     mag = {}
     if getattr(args, "mag", None):
@@ -1054,7 +1054,7 @@ def _cmd_gamma(args) -> int:
                                  **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -1073,7 +1073,7 @@ def _cmd_layers(args) -> int:
     if args.slab and res.layers:
         slab = layers_mod.make_slab(atoms, res, vacuum=args.vacuum)
         out = structure.convert(slab, args.slab)
-        print(f"\nMonocapa con {args.vacuum:g} Å de vacío escrita en: {out}")
+        print(f"\nMonolayer with {args.vacuum:g} Å of vacuum written to: {out}")
     return 0
 
 
@@ -1091,7 +1091,7 @@ def _cmd_xrd(args) -> int:
     exp = None
     if args.exp:
         exp = xrd_mod.read_experimental(args.exp)
-        print(f"\nComparando con el difractograma experimental '{args.exp}'.")
+        print(f"\nComparing with the experimental diffractogram '{args.exp}'.")
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
     for f in xrd_mod.export(pattern, args.outdir):
         print(f"  {f}")
@@ -1146,13 +1146,13 @@ def _cmd_wf(args) -> int:
     axis = _AXES.get(args.axis.lower(), 2)
     cube_path = Path(args.path) / "potencial.cube"
     if not cube_path.exists() or args.rerun:
-        print("Ejecutando pp.x para extraer el potencial electrostático...")
+        print("Running pp.x to extract the electrostatic potential...")
         cube_path = f_mod.run_pp(args.path, "potential", "potencial",
                                  pw_cmd=args.pw_cmd, nproc=args.nproc)
     cube = f_mod.read_cube(str(cube_path))
     qe = qeout.read_xml(args.path)
     if qe.fermi is None:
-        print("Error: el XML no trae energía de Fermi (¿terminó el scf?)",
+        print("Error: the XML has no Fermi energy (did the scf finish?)",
               file=sys.stderr)
         return 1
     # con las posiciones la meseta se busca en el hueco real sin átomos
@@ -1205,7 +1205,7 @@ def _cmd_align(args) -> int:
                                  **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -1217,22 +1217,22 @@ def _cmd_charge(args) -> int:
             "potential": "potencial", "vtotal": "vtotal"}[args.field]
     cube_path = Path(args.path) / f"{name}.cube"
     if not cube_path.exists() or args.rerun:
-        print(f"Ejecutando pp.x ({args.field})...")
+        print(f"Running pp.x ({args.field})...")
         cube_path = f_mod.run_pp(args.path, args.field, name,
                                  pw_cmd=args.pw_cmd, nproc=args.nproc)
     cube = f_mod.read_cube(str(cube_path))
     z, prof = f_mod.planar_average(cube, axis)
     desc = f_mod.PLOTS[args.field][1]
-    print(f"Campo: {desc}")
-    print(f"Malla: {cube.shape[0]}x{cube.shape[1]}x{cube.shape[2]}  |  "
+    print(f"Field: {desc}")
+    print(f"Grid: {cube.shape[0]}x{cube.shape[1]}x{cube.shape[2]}  |  "
           f"cube: {cube_path}")
-    print("El .cube se abre directo en VESTA para las isosuperficies.")
+    print("The .cube opens directly in VESTA for isosurfaces.")
     Path(args.outdir).mkdir(parents=True, exist_ok=True)
     import numpy as np
     np.savetxt(Path(args.outdir) / "PERFIL_PLANAR.dat",
                np.column_stack([z, prof]), fmt="%14.6e",
-               header=f"# perfil planar de {args.field} a lo largo de "
-                      f"{args.axis}\n# z(A)  campo", comments="")
+               header=f"# planar profile of {args.field} along "
+                      f"{args.axis}\n# z(A)  field", comments="")
     print(f"  {Path(args.outdir) / 'PERFIL_PLANAR.dat'}")
     if not args.no_plot:
         for f in f_mod.plot_density_profile(
@@ -1266,10 +1266,10 @@ def _cmd_optics(args) -> int:
             return 1
         print("  epsilon.x ... ", end="", flush=True)
         opt_mod.run_epsilon(run, pw_cmd=args.pw_cmd, nproc=args.nproc)
-        print("hecho")
+        print("done")
     elif not args.collect:
-        print("\nCorre con --run, o ejecuta scf, nscf y epsilon.x a mano y "
-              "vuelve con --collect.")
+        print("\nRun with --run, or execute scf, nscf and epsilon.x by hand and "
+              "come back with --collect.")
         return 0
     run = opt_mod.collect(run)
     if args.scissor:
@@ -1308,8 +1308,8 @@ def _cmd_effmass(args) -> int:
         meta = em.load_meta(args.outdir)
         xmls = _glob.glob(str(Path(args.outdir) / "out" / "*.xml"))
         if not xmls:
-            print(f"Error: no hay XML en {args.outdir}/out; "
-                  "¿corriste scf.in y masa.in?", file=sys.stderr)
+            print(f"Error: no XML in {args.outdir}/out; "
+                  "did you run scf.in and masa.in?", file=sys.stderr)
             return 1
         run = em.collect_fine(xmls[0], meta)
         print(em.report(run))
@@ -1319,8 +1319,8 @@ def _cmd_effmass(args) -> int:
         return 0
 
     if not args.bands_dir:
-        print("Error: hace falta --bands-dir con un cálculo de bandas ya "
-              "hecho\n(de ahí se localizan el VBM y el CBM).", file=sys.stderr)
+        print("Error: --bands-dir with an already completed band-structure "
+              "calculation is needed\n(the VBM and CBM are located from it).", file=sys.stderr)
         return 1
 
     bs = bands_mod.load(args.bands_dir)
@@ -1372,14 +1372,14 @@ def _cmd_surface(args) -> int:
         print(f"\n  {args.output}")
         if info.fijados and not structure.conserva_fijos(args.output):
             print(
-                f"\nAVISO: '{args.output}' no guarda qué átomos están "
-                f"congelados (--fix {args.fix}): el CIF no tiene dónde "
-                "ponerlo,\n  así que al volver a cargarlo se relajaría todo. "
-                f"Escribe la losa en {builder.FORMATO_CON_FIJOS}, por "
-                "ejemplo\n  '-o losa.vasp': ese formato conserva los fijos y "
-                "'olla-dft inputgen' los traduce\n  a '0 0 0' en "
-                "ATOMIC_POSITIONS. O usa directamente 'olla-dft gamma "
-                "--fix'.", file=sys.stderr)
+                f"\nWARNING: '{args.output}' does not store which atoms are "
+                f"frozen (--fix {args.fix}): the CIF has nowhere to "
+                "put it,\n  so when reloaded everything would relax. "
+                f"Write the slab in {builder.FORMATO_CON_FIJOS}, for "
+                "example\n  '-o losa.vasp': that format keeps the fixed atoms and "
+                "'olla-dft inputgen' translates them\n  to '0 0 0' in "
+                "ATOMIC_POSITIONS. Or use 'olla-dft gamma "
+                "--fix' directly.", file=sys.stderr)
     return 0
 
 
@@ -1420,9 +1420,9 @@ def _cmd_charges(args) -> int:
         pdir = getattr(args, "pseudo_dir", None) or qcfg.load()["pseudo_dir"]
         valence = ch.valence_from_pseudos(atoms.get_chemical_symbols(), pdir)
         if valence is None:
-            print(f"Aviso: no pude leer z_valence de los UPF en '{pdir}'; la "
-                  "columna 'neta' saldrá como n/d.\n  Pasa la carpeta con "
-                  "--pseudo-dir para tener la carga neta por átomo.",
+            print(f"Warning: could not read z_valence from the UPFs in '{pdir}'; the "
+                  "'net' column will appear as n/a.\n  Pass the folder with "
+                  "--pseudo-dir to get the net charge per atom.",
                   file=sys.stderr)
 
     if args.lowdin:
@@ -1436,7 +1436,7 @@ def _cmd_charges(args) -> int:
     if args.bader:
         cube = fields.read_cube(args.bader)
         if atoms is None:
-            print("Error: --bader necesita también la estructura",
+            print("Error: --bader also needs the structure",
                   file=sys.stderr)
             return 1
         res = ch.bader(cube, atoms.positions,
@@ -1467,7 +1467,7 @@ def _cmd_charges(args) -> int:
         hecho = True
 
     if not hecho:
-        print("Nada que hacer: usa --lowdin, --bader o --difference.",
+        print("Nothing to do: use --lowdin, --bader or --difference.",
               file=sys.stderr)
         return 1
     return 0
@@ -1480,24 +1480,24 @@ def _cmd_fermi(args) -> int:
 
     xmls = _glob.glob(str(Path(args.outdir) / "out" / "*.xml"))
     if not xmls:
-        print(f"Error: no hay XML en {args.outdir}/out; corre primero "
+        print(f"Error: no XML in {args.outdir}/out; first run "
               "'olla-dft transport ... --run'", file=sys.stderr)
         return 1
     run = tr.load(xmls[0])
     from qekit.core import qeout
     res = qeout.read_xml(xmls[0])
     cruzan = tr.crossing_bands(run)
-    print("--- Superficie de Fermi ---")
-    print(f"Malla: {run.grid[0]}x{run.grid[1]}x{run.grid[2]}  |  "
+    print("--- Fermi surface ---")
+    print(f"Grid: {run.grid[0]}x{run.grid[1]}x{run.grid[2]}  |  "
           f"E_F = {run.fermi:.4f} eV")
     if not cruzan:
-        print("Ninguna banda cruza E_F: el sistema no es metálico y no "
-              "tiene superficie de Fermi.")
+        print("No band crosses E_F: the system is not metallic and has "
+              "no Fermi surface.")
         return 0
-    print(f"Bandas que cruzan E_F: {[b + 1 for b in cruzan]}")
+    print(f"Bands crossing E_F: {[b + 1 for b in cruzan]}")
     destino = Path(args.outdir) / "superficie_fermi.bxsf"
     print("\n  " + tr.export_bxsf(run, res.cell, destino))
-    print("\nÁbrelo con XCrySDen (xcrysden --bxsf archivo) o FermiSurfer.")
+    print("\nOpen it with XCrySDen (xcrysden --bxsf file) or FermiSurfer.")
     return 0
 
 
@@ -1508,7 +1508,7 @@ def _cmd_xps(args) -> int:
     if args.collect:
         f = Path(args.outdir) / "initial_state.out"
         if not f.exists():
-            print(f"Error: falta {f}", file=sys.stderr)
+            print(f"Error: missing {f}", file=sys.stderr)
             return 1
         res = xps_mod.collect(f, symbols=atoms.get_chemical_symbols())
         print(xps_mod.report(res))
@@ -1525,8 +1525,8 @@ def _cmd_xps(args) -> int:
     core_hole = {}
     for par in (args.core_hole or []):
         if "=" not in par:
-            print(f"Error: --core-hole se escribe Elemento=archivo.UPF "
-                  f"(recibí '{par}')", file=sys.stderr)
+            print(f"Error: --core-hole is written Element=file.UPF "
+                  f"(got '{par}')", file=sys.stderr)
             return 1
         el, upf = par.split("=", 1)
         core_hole[el.strip()] = upf.strip()
@@ -1546,8 +1546,8 @@ def _cmd_corehole(args) -> int:
     if args.core_wfc:
         destino = args.output or (Path(args.core_wfc).stem + ".wfc")
         f = ch.core_wfc(args.core_wfc, destino, orbital=args.orbital)
-        print(f"Funcion de onda de core escrita en {f}")
-        print("Se le pasa a xspectra.x en &pseudos como filecore='...'.")
+        print(f"Core wavefunction written to {f}")
+        print("Pass it to xspectra.x in &pseudos as filecore='...'.")
         return 0
 
     g = ch.generar(args.element, borde=args.edge, outdir=args.outdir,
@@ -1556,10 +1556,10 @@ def _cmd_corehole(args) -> int:
                    proyectores=args.projectors, solo_base=args.plain,
                    correr=not args.only_inputs, ld1_cmd=args.ld1_cmd)
     if args.only_inputs:
-        print("Entradas de ld1.x escritas (no se ejecuto nada):")
+        print("ld1.x inputs written (nothing was executed):")
         for e in g.entradas:
             print(f"  {e}")
-        print("\nCorrelas con:  ld1.x < ld1_base.in > ld1_base.out")
+        print("\nRun them with:  ld1.x < ld1_base.in > ld1_base.out")
         return 0
     print(ch.report(g))
     print()
@@ -1592,14 +1592,14 @@ def _cmd_xanes(args) -> int:
 
     if not args.element:
         raise ErrorDeUso(
-            "falta --element: hay que decir QUE atomo absorbe.")
+            "missing --element: you must say WHICH atom absorbs.")
     borde = xa.validar_borde(args.edge)
     if not args.core_hole:
         raise ErrorDeUso(
-            "falta --core-hole con el UPF de hueco de core. Sin el se "
-            "calcularia el espectro del estado fundamental, que no es lo "
-            "que mide el experimento.\n"
-            f"  Genéralo con:  olla-dft corehole {args.element} "
+            "missing --core-hole with the core-hole UPF. Without it the "
+            "ground-state spectrum would be calculated, which is not what "
+            "the experiment measures.\n"
+            f"  Generate it with:  olla-dft corehole {args.element} "
             f"--edge {xa.BORDE_COREHOLE[borde]}")
 
     _c, rep = xa.prepare(
@@ -1620,13 +1620,13 @@ def _vector3(texto) -> tuple:
     partes = [p for p in re.split(r"[,\s]+", str(texto).strip()) if p]
     if len(partes) != 3:
         raise ErrorDeUso(
-            f"la polarizacion necesita TRES numeros, por ejemplo '0 0 1'; "
-            f"recibi '{texto}'.")
+            f"the polarization needs THREE numbers, for example '0 0 1'; "
+            f"got '{texto}'.")
     try:
         return tuple(float(p) for p in partes)
     except ValueError:
         raise ErrorDeUso(
-            f"la polarizacion solo admite numeros; recibi '{texto}'.") from None
+            f"the polarization only accepts numbers; got '{texto}'.") from None
 
 
 def _parse_mag(texto, simbolos=None):
@@ -1662,8 +1662,8 @@ def _cmd_hubbard(args) -> int:
             dat = _buscar_hubbard_dat(args.outdir)
             print()
             if dat is None:
-                print("No encontré el <prefix>.Hubbard_parameters.dat de hp.x "
-                      f"en '{args.outdir}'.")
+                print("Could not find the <prefix>.Hubbard_parameters.dat of hp.x "
+                      f"in '{args.outdir}'.")
             else:
                 pares, sup = hb.leer_v(dat)
                 run.v_pares, run.supercelda_v = pares, sup
@@ -1675,7 +1675,7 @@ def _cmd_hubbard(args) -> int:
                     destino = Path(args.outdir) / "HUBBARD.card"
                     destino.write_text(tarjeta)
                     print()
-                    print("Tarjeta para el siguiente scf (QE >= 7.1):")
+                    print("Card for the next scf (QE >= 7.1):")
                     print("  " + str(destino))
                     print(tarjeta)
         print()
@@ -1721,17 +1721,17 @@ def _cmd_interface(args) -> int:
         cands = itf.buscar(a1, a2, max_index=args.max_index, tol=args.tol,
                            max_atoms=args.max_atoms, n_mejores=args.top)
         if not cands:
-            print("No hay ninguna coincidencia con esos limites.",
+            print("There is no match within those limits.",
                   file=sys.stderr)
             return 1
-        print(f"--- Superceldas comunes de {a1.get_chemical_formula()} y "
+        print(f"--- Common supercells of {a1.get_chemical_formula()} and "
               f"{a2.get_chemical_formula()} ---")
-        print(f"  {'#':>2s} {'atomos':>7s} {'deformacion':>12s} "
+        print(f"  {'#':>2s} {'atoms':>7s} {'strain':>12s} "
               f"{'n1':>4s} {'n2':>4s}  {'area(A2)':>9s}")
         for i, c in enumerate(cands):
             print(f"  {i:2d} {c.natoms:7d} {c.eps_pct:11.2f} % "
                   f"{c.n1:4d} {c.n2:4d}  {c.area:9.2f}")
-        print("\nSe construye una con --index.")
+        print("\nBuild one with --index.")
         return 0
 
     het = itf.emparejar(
@@ -1752,13 +1752,13 @@ def _par2(texto) -> tuple:
     partes = [p for p in re.split(r"[,\s]+", str(texto).strip()) if p]
     if len(partes) != 2:
         raise ErrorDeUso(
-            f"--shift necesita DOS numeros (fracciones de la celda), por "
-            f"ejemplo '0.33 0.33'; recibi '{texto}'.")
+            f"--shift needs TWO numbers (fractions of the cell), for "
+            f"example '0.33 0.33'; got '{texto}'.")
     try:
         return tuple(float(p) for p in partes)
     except ValueError:
         raise ErrorDeUso(
-            f"--shift solo admite numeros; recibi '{texto}'.") from None
+            f"--shift only accepts numbers; got '{texto}'.") from None
 
 
 def _cmd_md(args) -> int:
@@ -1803,8 +1803,8 @@ def _cmd_neb(args) -> int:
 
     if not args.final:
         raise ErrorDeUso(
-            "faltan las DOS estructuras: la inicial y la final.\n"
-            "  olla-dft neb reactivo.cif producto.cif -o camino")
+            "BOTH structures are needed: the initial and the final one.\n"
+            "  olla-dft neb reactant.cif product.cif -o path")
     ini = structure.load(args.file)
     fin = structure.load(args.final)
     fijos = [int(x) for x in re.split(r"[,\s]+", args.fix.strip())
@@ -1835,7 +1835,7 @@ def _cmd_thermochem(args) -> int:
             atoms = _read(args.structure)
         except Exception as exc:
             raise ErrorDeUso(
-                f"no se pudo leer '{args.structure}': {exc}") from None
+                f"could not read '{args.structure}': {exc}") from None
     tq = tc.corregir(nu, T=args.temp, fase=args.phase, atoms=atoms,
                      p=args.pressure * 1e5, simetria=args.symmetry,
                      multiplicidad=args.multiplicity, piso=args.floor)
@@ -1860,9 +1860,9 @@ def _leer_frecuencias(fuente):
         return _np.array([float(x) for x in partes])
     except ValueError:
         raise ErrorDeUso(
-            f"'{fuente}' no es un archivo ni una lista de numeros. Pasa el "
-            "archivo de frecuencias (por ejemplo FONONES_GAMMA.dat) o los "
-            "valores separados por coma.") from None
+            f"'{fuente}' is neither a file nor a list of numbers. Pass the "
+            "frequency file (for example FONONES_GAMMA.dat) or the "
+            "comma-separated values.") from None
 
 
 def _cmd_unfold(args) -> int:
@@ -2037,29 +2037,29 @@ def _cmd_project(args) -> int:
     action = args.action
     if action == "init":
         root, data = project.init(args.target or args.project, args.name)
-        print(f"Proyecto '{data['name']}' inicializado en:\n  {root}")
-        print(f"Manifiesto:\n  {root / project.PROJECT_DIR / project.MANIFEST_NAME}")
+        print(f"Project '{data['name']}' initialized in:\n  {root}")
+        print(f"Manifest:\n  {root / project.PROJECT_DIR / project.MANIFEST_NAME}")
         return 0
 
     root, data = project.load(args.project)
     if action == "cancel":
         marker = project.cancel(root, args.reason, args.cancel_file)
-        print(f"Cancelación cooperativa solicitada en:\n  {marker.resolve()}")
-        print("Las tareas en curso terminan su intento; las siguientes no arrancan.")
+        print(f"Cooperative cancellation requested at:\n  {marker.resolve()}")
+        print("Tasks in progress finish their attempt; the following ones do not start.")
         return 0
     if action == "resume":
         changed = project.resume(root, data, args.cancel_file)
-        print(f"Proyecto reanudable. Tareas devueltas a pendiente: {changed}.")
+        print(f"Project resumable. Tasks returned to pending: {changed}.")
         return 0
     if action == "add":
         record = project.add_source(root, data, args.target)
         project.save(root, data)
-        print(f"Fuente registrada: {record['path']}\n  SHA-256: {record['sha256']}")
+        print(f"Source registered: {record['path']}\n  SHA-256: {record['sha256']}")
         return 0
     if action == "plan":
         tasks = project.plan(root, data, args.target or "scf", args.task_commands)
         project.save(root, data)
-        print(f"Plan '{args.target or 'scf'}' guardado con {len(tasks)} tareas.")
+        print(f"Plan '{args.target or 'scf'}' saved with {len(tasks)} tasks.")
         print(project.report_status(root, data))
         return 0
     if action in ("show", "status"):
@@ -2103,23 +2103,25 @@ def _cmd_project(args) -> int:
         if action == "report" and args.pdf:
             from qekit.modules import report as project_report
             target = project_report.generate_pdf(root, data, args.output)
-            print(f"Informe PDF escrito en:\n  {target.resolve()}")
+            print(f"PDF report written to:\n  {target.resolve()}")
             return 0
-        if getattr(args, "both", False):
-            targets = dashboard.generate_pair(
+        if getattr(args, "both", False) or getattr(args, "all_languages", False):
+            generate = (dashboard.generate_all if getattr(args, "all_languages", False)
+                        else dashboard.generate_pair)
+            targets = generate(
                 root, data, args.output, theme=getattr(args, "theme", "auto"))
-            print("Dashboards escritos en:")
+            print("Dashboards written to:")
             for target in targets:
                 print(f"  {target.resolve()}")
         else:
             target = dashboard.generate(root, data, args.output,
                                         theme=getattr(args, "theme", "auto"),
                                         language=getattr(args, "language", "es"))
-            print(f"Dashboard escrito en:\n  {target.resolve()}")
+            print(f"Dashboard written to:\n  {target.resolve()}")
         return 0
     if action == "export":
         target = project.export_snapshot(root, data, args.output)
-        print(f"Snapshot reproducible escrito en:\n  {target.resolve()}")
+        print(f"Reproducible snapshot written to:\n  {target.resolve()}")
         return 0
     if action == "environment":
         from qekit.modules import environment
@@ -2128,12 +2130,12 @@ def _cmd_project(args) -> int:
             print(environment.report(result))
             return 0 if result["ok"] else 1
         target = environment.write(root, args.target or None)
-        print(f"Bloqueo de entorno escrito en:\n  {target.resolve()}")
-        print("Verifícalo después con: olla-dft project environment --verify-environment")
+        print(f"Environment lock written to:\n  {target.resolve()}")
+        print("Verify it later with: olla-dft project environment --verify-environment")
         return 0
     if action == "diff":
         if not args.other:
-            raise ErrorDeUso("project diff necesita --other SNAPSHOT_O_PROYECTO.")
+            raise ErrorDeUso("project diff needs --other SNAPSHOT_OR_PROJECT.")
         diff = project.diff(data, args.other)
         if args.json:
             print(json.dumps(diff, ensure_ascii=False, indent=2))
@@ -2157,9 +2159,9 @@ def _cmd_project(args) -> int:
             mark = task.get("status", "pending")
             print(f"[{mark:9s}] {task['id']}: {detail.splitlines()[-1]}")
         if not args.execute:
-            print("\nSimulación solamente. Añade --execute para correr las tareas.")
+            print("\nSimulation only. Add --execute to run the tasks.")
         return 1 if any(task.get("status") == "failed" for task, _, _ in results) else 0
-    raise ErrorDeUso(f"acción de project desconocida: {action}")
+    raise ErrorDeUso(f"unknown project action: {action}")
 
 
 def _pseudos_forzados(args) -> dict:
@@ -2168,7 +2170,7 @@ def _pseudos_forzados(args) -> dict:
     for par in (getattr(args, "pseudo", None) or []):
         if "=" not in par:
             raise ErrorDeUso(
-                f"--pseudo se escribe Elemento=archivo.UPF; recibi '{par}'.")
+                f"--pseudo is written Element=file.UPF; got '{par}'.")
         el, upf = par.split("=", 1)
         fuera[el.strip().capitalize()] = upf.strip()
     return fuera
@@ -2182,7 +2184,7 @@ def _cmd_pseudos(args) -> int:
     # escrito sale como si fuera un problema del primer elemento.
     if args.task not in pz.TAREAS:
         raise ErrorDeUso(
-            f"tarea '{args.task}' desconocida. Opciones: "
+            f"unknown task '{args.task}'. Options: "
             + ", ".join(sorted(pz.TAREAS)))
     elementos = []
     if args.file:
@@ -2193,7 +2195,7 @@ def _cmd_pseudos(args) -> int:
                      for e in re.split(r"[,\s]+", args.element) if e.strip()]
     if not elementos:
         raise ErrorDeUso(
-            "dime de que elemento: pasa una estructura o --element Fe,O.")
+            "tell me which element: pass a structure or --element Fe,O.")
 
     elegidos, rc = {}, 0
     for el in elementos:
@@ -2213,7 +2215,7 @@ def _cmd_pseudos(args) -> int:
         print(pz.report_coherencia(elegidos))
         print()
     if elegidos:
-        print("Para usarlos tal cual:")
+        print("To use them as they are:")
         print("  " + " ".join(f"--pseudo {k}={v.nombre}"
                               for k, v in elegidos.items()))
     return rc
@@ -2237,8 +2239,8 @@ def _cmd_tddft(args) -> int:
             cols = _op.read_optics_dat(args.compare)
             if "alpha(1/cm)" not in cols:
                 raise ErrorDeUso(
-                    f"'{args.compare}' no tiene la columna 'alpha(1/cm)'; "
-                    "--compare espera el OPTICS.dat de 'olla-dft optics'.")
+                    f"'{args.compare}' has no 'alpha(1/cm)' column; "
+                    "--compare expects the OPTICS.dat from 'olla-dft optics'.")
             comparar = (cols["E(eV)"], cols["alpha(1/cm)"])
         salidas = td.export(run, args.outdir)
         if not args.no_plot:
@@ -2289,7 +2291,7 @@ def _cmd_ballistic(args) -> int:
 
     if not args.file:
         raise ErrorDeUso(
-            "falta la estructura del ELECTRODO (periodico en z).")
+            "missing the ELECTRODE structure (periodic in z).")
     electrodo = structure.load(args.file)
     dispersor = structure.load(args.scatterer) if args.scatterer else None
     _c, rep = bl.prepare(
@@ -2337,7 +2339,7 @@ def _cmd_audit(args) -> int:
     print(au.report(a))
     if args.index:
         nuevos, act = au.index(runs, args.db)
-        print(f"\nBase '{args.db}': {nuevos} nuevos, {act} actualizados.")
+        print(f"\nDatabase '{args.db}': {nuevos} new, {act} updated.")
     return 0 if a["comparables"] else 1
 
 
@@ -2351,15 +2353,15 @@ def _pares_ev(texto, nombre):
             continue
         if "=" not in trozo:
             raise ErrorDeUso(
-                f"{nombre} se escribe CLAVE=valor, por ejemplo OH=0.77; "
-                f"recibí '{trozo}'.")
+                f"{nombre} is written KEY=value, for example OH=0.77; "
+                f"got '{trozo}'.")
         k, _, v = trozo.partition("=")
         try:
             fuera[k.strip()] = float(v)
         except ValueError:
             raise ErrorDeUso(
-                f"el valor de {k.strip()} en {nombre} tiene que ser un número "
-                f"en eV; recibí '{v.strip()}'.") from None
+                f"the value of {k.strip()} in {nombre} must be a number "
+                f"in eV; got '{v.strip()}'.") from None
     return fuera
 
 
@@ -2372,10 +2374,10 @@ def _cmd_esm(args) -> int:
                   if x.strip()]
     except ValueError:
         raise ErrorDeUso(
-            f"--charge son números separados por coma, por ejemplo "
-            f"-0.2,0,0.2; recibí '{args.charge}'.") from None
+            f"--charge are comma-separated numbers, for example "
+            f"-0.2,0,0.2; got '{args.charge}'.") from None
     if not cargas:
-        raise ErrorDeUso("--charge necesita al menos una carga.")
+        raise ErrorDeUso("--charge needs at least one charge.")
 
     run, _c, rep = em.prepare(
         atoms, outdir=args.outdir, bc=args.bc, cargas=cargas,
@@ -2386,7 +2388,7 @@ def _cmd_esm(args) -> int:
         _print_prepare(rep)
         for a in run.avisos:
             print()
-            print(f"AVISO: {a}")
+            print(f"WARNING: {a}")
     if not args.collect:
         if _run_or_explain(run.jobs, args, "esm") is None:
             return 0
@@ -2402,7 +2404,7 @@ def _cmd_esm(args) -> int:
                              **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -2421,8 +2423,8 @@ def _temperaturas(texto, nombre="--temps"):
         return [float(x) for x in t.replace(";", ",").split(",") if x.strip()]
     except ValueError:
         raise ErrorDeUso(
-            f"{nombre} se escribe 100:800:8 (de, a, cuántas) o "
-            f"300,500,700; recibí '{texto}'.") from None
+            f"{nombre} is written 100:800:8 (from, to, how many) or "
+            f"300,500,700; got '{texto}'.") from None
 
 
 def _cmd_kappa(args) -> int:
@@ -2444,10 +2446,10 @@ def _cmd_kappa(args) -> int:
 
     if args.model:
         run.fuente = args.model.upper()
-        print(f"{len(s3)} configuraciones de {len(s3[0])} átomos para la "
-              f"fc3" + (f", {len(s2)} de {len(s2[0])} para la fc2"
+        print(f"{len(s3)} configurations of {len(s3[0])} atoms for the "
+              f"fc3" + (f", {len(s2)} of {len(s2[0])} for the fc2"
                         if s2 else "") + ".")
-        print(f"Fuerzas con {run.fuente} (esto NO es DFT):")
+        print(f"Forces with {run.fuente} (this is NOT DFT):")
         F3 = kp.fuerzas_mlip(s3, args.model)
         F2 = kp.fuerzas_mlip(s2, args.model) if s2 else None
         tc, m = kp.resolver(ph, F3, F2, malla=args.mesh, temperaturas=temps,
@@ -2473,10 +2475,10 @@ def _cmd_kappa(args) -> int:
                                       args.ecutrho, not args.metal)
         if len(s3) > kp.MUCHAS_CONFIGURACIONES and not args.force:
             raise ErrorDeUso(
-                f"esta supercelda pide {len(s3)} cálculos de {len(s3[0])} "
-                f"átomos cada uno.\nEn un portátil eso son días. Baja --dim, "
-                f"prueba antes con --model mace para\nelegir el tamaño, o "
-                f"insiste con --force si sabes lo que haces.")
+                f"this supercell requires {len(s3)} calculations of {len(s3[0])} "
+                f"atoms each.\nOn a laptop that is days. Lower --dim, "
+                f"try first with --model mace to\nchoose the size, or "
+                f"insist with --force if you know what you are doing.")
         c3 = kp.escribir_inputs(s3, out / "fc3", common,
                                 kspacing=args.kspacing)
         if s2:
@@ -2489,22 +2491,22 @@ def _cmd_kappa(args) -> int:
             "\"$d/pw.out\"; then continue; fi\n"
             "  (cd \"$d\" && pw.x -in pw.in > pw.out 2>&1)\n"
             "done\n", encoding="utf-8")
-        print(f"--- Conductividad térmica de red: {run.formula} ---")
-        print(f"Supercelda fc3 {dim[0]}×{dim[1]}×{dim[2]}: {len(s3)} "
-              f"configuraciones de {len(s3[0])} átomos")
+        print(f"--- Lattice thermal conductivity: {run.formula} ---")
+        print(f"fc3 supercell {dim[0]}×{dim[1]}×{dim[2]}: {len(s3)} "
+              f"configurations of {len(s3[0])} atoms")
         if s2:
-            print(f"Supercelda fc2 {dim2[0]}×{dim2[1]}×{dim2[2]}: "
-                  f"{len(s2)} configuraciones de {len(s2[0])} átomos")
-        print(f"Desplazamiento: {args.distance} Å")
+            print(f"fc2 supercell {dim2[0]}×{dim2[1]}×{dim2[2]}: "
+                  f"{len(s2)} configurations of {len(s2[0])} atoms")
+        print(f"Displacement: {args.distance} Å")
         print()
-        print(f"Inputs en '{out.resolve()}'.")
-        print("  bash correr.sh          los lanza todos, saltándose los "
-              "que ya estén")
-        print("Cuando terminen, el mismo comando con --collect.")
+        print(f"Inputs in '{out.resolve()}'.")
+        print("  bash correr.sh          launches them all, skipping those "
+              "already done")
+        print("When they finish, the same command with --collect.")
         print()
-        print("Cada configuración es un scf independiente: se pueden lanzar "
-              "en paralelo o en")
-        print("otra máquina, y el orden da igual mientras estén TODAS.")
+        print("Each configuration is an independent scf: they can be launched "
+              "in parallel or on")
+        print("another machine, and the order does not matter as long as ALL are there.")
         return 0
 
     print()
@@ -2517,7 +2519,7 @@ def _cmd_kappa(args) -> int:
             for f in kp.plot(run, str(out / "kappa"), **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -2531,26 +2533,26 @@ def _cmd_berry(args) -> int:
         t = str(args.displace).split(":")
         if len(t) != 2:
             raise ErrorDeUso(
-                "--displace se escribe ATOMO:dx,dy,dz, con el átomo en base 1 "
-                "y el vector en Å. Por ejemplo 2:0,0,0.1")
+                "--displace is written ATOM:dx,dy,dz, with the atom in base 1 "
+                "and the vector in Å. For example 2:0,0,0.1")
         try:
             idx = int(t[0]) - 1
             vec = [float(x) for x in t[1].split(",")]
         except ValueError:
             raise ErrorDeUso(
-                f"no entiendo '{args.displace}'; se escribe 2:0,0,0.1.") \
+                f"cannot parse '{args.displace}'; it is written 2:0,0,0.1.") \
                 from None
         if len(vec) != 3:
-            raise ErrorDeUso("el desplazamiento necesita tres componentes.")
+            raise ErrorDeUso("the displacement needs three components.")
         desp = (idx, vec)
     kperp = args.kperp.lower().replace("x", " ").split()
     if len(kperp) != 2:
-        raise ErrorDeUso(f"--kperp son dos enteros, por ejemplo 6x6; recibí "
+        raise ErrorDeUso(f"--kperp are two integers, for example 6x6; got "
                          f"'{args.kperp}'.")
     try:
         kperp = [int(x) for x in kperp]
     except ValueError:
-        raise ErrorDeUso(f"--kperp son enteros; recibí '{args.kperp}'.") \
+        raise ErrorDeUso(f"--kperp are integers; got '{args.kperp}'.") \
             from None
 
     run, _c, rep = bp.prepare(
@@ -2566,11 +2568,11 @@ def _cmd_berry(args) -> int:
                   timeout=args.timeout, rehacer=getattr(args, "redo", False))
     elif not args.collect:
         print()
-        print("Los inputs están listos pero no se han corrido. Para "
-              "ejecutarlos:")
+        print("The inputs are ready but have not been run. To "
+              "execute them:")
         print("  olla-dft berry ... --run")
         print(f"  cd {args.outdir} && bash correr.sh")
-        print("Cuando terminen, el mismo comando con --collect.")
+        print("When they finish, the same command with --collect.")
         return 0
     bp.collect(run, args.outdir)
     print()
@@ -2584,7 +2586,7 @@ def _cmd_berry(args) -> int:
                              **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -2597,7 +2599,7 @@ def _cmd_teoria(args) -> int:
         salida = theory.texto(args.comando, lang, crudo=bool(args.output))
     if args.output:
         Path(args.output).write_text(salida, encoding="utf-8")
-        print(f"Escrito en: {Path(args.output).resolve()}")
+        print(f"Written to: {Path(args.output).resolve()}")
         return 0
     print(salida)
     return 0
@@ -2670,12 +2672,12 @@ def _ventana(texto, nombre="--window"):
     m = re.match(r"^(-?[\d.]+):(-?[\d.]+)$", t)
     if not m:
         raise ErrorDeUso(
-            f"{nombre} se escribe MIN:MAX en eV, por ejemplo -10:20; "
-            f"recibí '{texto}'.")
+            f"{nombre} is written MIN:MAX in eV, for example -10:20; "
+            f"got '{texto}'.")
     lo, hi = float(m.group(1)), float(m.group(2))
     if hi <= lo:
         raise ErrorDeUso(
-            f"{nombre}: el máximo ({hi:g}) tiene que ser mayor que el mínimo "
+            f"{nombre}: the maximum ({hi:g}) must be greater than the minimum "
             f"({lo:g}).")
     return (lo, hi)
 
@@ -2694,17 +2696,17 @@ def _rango_bandas(texto):
                 a, b = int(a), int(b)
             except ValueError:
                 raise ErrorDeUso(
-                    f"no entiendo el rango de bandas '{trozo}'; se escribe "
+                    f"cannot parse the band range '{trozo}'; it is written "
                     f"5-8.") from None
             if b < a:
-                raise ErrorDeUso(f"el rango '{trozo}' va al revés.")
+                raise ErrorDeUso(f"the range '{trozo}' is reversed.")
             fuera += list(range(a, b + 1))
         else:
             try:
                 fuera.append(int(trozo))
             except ValueError:
                 raise ErrorDeUso(
-                    f"'{trozo}' no es un número de banda.") from None
+                    f"'{trozo}' is not a band number.") from None
     return tuple(sorted(set(fuera)))
 
 
@@ -2718,8 +2720,8 @@ def _cmd_wannier(args) -> int:
     if args.collect:
         if atoms is None:
             raise ErrorDeUso(
-                "para analizar hace falta la estructura: "
-                "olla-dft wannier <archivo> --collect -o <carpeta>.")
+                "the structure is needed for the analysis: "
+                "olla-dft wannier <file> --collect -o <folder>.")
         bd = args.dft_bands
         if bd is None:
             for cand in ("out_bandas", "out_bands"):
@@ -2741,8 +2743,8 @@ def _cmd_wannier(args) -> int:
             _np.savetxt(f, _np.column_stack([e, d]),
                         header=f"E(eV)   DOS({wn.DOS_UNIDADES})")
             salidas.append(str(f))
-            print(f"DOS interpolada en una malla {args.dos}³ = "
-                  f"{args.dos ** 3} puntos k, sin volver a tocar pw.x.")
+            print(f"DOS interpolated on a {args.dos}³ mesh = "
+                  f"{args.dos ** 3} k-points, without touching pw.x again.")
             print()
         for f in salidas:
             print(f"  {f}")
@@ -2752,11 +2754,11 @@ def _cmd_wannier(args) -> int:
                                  **_figure_kwargs(args)):
                     print(f"  {f}")
             except Exception as exc:                        # noqa: BLE001
-                print(f"  (no se pudo graficar: {exc})")
+                print(f"  (could not plot: {exc})")
         return 0
 
     if atoms is None:
-        raise ErrorDeUso("hace falta una estructura.")
+        raise ErrorDeUso("a structure is needed.")
     excluir = _rango_bandas(args.exclude)
     run, _common, rep = wn.prepare(
         atoms, outdir=args.outdir, malla=_malla(args.grid, "--grid"),
@@ -2767,12 +2769,12 @@ def _cmd_wannier(args) -> int:
     _print_prepare(rep)
     if not args.run:
         print()
-        print("Los inputs están listos pero no se han corrido. Para "
-              "ejecutarlos:")
-        print("  olla-dft wannier ... --run        (Olla-DFT lanza los cuatro "
-              "pasos en orden)")
+        print("The inputs are ready but have not been run. To "
+              "execute them:")
+        print("  olla-dft wannier ... --run        (Olla-DFT launches the four "
+              "steps in order)")
         print(f"  cd {args.outdir} && bash correr.sh")
-        print("Cuando terminen, el mismo comando con --collect.")
+        print("When they finish, the same command with --collect.")
         return 0
     print()
     wn.correr(args.outdir, pw_cmd=args.pw_cmd, nproc=args.nproc,
@@ -2799,7 +2801,7 @@ def _cmd_topology(args) -> int:
             written += tp.plot(
                 run, str(Path(args.outdir) / "topology"), **figure_args)
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     for filename in written:
         print(f"  {filename}")
     return 0
@@ -2814,25 +2816,25 @@ def _cmd_amorphous(args) -> int:
                        factor=args.min_dist or am.FACTOR_MINIMO,
                        semilla=args.seed)
     out = Path(args.outdir); out.mkdir(parents=True, exist_ok=True)
-    print(f"Empaquetados {len(at)} átomos de "
-          f"{at.get_chemical_formula()} a {am.densidad_de(at):.4f} g/cm³")
-    print(f"  celda cúbica de {np.linalg.norm(at.cell.array[0]):.3f} Å")
+    print(f"Packed {len(at)} atoms of "
+          f"{at.get_chemical_formula()} at {am.densidad_de(at):.4f} g/cm³")
+    print(f"  cubic cell of {np.linalg.norm(at.cell.array[0]):.3f} Å")
 
     if args.pack_only:
         f = out / "empaquetado.cif"
         st.convert(at, str(f))
         print(f"\n  {f}")
-        print("\nSolo empaquetado: las posiciones son aleatorias y la energía "
-              "es altísima.\nHace falta el fundido y temple para que esto sea "
-              "un amorfo.")
+        print("\nPacking only: the positions are random and the energy "
+              "is extremely high.\nThe melt and quench are needed for this to be "
+              "an amorphous solid.")
         return 0
 
     p = am.Protocolo(T_fundido=args.melt, T_final=args.final,
                      pasos_fundido=args.melt_steps,
                      pasos_temple=args.quench_steps,
                      pasos_recocido=args.anneal_steps, dt_fs=args.dt)
-    print(f"  {p.pasos} pasos de {p.dt_fs:g} fs = {p.ps_totales:.2f} ps  |  "
-          f"temple a {p.velocidad_temple:.1e} K/s")
+    print(f"  {p.pasos} steps of {p.dt_fs:g} fs = {p.ps_totales:.2f} ps  |  "
+          f"quench at {p.velocidad_temple:.1e} K/s")
     print()
     res = am.fundir_y_templar(at, p, modelo=args.model, semilla=args.seed,
                               traza=str(out / "traza.dat"))
@@ -2848,25 +2850,28 @@ def _cmd_docs(args) -> int:
     from qekit.modules import docs
 
     n = len(docs.extraer())
-    if getattr(args, "both", False):
+    if getattr(args, "both", False) or getattr(args, "all_languages", False):
         base = Path(args.output)
         english = base.with_name(f"{base.stem}.en{base.suffix}")
         destinos = [docs.generar(str(base), language="es"),
                     docs.generar(str(english), language="en")]
-        print(f"Referencias de {n} subcomandos escritas en:")
+        if getattr(args, "all_languages", False):
+            german = base.with_name(f"{base.stem}.de{base.suffix}")
+            destinos.append(docs.generar(str(german), language="de"))
+        print(f"References for {n} subcommands written to:")
         for destino in destinos:
             print(f"  {Path(destino).resolve()}")
     else:
         destino = docs.generar(args.output,
                                language=getattr(args, "language", "es"))
         destinos = [destino]
-        print(f"Referencia de {n} subcomandos escrita en:")
+        print(f"Reference for {n} subcommands written to:")
         print(f"  {Path(destino).resolve()}")
     print()
-    print("Es una sola página, sin conexión ni dependencias: ábrela con doble "
-          "clic.\nSe genera del árbol de argparse y de los docstrings, así que "
-          "vuelve a\nejecutarla después de cada cambio y siempre estará al "
-          "día.")
+    print("It is a single page, offline and without dependencies: open it with a "
+          "double click.\nIt is generated from the argparse tree and the docstrings, so "
+          "run it\nagain after every change and it will always be up to "
+          "date.")
     if args.abrir:
         import webbrowser
         webbrowser.open(f"file://{Path(destinos[0]).resolve()}")
@@ -2878,8 +2883,8 @@ def _cmd_echem(args) -> int:
 
     if (args.her is None) == (args.oer is None):
         raise ErrorDeUso(
-            "elige una reacción: --her E_ads(H)  o  --oer OH=..,O=..,OOH=.. "
-            "(una de las dos, no las dos ni ninguna).")
+            "choose a reaction: --her E_ads(H)  or  --oer OH=..,O=..,OOH=.. "
+            "(one of the two, not both nor neither).")
     corr = _pares_ev(args.corrections, "--corrections")
     if args.her is not None:
         e = echem.her(args.her, correccion=(corr or {}).get("H"),
@@ -2898,7 +2903,7 @@ def _cmd_echem(args) -> int:
                                 **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -2906,7 +2911,7 @@ def _cmd_selftest(args) -> int:
     from qekit.modules import selftest as st
 
     if args.list:
-        print("Pruebas de validación:")
+        print("Validation tests:")
         for p in st.PRUEBAS:
             marca = ("pw.x" if p.necesita_qe
                      else "mlip" if getattr(p, "necesita_mlip", False)
@@ -2924,21 +2929,21 @@ def _cmd_selftest(args) -> int:
         malas = [c for c in claves if c not in conocidas]
         if malas:
             raise ErrorDeUso(
-                f"no conozco la prueba {', '.join(malas)}. "
-                f"Las que hay: {', '.join(sorted(conocidas))}.")
+                f"unknown test {', '.join(malas)}. "
+                f"Available: {', '.join(sorted(conocidas))}.")
     if args.full and not args.pseudo_dir:
         raise ErrorDeUso(
-            "las pruebas con --full corren pw.x de verdad y necesitan "
-            "pseudopotenciales: pásalos con --pseudo-dir.")
+            "the --full tests run real pw.x and need "
+            "pseudopotentials: pass them with --pseudo-dir.")
 
     extras = []
     if args.full:
         extras.append("pw.x")
     if args.mlip:
         extras.append("MLIP")
-    print("Corriendo las pruebas"
-          + (f" (incluidas las de {' y '.join(extras)})" if extras
-             else " rápidas") + " ...")
+    print("Running the"
+          + (f" tests (including those for {' and '.join(extras)})" if extras
+             else " quick tests") + " ...")
     res = st.ejecutar(claves=claves, con_qe=args.full, con_mlip=args.mlip,
                       pseudo_dir=args.pseudo_dir, pw_cmd=args.pw_cmd,
                       nproc=args.nproc, paralelo=args.jobs,
@@ -2963,7 +2968,7 @@ def _cmd_compare(args) -> int:
     result = compare.compare(args.paths, reference=args.reference)
     print(compare.report(result))
     if args.output:
-        print(f"\nJSON escrito en: {compare.export(result, args.output).resolve()}")
+        print(f"\nJSON written to: {compare.export(result, args.output).resolve()}")
     return 0
 
 
@@ -2973,7 +2978,7 @@ def _cmd_tune(args) -> int:
     result = tuning.analyze(args.file, args.threshold)
     print(tuning.report(result))
     if args.output:
-        print(f"\nJSON escrito en: {tuning.export(result, args.output).resolve()}")
+        print(f"\nJSON written to: {tuning.export(result, args.output).resolve()}")
     return 0
 
 
@@ -3008,14 +3013,14 @@ def _cmd_results(args) -> int:
         return 0
     if action == "show":
         if not args.target:
-            raise ErrorDeUso("results show necesita un id de resultado.")
+            raise ErrorDeUso("results show needs a result id.")
         print(json.dumps(results.get(db, args.target), ensure_ascii=False, indent=2))
         return 0
     if action == "review":
         if not args.target:
-            raise ErrorDeUso("results review necesita un id de resultado.")
+            raise ErrorDeUso("results review needs a result id.")
         if not args.review_status:
-            raise ErrorDeUso("results review necesita --review-status.")
+            raise ErrorDeUso("results review needs --review-status.")
         row = results.review(db, args.target, args.review_status, args.note)
         print(json.dumps(row, ensure_ascii=False, indent=2))
         return 0
@@ -3035,9 +3040,9 @@ def _cmd_results(args) -> int:
     if action == "export":
         target = args.output or (root / project.PROJECT_DIR / "reports" /
                                  "results.json")
-        print(f"Resultados exportados en:\n  {results.export(db, target).resolve()}")
+        print(f"Results exported to:\n  {results.export(db, target).resolve()}")
         return 0
-    raise ErrorDeUso(f"acción de results desconocida: {action}")
+    raise ErrorDeUso(f"unknown results action: {action}")
 
 
 def _cmd_campaign(args) -> int:
@@ -3047,27 +3052,27 @@ def _cmd_campaign(args) -> int:
     action = args.action
     if action == "create":
         if not args.target:
-            raise ErrorDeUso("campaign create necesita un nombre.")
+            raise ErrorDeUso("campaign create needs a name.")
         record = campaign.create(
             root, data, args.target, args.campaign_command, args.axis,
             goal=args.goal, convergence_file=args.convergence_file,
             adaptive=args.adaptive)
         project.save(root, data)
-        print(f"Campaña '{record['id']}' guardada con {record['points']} puntos.")
+        print(f"Campaign '{record['id']}' saved with {record['points']} points.")
         print(campaign.report(data, record["id"]))
-        print("Nada se ejecutó. Revisa las tareas y usa 'olla-dft project run --execute'.")
+        print("Nothing was executed. Review the tasks and use 'olla-dft project run --execute'.")
         return 0
     if action == "list":
         print(campaign.report(data))
         return 0
     if action == "status":
         if not args.target:
-            raise ErrorDeUso("campaign status necesita un id.")
+            raise ErrorDeUso("campaign status needs an id.")
         print(campaign.report(data, args.target))
         return 0
     if action == "run":
         if not args.target:
-            raise ErrorDeUso("campaign run necesita un id.")
+            raise ErrorDeUso("campaign run needs an id.")
         runs = campaign.run(root, data, args.target, execute=args.execute,
                             force=args.force, parallel=args.parallel,
                             retries=args.retries, timeout=args.timeout,
@@ -3076,31 +3081,31 @@ def _cmd_campaign(args) -> int:
             print(f"[{task.get('status', 'pending'):9s}] {task['id']}: "
                   f"{detail.splitlines()[-1]}")
         if not args.execute:
-            print("\nSimulación solamente. Añade --execute para ejecutar la campaña.")
+            print("\nSimulation only. Add --execute to run the campaign.")
         return 1 if any(task.get("status") == "failed" for task, _, _ in runs) else 0
     if action == "extend":
         if not args.target or not args.convergence_file:
-            raise ErrorDeUso("campaign extend necesita id y --convergence-file.")
+            raise ErrorDeUso("campaign extend needs an id and --convergence-file.")
         result = campaign.extend(root, data, args.target, args.convergence_file,
                                  threshold=args.threshold)
         project.save(root, data)
-        print(f"Valor recomendado: {result['recommended_value']:g}")
-        print(f"Puntos añadidos: {result.get('points_added', 0)}")
+        print(f"Recommended value: {result['recommended_value']:g}")
+        print(f"Points added: {result.get('points_added', 0)}")
         if not result["extended"]:
             print(result["reason"])
         return 0
     if action == "export":
         target = args.output or (root / project.PROJECT_DIR / "reports" /
                                  "campaigns.json")
-        print(f"Campañas exportadas en:\n  "
+        print(f"Campaigns exported to:\n  "
               f"{campaign.export(data, target, args.target).resolve()}")
         return 0
-    raise ErrorDeUso(f"acción de campaign desconocida: {action}")
+    raise ErrorDeUso(f"unknown campaign action: {action}")
 
 
 def _print_db_rows(rows):
     if not rows:
-        print("(sin resultados)")
+        print("(no results)")
         return
     cols = list(rows[0])
     print("  ".join(f"{c:>20s}" for c in cols))
@@ -3114,12 +3119,12 @@ def _cmd_db(args) -> int:
     if args.paths:
         runs = au.collect(args.paths)
         nuevos, act = au.index(runs, args.db)
-        print(f"Base '{args.db}': {nuevos} nuevos, {act} actualizados.")
+        print(f"Database '{args.db}': {nuevos} new, {act} updated.")
         print()
     if args.query:
         filas = au.query(args.query, args.db)
         if not filas:
-            print("(sin resultados)")
+            print("(no results)")
             return 0
         cols = list(filas[0])
         print("  ".join(f"{c:>16s}" for c in cols))
@@ -3147,9 +3152,9 @@ def _cmd_hull(args) -> int:
     a = au.audit(runs)
     if not a["comparables"]:
         print(au.report(a), file=sys.stderr)
-        print("\nNo se construye el casco: con parámetros distintos las "
-              "energías de formación\nno significan nada. Corrige lo de "
-              "arriba, o usa --force si sabes lo que haces.",
+        print("\nThe hull is not built: with different parameters the "
+              "formation energies\nmean nothing. Fix the issues "
+              "above, or use --force if you know what you are doing.",
               file=sys.stderr)
         if not args.force:
             return 1
@@ -3181,31 +3186,31 @@ def _cmd_report(args) -> int:
     if args.export:
         print("  " + fb.exportar(args.export,
                                  solo_abiertas=args.only_open))
-        print("\nEse archivo lleva todo lo necesario para reproducir cada "
-              "fallo:\ncomando, traza y versiones. Es lo que hay que "
-              "entregar para que se arregle.")
+        print("\nThat file carries everything needed to reproduce each "
+              "failure:\ncommand, traceback and versions. It is what to "
+              "hand over so it gets fixed.")
         return 0
     if args.close:
         if fb.cerrar(args.close, nota=args.note or ""):
-            print(f"Incidencia {args.close} cerrada.")
+            print(f"Incident {args.close} closed.")
             return 0
-        print(f"No existe la incidencia '{args.close}'.", file=sys.stderr)
+        print(f"Incident '{args.close}' does not exist.", file=sys.stderr)
         return 1
     if args.show:
         for i in fb.listar():
             if i.id == args.show:
                 print(fb.report_detalle(i))
                 return 0
-        print(f"No existe la incidencia '{args.show}'.", file=sys.stderr)
+        print(f"Incident '{args.show}' does not exist.", file=sys.stderr)
         return 1
     if args.description:
         inc = fb.registrar(" ".join(args.description),
                            adjuntos=args.attach or [])
-        print(f"Incidencia {inc.id} registrada en "
+        print(f"Incident {inc.id} recorded in "
               f"{fb.DIR / inc.id}")
         if inc.adjuntos:
-            print(f"  Adjuntos copiados: {', '.join(inc.adjuntos)}")
-        print("\nSe guardó localmente. Olla-DFT no manda nada a ningún lado.")
+            print(f"  Attachments copied: {', '.join(inc.adjuntos)}")
+        print("\nSaved locally. Olla-DFT does not send anything anywhere.")
         return 0
     print(fb.report_lista(fb.listar()))
     return 0
@@ -3286,7 +3291,7 @@ def _cmd_derived(args) -> int:
     atoms = structure.load(args.file)
     C = np.loadtxt(args.cij, comments="#")
     if C.shape != (6, 6):
-        print(f"'{args.cij}' no contiene una matriz 6x6", file=sys.stderr)
+        print(f"'{args.cij}' does not contain a 6x6 matrix", file=sys.stderr)
         return 1
     m = elastic.moduli(C)
     r = derived.analyze(m.B_hill, m.G_hill, atoms.get_masses(),
@@ -3303,11 +3308,11 @@ def _cmd_derived(args) -> int:
     d = (derived.cubic_directional(C, r.rho)
          if cubico or derived.is_cubic_tensor(C) else {})
     if d:
-        print("\nEn un cristal cúbico, a lo largo de [100]:")
+        print("\nIn a cubic crystal, along [100]:")
         print(f"  v_L = √(C₁₁/ρ) = {d['v_l_100']:.0f} m/s")
         print(f"  v_T = √(C₄₄/ρ) = {d['v_t_100']:.0f} m/s")
-        print("  (son estas, no los promedios isótropos, las que se "
-              "comparan\n   contra la pendiente de las ramas acústicas)")
+        print("  (these, not the isotropic averages, are the ones "
+              "compared\n   against the slope of the acoustic branches)")
     print()
     for f in derived.export(r, getattr(args, "outdir", ".") or "."):
         print(f"  {f}")
@@ -3321,20 +3326,20 @@ def _cmd_datasheet(args) -> int:
     if args.methods:
         print(ds.metodos(f))
         print()
-        print("Referencias:")
+        print("References:")
         for i, c in enumerate(ds.citas(f), start=1):
             print(f"  {i}. {c}")
         return 0
     if not f.resultados:
-        print(f"No se encontró ningún resultado de Olla-DFT en "
+        print(f"No Olla-DFT result was found in "
               f"'{args.project}'.", file=sys.stderr)
         return 1
-    print(f"Ficha de {f.formula or '?'}: "
-          f"{len(f.resultados)} secciones con resultados")
+    print(f"Datasheet for {f.formula or '?'}: "
+          f"{len(f.resultados)} sections with results")
     for s in f.resultados:
         print(f"  - {s}")
     for a in f.avisos:
-        print(f"\nAVISO: {a}")
+        print(f"\nWARNING: {a}")
     print()
     for x in ds.escribir(f, args.outdir, args.name):
         print(f"  {x}")
@@ -3348,7 +3353,7 @@ def _cmd_qha(args) -> int:
 
     datos = np.loadtxt(args.data, comments="#")
     if datos.ndim != 2 or datos.shape[1] < 3:
-        print(f"'{args.data}' debe tener columnas: V(A^3) E(eV) w1 w2 ...",
+        print(f"'{args.data}' must have columns: V(A^3) E(eV) w1 w2 ...",
               file=sys.stderr)
         return 1
     V, E, F = datos[:, 0], datos[:, 1], [f[f > -1e3] for f in datos[:, 2:]]
@@ -3410,12 +3415,12 @@ def _cmd_transport(args) -> int:
             if not all(r.ok for r in res):
                 return 1
         else:
-            print("\nCuando termine, vuelve con --collect.")
+            print("\nWhen it finishes, come back with --collect.")
             return 0
 
     xmls = _glob.glob(str(Path(args.outdir) / "out" / "*.xml"))
     if not xmls:
-        print(f"Error: no hay XML en {args.outdir}/out", file=sys.stderr)
+        print(f"Error: no XML in {args.outdir}/out", file=sys.stderr)
         return 1
     temps = [float(t) for t in args.temperatures.split(",")]
     run = tr.load(xmls[0])
@@ -3430,10 +3435,10 @@ def _cmd_transport(args) -> int:
         res = _qeout.read_xml(xmls[0])
         if res.nspin != 2:
             raise ErrorDeUso(
-                "--spin-resolved necesita un cálculo con polarización de "
-                "espín, y este tiene nspin = 1. Vuelve a preparar y correr "
-                "con\n'olla-dft transport ESTRUCTURA --nspin 2 --mag "
-                "EL=0.7 --run' (y luego\n--collect --spin-resolved).")
+                "--spin-resolved needs a spin-polarized calculation, "
+                "and this one has nspin = 1. Prepare and run again "
+                "with\n'olla-dft transport STRUCTURE --nspin 2 --mag "
+                "EL=0.7 --run' (and then\n--collect --spin-resolved).")
         dw = tr.compute(tr.load(xmls[0], spin=1), T=temps,
                         mu_span=args.mu_span)
         te = tr.TransporteEspin(up=run, dw=dw,
@@ -3464,8 +3469,8 @@ def _cmd_phonons_tscan(args, atoms, qgrid) -> int:
                  if x.strip()]
     except ValueError:
         raise ErrorDeUso(
-            f"--tscan son temperaturas en K separadas por coma, por ejemplo "
-            f"300,1000,3000; recibí '{args.tscan}'.") from None
+            f"--tscan are comma-separated temperatures in K, for example "
+            f"300,1000,3000; got '{args.tscan}'.") from None
 
     run, rep = tp_mod.prepare(
         atoms, temps, outdir=args.outdir, gamma_only=args.gamma,
@@ -3484,11 +3489,11 @@ def _cmd_phonons_tscan(args, atoms, qgrid) -> int:
                                   nproc=args.nproc, timeout=args.timeout,
                                   paralelo=getattr(args, "jobs", 1) or 1)
             if not all(r.ok for r in res):
-                print(f"  el scf de {T:g} K falló; se salta esta temperatura")
+                print(f"  the scf at {T:g} K failed; skipping this temperature")
                 continue
             ph_mod.run_chain(pr, pw_cmd=args.pw_cmd, nproc=args.nproc)
     elif not args.collect:
-        print("\nCorre con --run, o ejecuta las cadenas a mano y vuelve con "
+        print("\nRun with --run, or execute the chains by hand and come back with "
               "--collect.")
         return 0
     tp_mod.collect(run)
@@ -3503,7 +3508,7 @@ def _cmd_phonons_tscan(args, atoms, qgrid) -> int:
                                  **_figure_kwargs(args)):
                 print(f"  {f}")
         except Exception as exc:                            # noqa: BLE001
-            print(f"  (no se pudo graficar: {exc})")
+            print(f"  (could not plot: {exc})")
     return 0
 
 
@@ -3531,8 +3536,8 @@ def _cmd_phonons(args) -> int:
             return 1
         ph_mod.run_chain(run, pw_cmd=args.pw_cmd, nproc=args.nproc)
     elif not args.collect:
-        print("\nCorre con --run (puede tardar), o ejecuta la cadena a mano "
-              "y vuelve con --collect.")
+        print("\nRun with --run (it may take a while), or execute the chain by hand "
+              "and come back with --collect.")
         return 0
     ph_mod.collect(run)
     print()
@@ -3541,8 +3546,8 @@ def _cmd_phonons(args) -> int:
         if run.raman:
             w, inten, picos = ph_mod.raman_spectrum(run, laser_nm=args.laser)
             print()
-            print(f"Espectro Raman simulado (láser {args.laser:g} nm, "
-                  "300 K, Lorentz 5 cm⁻¹):")
+            print(f"Simulated Raman spectrum (laser {args.laser:g} nm, "
+                  "300 K, Lorentzian 5 cm⁻¹):")
             vistos = []
             for wp, ip in sorted(picos, key=lambda t: -t[1]):
                 if any(abs(wp - v) < 1.0 for v in vistos):
@@ -3557,9 +3562,9 @@ def _cmd_phonons(args) -> int:
         print(f"  {f}")
     if args.suite:
         if not run.gamma_only:
-            print("  (--suite solo aplica con --gamma: el JSON de "
-                  "intercambio lleva\n   frecuencias y actividad IR en Γ, "
-                  "que es lo comparable con FTIR/Raman)")
+            print("  (--suite only applies with --gamma: the exchange "
+                  "JSON carries\n   frequencies and IR activity at Γ, "
+                  "which is what is comparable with FTIR/Raman)")
         else:
             from qekit.modules import interop
             if run.raman and run.modes:
@@ -3588,10 +3593,10 @@ def _cmd_config(args) -> int:
         print(qcfg.show())
     elif args.action == "set":
         if not args.key or args.value is None:
-            print("uso: olla-dft config set <clave> <valor>", file=sys.stderr)
+            print("usage: olla-dft config set <key> <value>", file=sys.stderr)
             return 1
         qcfg.set_value(args.key, args.value)
-        print(f"{args.key} = {args.value} guardado.")
+        print(f"{args.key} = {args.value} saved.")
     return 0
 
 
@@ -3618,10 +3623,10 @@ def build_parser(language=None) -> argparse.ArgumentParser:
         help="salida solo en ASCII (Å -> A, α -> alpha, → -> ->). Útil si tu "
              "terminal no admite UTF-8, o si vas a redirigir a un archivo")
     parser.add_argument(
-        "--language", dest="language", choices=["es", "en"], default=language,
-        help="idioma de la interfaz: es o en. También vale la variable "
+        "--language", dest="language", choices=["es", "en", "de"], default=language,
+        help="idioma de la interfaz: en, es o de. También vale la variable "
              "OLLA_DFT_LANG o 'olla-dft config set language en'")
-    sub = parser.add_subparsers(dest="command", metavar="COMANDO")
+    sub = parser.add_subparsers(dest="command", metavar={"en": "COMMAND", "es": "COMANDO", "de": "BEFEHL"}[language])
 
     _add_gen_parser(sub)
 
@@ -4506,7 +4511,7 @@ def build_parser(language=None) -> argparse.ArgumentParser:
                    help="no preguntar; requiere --structure en un proyecto nuevo")
     p.add_argument("--no-validate", action="store_true",
                    help="no ejecutar la validación inicial")
-    p.add_argument("--language", choices=["es", "en"], default=argparse.SUPPRESS,
+    p.add_argument("--language", choices=["es", "en", "de"], default=argparse.SUPPRESS,
                    help="idioma del inicio guiado (default: es)")
 
     p = sub.add_parser("recetas", aliases=["recipes"],
@@ -4594,10 +4599,12 @@ def build_parser(language=None) -> argparse.ArgumentParser:
                    help="en report, generar un informe PDF autocontenido")
     p.add_argument("--theme", choices=["auto", "light", "dark"], default="auto",
                    help="tema del dashboard (default: auto)")
-    p.add_argument("--language", choices=["es", "en"], default=argparse.SUPPRESS,
+    p.add_argument("--language", choices=["es", "en", "de"], default=argparse.SUPPRESS,
                    help="idioma del dashboard (default: es)")
     p.add_argument("--both", action="store_true",
                    help="generar dashboard español e inglés en archivos separados")
+    p.add_argument("--all-languages", action="store_true",
+                   help="generar interfaces en inglés, español y alemán")
     p.add_argument("--verify-environment", action="store_true",
                    help="en environment, comprobar el bloqueo guardado")
     p.add_argument("--other", help="en diff, snapshot o proyecto de comparación")
@@ -5002,10 +5009,12 @@ def build_parser(language=None) -> argparse.ArgumentParser:
                    help="archivo HTML de salida")
     p.add_argument("--open", dest="abrir", action="store_true",
                    help="abrirla en el navegador al terminar")
-    p.add_argument("--language", choices=["es", "en"], default=argparse.SUPPRESS,
+    p.add_argument("--language", choices=["es", "en", "de"], default=argparse.SUPPRESS,
                    help="idioma de la interfaz de referencia (default: es)")
     p.add_argument("--both", action="store_true",
                    help="generar referencias en español e inglés por separado")
+    p.add_argument("--all-languages", action="store_true",
+                   help="generar interfaces en inglés, español y alemán")
 
     p = sub.add_parser("echem",
                        help="electrodo de hidrógeno computacional: HER, OER, "
@@ -5466,7 +5475,7 @@ def _menu_gen(language="es"):
         print(labels["invalid"])
         return
     outdir = _ask(labels["output"], ".")
-    insulator = _ask(labels["insulator"], "n").lower().startswith(("s", "y"))
+    insulator = _ask(labels["insulator"], "n").lower().startswith(("s", "y", "j"))
     mag = _ask(labels["magnetization"], "")
     args = argparse.Namespace(
         file=fname, preset=preset, outdir=outdir, klevel=None, kspacing=None,
@@ -5546,7 +5555,7 @@ def _menu_postproc(language="es"):
         if rev in qstyle.JOURNALS:
             args.journal = rev
 
-        if _ask(labels["label_gap"], "n").lower().startswith(("s", "y")):
+        if _ask(labels["label_gap"], "n").lower().startswith(("s", "y", "j")):
             args.gap_label = True
     print()
     try:
@@ -5569,7 +5578,7 @@ def _menu_config(language="es"):
     print()
     print(qcfg.show())
     print()
-    if _ask(labels["change"], "n").lower().startswith(("s", "y")):
+    if _ask(labels["change"], "n").lower().startswith(("s", "y", "j")):
         key = _ask(f"{labels['key']} ({', '.join(qcfg.VALID_KEYS)})")
         if key:
             value = _ask(f"{labels['value']} {key}")
@@ -5581,11 +5590,12 @@ def _menu_config(language="es"):
 
 
 def _ask_yes(prompt: str, default: bool = False) -> bool:
-    d = "s/N" if not default else "S/n"
+    yes = {"es": "s", "en": "y", "de": "j"}[i18n.get_language()]
+    d = f"{yes}/N" if not default else f"{yes.upper()}/n"
     ans = _ask(f"{prompt} ({d})").lower()
     if not ans:
         return default
-    return ans[0] in ("s", "y")
+    return ans[0] in ("s", "y", "j")
 
 
 def _run_cli(argv: list, language="es") -> None:
@@ -5736,21 +5746,25 @@ def _menu_catalog(language="es"):
 
 def _choose_language(default):
     """Choose and remember the interface language; keep working if saving fails."""
-    print("\n  Olla-DFT — Language / Idioma\n  1) English\n  2) Español")
+    print("\n  Olla-DFT — Language / Idioma / Sprache\n  1) English\n  2) Español\n  3) Deutsch")
     choices = {"1": "en", "en": "en", "english": "en",
-               "2": "es", "es": "es", "español": "es", "espanol": "es"}
+               "2": "es", "es": "es", "español": "es", "espanol": "es",
+               "3": "de", "de": "de", "deutsch": "de", "german": "de"}
     while True:
-        answer = _ask("Choose / Elige", default).lower()
+        answer = _ask("Choose / Elige / Wählen", default).lower()
         if answer in choices:
             language = i18n.set_language(choices[answer])
             try:
                 qcfg.set_value("language", language)
             except (OSError, ValueError, qcfg.configparser.Error) as exc:
-                print("Could not save language; using it for this session. / "
-                      "No se pudo guardar el idioma; se usará en esta sesión. "
-                      f"({exc})", file=sys.stderr)
+                message = {
+                    "en": "Could not save language; using it for this session.",
+                    "es": "No se pudo guardar el idioma; se usará en esta sesión.",
+                    "de": "Die Sprache konnte nicht gespeichert werden; sie gilt für diese Sitzung.",
+                }[language]
+                print(f"{message} ({exc})", file=sys.stderr)
             return language
-        print("Choose 1 (English) or 2 (Español). / Elige 1 o 2.")
+        print("Choose 1 (English), 2 (Español), or 3 (Deutsch).")
 
 
 def interactive_menu(language="en"):
@@ -5766,21 +5780,21 @@ def interactive_menu(language="en"):
     while True:
         print("\n" + "\n".join(labels["items"]))
         choice = _ask(labels["choice"])
-        if choice in ("0", "q", "salir", "exit"):
+        if choice in ("0", "q", "salir", "exit", "beenden"):
             print(labels["goodbye"])
             return
-        elif choice.lower() in ("l", "language", "idioma"):
+        elif choice.lower() in ("l", "language", "idioma", "sprache"):
             language = _choose_language(language)
             labels = _menu_labels(language)
-        elif choice.lower() in ("r", "recetas"):
+        elif choice.lower() in ("r", "recetas", "rezepte"):
             _menu_recetas(language)
-        elif choice.lower() in ("p", "proyecto", "inicio", "start"):
+        elif choice.lower() in ("p", "proyecto", "inicio", "start", "projekt"):
             _run_cli(["start"], language)
-        elif choice.lower() in ("a", "asistente", "wizard"):
+        elif choice.lower() in ("a", "asistente", "wizard", "assistent"):
             _menu_asistente(language)
-        elif choice.lower() in ("c", "catalogo", "catálogo", "comandos"):
+        elif choice.lower() in ("c", "catalogo", "catálogo", "comandos", "katalog"):
             _menu_catalog(language)
-        elif choice.lower() in ("t", "teoria", "teoría", "theory"):
+        elif choice.lower() in ("t", "teoria", "teoría", "theory", "theorie"):
             cmd = _ask(_menu_section(language, "theory")["prompt"]).strip()
             _run_cli(["teoria"] + ([cmd] if cmd else []) +
                      ["--language", language], language)
@@ -5856,7 +5870,7 @@ def main(argv=None) -> int:
     try:
         limpio, idioma = i18n.extract_language(limpio)
     except ValueError as exc:
-        print(f"Error: --language admite es o en, no '{exc}'.", file=sys.stderr)
+        print(f"Error: --language accepts en, es or de, not '{exc}'.", file=sys.stderr)
         return 2
     explicit_language = idioma is not None
     idioma = i18n.set_language(idioma)
@@ -5899,7 +5913,7 @@ def main(argv=None) -> int:
             pass
         return 0
     except KeyboardInterrupt:
-        print("\nInterrumpido.", file=sys.stderr)
+        print("\nInterrupted.", file=sys.stderr)
         return 130
     except FileNotFoundError as exc:
         print(f"Error: {exc}", file=sys.stderr)
@@ -5924,9 +5938,9 @@ def main(argv=None) -> int:
         try:
             from qekit.modules import feedback
             inc = feedback.registrar(exc=exc)
-            print(f"\nSe registró la incidencia {inc.id} con el comando, la "
-                  "traza y las versiones.\n  Verla:     olla-dft report --show "
-                  f"{inc.id}\n  Exportar:  olla-dft report --export "
+            print(f"\nIncident {inc.id} was recorded with the command, the "
+                  "traceback and the versions.\n  View it:   olla-dft report --show "
+                  f"{inc.id}\n  Export:    olla-dft report --export "
                   "incidencias.json", file=sys.stderr)
         except Exception:                              # noqa: BLE001
             pass

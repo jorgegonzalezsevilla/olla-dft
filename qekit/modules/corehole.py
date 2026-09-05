@@ -196,11 +196,11 @@ def core_wfc(upf, destino, orbital: str = None) -> str:
         mesh = int(float(at["mesh_size"]))
     except (KeyError, ValueError):
         raise ErrorDeUso(
-            f"{upf.name} no declara mesh_size; no parece un UPF v2.") from None
+            f"{upf.name} does not declare mesh_size; it does not look like a UPF v2.") from None
 
     m = re.search(r"<PP_R[\s>](.*?)</PP_R>", texto, re.S)
     if m is None:
-        raise ErrorDeUso(f"{upf.name} no trae la malla radial <PP_R>.")
+        raise ErrorDeUso(f"{upf.name} does not contain the radial mesh <PP_R>.")
     r = np.fromstring(re.sub(r"<[^>]*>", " ", m.group(1)), sep=" ")
 
     bloques = re.findall(
@@ -208,10 +208,10 @@ def core_wfc(upf, destino, orbital: str = None) -> str:
         texto, re.S)
     if not bloques:
         raise ErrorDeUso(
-            f"{upf.name} no trae orbitales de core (PP_GIPAW_CORE_ORBITAL).\n"
-            "Ese pseudopotencial NO sirve para XANES: hay que regenerarlo con "
+            f"{upf.name} does not contain core orbitals (PP_GIPAW_CORE_ORBITAL).\n"
+            "That pseudopotential is NOT usable for XANES: it must be regenerated with "
             "lgipaw_reconstruction=.true.\n"
-            "  olla-dft corehole <elemento> --edge K")
+            "  olla-dft corehole <element> --edge K")
 
     etiquetas, ondas = [], []
     for _, atrib, cuerpo in bloques:
@@ -221,15 +221,15 @@ def core_wfc(upf, destino, orbital: str = None) -> str:
 
     if orbital is not None and orbital.upper() not in etiquetas:
         raise ErrorDeUso(
-            f"{upf.name} no trae el orbital {orbital}. "
-            f"Tiene: {', '.join(etiquetas)}")
+            f"{upf.name} does not contain the {orbital} orbital. "
+            f"It has: {', '.join(etiquetas)}")
 
     n = min([mesh, len(r)] + [len(w) for w in ondas])
     destino = Path(destino)
     destino.parent.mkdir(parents=True, exist_ok=True)
     with open(destino, "w") as f:
-        f.write(f"# funciones de onda de core de {upf.name}: "
-                f"{len(ondas)} estados ({', '.join(etiquetas)})\n")
+        f.write(f"# core wave functions of {upf.name}: "
+                f"{len(ondas)} states ({', '.join(etiquetas)})\n")
         for w in ondas:
             for i in range(n):
                 f.write(f"{r[i]:20.12f} {w[i]:20.12f}\n")
@@ -305,9 +305,9 @@ def _correr_ld1(entrada: Path, salida: Path, ld1_cmd: str = None) -> None:
     exe = ld1_cmd or shutil.which("ld1.x")
     if not exe:
         raise ErrorDeUso(
-            "no se encontró ld1.x. Es parte de Quantum ESPRESSO pero no se "
-            "compila por defecto:\n  cd <fuente de QE> && make ld1\n"
-            "Después ponlo en el PATH, o pásalo con --ld1-cmd.")
+            "ld1.x was not found. It is part of Quantum ESPRESSO but is not "
+            "compiled by default:\n  cd <QE source> && make ld1\n"
+            "Then put it in the PATH, or pass it with --ld1-cmd.")
     with open(entrada) as fin, open(salida, "w") as fout:
         proc = subprocess.run([exe], stdin=fin, stdout=fout,
                               stderr=subprocess.STDOUT,
@@ -316,7 +316,7 @@ def _correr_ld1(entrada: Path, salida: Path, ld1_cmd: str = None) -> None:
     if proc.returncode != 0 or "Error in routine" in texto:
         cola = [ln.strip() for ln in texto.splitlines() if ln.strip()][-8:]
         raise RuntimeError(
-            f"ld1.x falló; revisa {salida}\n" + "\n".join("  " + c for c in cola))
+            f"ld1.x failed; check {salida}\n" + "\n".join("  " + c for c in cola))
 
 
 # ----------------------------------------------------------------------
@@ -352,7 +352,7 @@ def generar(simbolo: str, borde: str = "K", outdir: str = "pseudos",
     simbolo = simbolo.strip().capitalize()
     if simbolo not in atomconf.Z_DE:
         raise ErrorDeUso(
-            f"elemento '{simbolo}' fuera de la tabla que Olla-DFT conoce "
+            f"element '{simbolo}' is outside the table Olla-DFT knows "
             "(H..Rn).")
     if proyectores >= 2 and pseudotype != 3:
         # Con norma conservada, dos proyectores en el mismo canal hacen que
@@ -381,7 +381,7 @@ def generar(simbolo: str, borde: str = "K", outdir: str = "pseudos",
     pares = [("base", base_conf, upf_base, f"{simbolo} base")]
     if not solo_base:
         pares.append(("hueco", hueco_conf, upf_hueco,
-                      f"{simbolo} con hueco de core en {g.nivel}"))
+                      f"{simbolo} with core hole in {g.nivel}"))
     for etiqueta, conf, nombre_upf, titulo in pares:
         texto = input_ld1(simbolo, conf, g.canales, nombre_upf, g.rcut,
                           dft=dft, prefix=f"{simbolo}_{etiqueta}",
@@ -403,109 +403,109 @@ def generar(simbolo: str, borde: str = "K", outdir: str = "pseudos",
 def _verificar_base(g: Generacion) -> list:
     """Comprobaciones cuando solo se pidió el pseudopotencial normal."""
     if g.base is None:
-        return ["FALLA: no se generó el pseudopotencial."]
-    return [f"z_valence = {g.base.z_valence:g}, malla de {g.base.mesh} "
-            f"puntos, tipo {g.base.tipo}.",
-            "Solo se genero el pseudopotencial NORMAL (--plain). Para XPS "
-            "o XANES hace falta tambien el de hueco de core: quita "
+        return ["FALLA: the pseudopotential was not generated."]
+    return [f"z_valence = {g.base.z_valence:g}, mesh of {g.base.mesh} "
+            f"points, type {g.base.tipo}.",
+            "Only the NORMAL pseudopotential was generated (--plain). For XPS "
+            "or XANES the core-hole one is also needed: remove "
             "--plain.",
-            "NO verificado automaticamente: estados fantasma, derivadas "
-            "logaritmicas y transferibilidad. Corre 'olla-dft converge' "
-            "antes de usarlo en serio."]
+            "NOT verified automatically: ghost states, logarithmic "
+            "derivatives and transferability. Run 'olla-dft converge' "
+            "before using it seriously."]
 
 
 def verificar(g: Generacion) -> list:
     """Lo que se puede comprobar solo, y lo que NO se comprobó."""
     avisos = []
     if g.base is None or g.hueco is None:
-        return ["FALLA: falta uno de los dos pseudopotenciales."]
+        return ["FALLA: one of the two pseudopotentials is missing."]
 
     dz = (g.hueco.z_valence or 0) - (g.base.z_valence or 0)
     if abs(dz - 1.0) > 1e-6:
         avisos.append(
-            f"FALLA: z_valence pasa de {g.base.z_valence} a "
-            f"{g.hueco.z_valence} (diferencia {dz:+g}); tiene que ser "
-            "exactamente +1. Un hueco de core es UN electrón.")
+            f"FALLA: z_valence goes from {g.base.z_valence} to "
+            f"{g.hueco.z_valence} (difference {dz:+g}); it must be "
+            "exactly +1. A core hole is ONE electron.")
     else:
         avisos.append(
             f"z_valence {g.base.z_valence:g} -> {g.hueco.z_valence:g}: "
-            "la diferencia de +1 es el hueco. Correcto.")
+            "the +1 difference is the hole. Correct.")
 
     if g.base.mesh != g.hueco.mesh:
         avisos.append(
-            f"FALLA: las mallas radiales no coinciden ({g.base.mesh} vs "
-            f"{g.hueco.mesh}); xspectra.x interpola la función de core sobre "
-            "la malla del pseudo y saldría corrida.")
+            f"FALLA: the radial meshes do not match ({g.base.mesh} vs "
+            f"{g.hueco.mesh}); xspectra.x interpolates the core function on "
+            "the pseudopotential mesh and it would come out shifted.")
 
     if g.nivel.upper() not in [o.upper() for o in g.hueco.orbitales_core]:
         avisos.append(
-            f"FALLA: el UPF con hueco no trae el orbital {g.nivel} entre sus "
-            "funciones de core; XANES no va a poder leerlo.")
+            f"FALLA: the core-hole UPF does not contain the {g.nivel} orbital among its "
+            "core functions; XANES will not be able to read it.")
     else:
         avisos.append(
-            f"funciones de onda de core presentes "
-            f"({', '.join(g.hueco.orbitales_core)}): sirve para XANES.")
+            f"core wave functions present "
+            f"({', '.join(g.hueco.orbitales_core)}): usable for XANES.")
 
     if (g.base.funcional or "").split() != (g.hueco.funcional or "").split():
-        avisos.append("FALLA: los dos pseudos usan funcionales distintos.")
+        avisos.append("FALLA: the two pseudopotentials use different functionals.")
 
     if g.proyectores < 2:
         avisos.append(
-            "UN proyector por canal. XSpectra recomienda dos: con uno solo "
-            "el espectro XANES es fiable cerca del borde pero se degrada a "
-            "partir de unos 10 eV por encima. Para XPS no importa. Con dos "
-            "(--projectors 2) el pseudo sale ultrasuave y casi siempre hay "
-            "que ajustar --rcut a mano hasta que ld1.x converja.")
+            "ONE projector per channel. XSpectra recommends two: with only one "
+            "the XANES spectrum is reliable near the edge but degrades from "
+            "about 10 eV above it. For XPS it does not matter. With two "
+            "(--projectors 2) the pseudopotential comes out ultrasoft and --rcut "
+            "almost always has to be tuned by hand until ld1.x converges.")
 
     avisos.append(
-        "NO verificado automáticamente: estados fantasma, derivadas "
-        "logarítmicas y transferibilidad. Antes de publicar nada con este "
-        "pseudopotencial, revisa ld1_base.out y corre 'olla-dft converge' — el "
-        "cutoff del pseudo anterior NO sirve para este.")
+        "NOT verified automatically: ghost states, logarithmic "
+        "derivatives and transferability. Before publishing anything with this "
+        "pseudopotential, check ld1_base.out and run 'olla-dft converge' — the "
+        "cutoff of the previous pseudopotential is NOT valid for this one.")
     return avisos
 
 
 def report(g: Generacion) -> str:
-    lines = ["--- Pseudopotenciales con hueco de core ---",
-             (f"Elemento: {g.elemento}   borde {g.borde} "
-              f"(nivel {g.nivel})") if g.nivel else
-             f"Elemento: {g.elemento}   (solo el pseudo normal)",
-             f"Funcional: {g.funcional}   radio de corte: {g.rcut:.2f} bohr",
+    lines = ["--- Core-hole pseudopotentials ---",
+             (f"Element: {g.elemento}   edge {g.borde} "
+              f"(level {g.nivel})") if g.nivel else
+             f"Element: {g.elemento}   (normal pseudopotential only)",
+             f"Functional: {g.funcional}   cutoff radius: {g.rcut:.2f} bohr",
              ""]
-    lines.append("Partición core / valencia (regla de Olla-DFT, "
-                 "sobrescribible):")
+    lines.append("Core / valence partition (Olla-DFT rule, "
+                 "can be overridden):")
     lines.append("  core     = " + " ".join(
         f"{atomconf.etiqueta(n, l)}{occ:g}" for n, l, occ in g.core))
-    lines.append("  valencia = " + " ".join(
+    lines.append("  valence  = " + " ".join(
         f"{atomconf.etiqueta(n, l)}{occ:g}" for n, l, occ in g.valencia))
-    lines.append("  canales pseudizados = " + " ".join(
-        f"{e}({o:g})" if o >= 0 else f"{e}(vacío)" for e, _, _, o in g.canales))
+    lines.append("  pseudized channels = " + " ".join(
+        f"{e}({o:g})" if o >= 0 else f"{e}(empty)" for e, _, _, o in g.canales))
     lines.append("")
 
     if g.base:
-        lines.append(f"{'':16s}{'z_valence':>10s} {'malla':>7s} {'tipo':>6s}")
+        lines.append(f"{'':16s}{'z_valence':>10s} {'mesh':>7s} {'type':>6s}")
         for nombre, p in [("normal", g.base)] + \
-                ([("con hueco", g.hueco)] if g.hueco else []):
+                ([("core hole", g.hueco)] if g.hueco else []):
             lines.append(f"  {nombre:14s}{p.z_valence:10.2f} {p.mesh:7d} "
                          f"{p.tipo:>6s}   {Path(p.ruta).name}")
         lines.append("")
 
     if g.avisos:
-        lines.append("Verificación:")
+        lines.append("Verification:")
         for a in g.avisos:
-            marca = "  [FALLA] " if a.startswith("FALLA") else "  [ok]    "
+            marca = "  [FAIL]  " if a.startswith("FALLA") else "  [ok]    "
             texto = a[7:] if a.startswith("FALLA: ") else a
             lines.append(marca + texto)
         lines.append("")
 
     lines += [
-        "Cómo se usan:",
-        "  XPS   -> olla-dft xps estructura.cif --core-hole "
-        f"{g.elemento}={Path(g.hueco.ruta).name if g.hueco else '(falta)'}",
-        f"  XANES -> olla-dft xanes estructura.cif --pseudo-dir {Path(g.entradas[0]).parent if g.entradas else '.'}",
+        "How to use them:",
+        "  XPS   -> olla-dft xps structure.cif --core-hole "
+        f"{g.elemento}={Path(g.hueco.ruta).name if g.hueco else '(missing)'}",
+        f"  XANES -> olla-dft xanes structure.cif --pseudo-dir {Path(g.entradas[0]).parent if g.entradas else '.'}",
         "",
-        "Los DOS pseudos van juntos: el input declara las dos especies, la",
-        "normal para todos los átomos y la del hueco solo como contraparte.",
+        "The TWO pseudopotentials go together: the input declares both species, the",
+        "normal one for all atoms and the core-hole one only as its counterpart.",
     ]
     return "\n".join(lines)
 
@@ -514,8 +514,8 @@ def export(g: Generacion, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "PSEUDOS_HUECO.txt"
     f.write_text(provenance.header_plain(
-        "pseudopotenciales con hueco de core",
+        "core-hole pseudopotentials",
         {"elemento": g.elemento, "borde": g.borde, "funcional": g.funcional,
          "rcut_bohr": g.rcut},
-        titulo="Generacion de pseudopotenciales") + "\n" + report(g) + "\n")
+        titulo="Pseudopotential generation") + "\n" + report(g) + "\n")
     return [str(f)]

@@ -101,7 +101,7 @@ def atomos_superficie(slab, cara: str = "top", tol: float = TOL_CAPA) -> list:
     if cara == "bottom":
         ref = z.min()
         return [i for i in range(len(slab)) if z[i] <= ref + tol]
-    raise ErrorDeUso(f"--face es 'top' o 'bottom'; recibí '{cara}'.")
+    raise ErrorDeUso(f"--face must be 'top' or 'bottom'; got '{cara}'.")
 
 
 def _replicas(slab, idx, n=1):
@@ -158,8 +158,8 @@ def sitios(slab, cara: str = "top", tipos=TIPOS, tol: float = TOL_CAPA,
 
     idx = atomos_superficie(slab, cara, tol)
     if not idx:
-        raise ErrorDeUso("no encontré átomos de superficie; ¿es una losa con "
-                         "vacío? Córtala con 'olla-dft surface'.")
+        raise ErrorDeUso("no surface atoms found; is this a slab with "
+                         "vacuum? Cut one with 'olla-dft surface'.")
     pos = slab.get_positions()[idx]
     z_sup = pos[:, 2].max() if cara == "top" else pos[:, 2].min()
     rep, orig = _replicas(slab, idx, n=1)
@@ -234,9 +234,9 @@ def cargar_molecula(nombre: str):
         except Exception:                                   # noqa: BLE001
             disponibles = "CO, CO2, H2O, NH3, O2, CH4..."
         raise ErrorDeUso(
-            f"no reconozco '{nombre}' ni como archivo ni como molécula de la "
-            f"base de ASE. Algunas que sí: {disponibles}. También puedes "
-            f"pasar un .xyz o .cif con la molécula.") from None
+            f"'{nombre}' is neither an existing file nor a molecule in the "
+            f"ASE database. Some that are: {disponibles}. You can also "
+            f"pass an .xyz or .cif file with the molecule.") from None
 
 
 def colocar(slab, mol, sitio: Sitio, altura: float = 2.0,
@@ -271,23 +271,23 @@ def prepare(slab, molecula: str, outdir: str = "adsorb",
 
     if 2 not in kp.direcciones_con_vacio(slab):
         raise ErrorDeUso(
-            "esta estructura no tiene vacío en c: la energía de adsorción "
-            "necesita una losa con vacío por encima. Córtala con "
+            "this structure has no vacuum along c: the adsorption energy "
+            "needs a slab with vacuum above it. Cut one with "
             "'olla-dft surface -m \"1 1 1\" --vacuum 20'.")
     if rotaciones < 1:
-        raise ErrorDeUso(f"--rotations debe ser al menos 1; recibí {rotaciones}.")
+        raise ErrorDeUso(f"--rotations must be at least 1; got {rotaciones}.")
     tipos = tuple(tipos)
     malos = [t for t in tipos if t not in TIPOS]
     if malos:
         raise ErrorDeUso(
-            f"tipo de sitio desconocido: {', '.join(malos)}. "
-            f"Opciones: {', '.join(TIPOS)}.")
+            f"unknown site type: {', '.join(malos)}. "
+            f"Options: {', '.join(TIPOS)}.")
 
     mol = cargar_molecula(molecula)
     if ancla >= len(mol):
         raise ErrorDeUso(
-            f"--anchor {ancla} no existe: la molécula tiene {len(mol)} átomos "
-            f"(se numeran desde 0).")
+            f"--anchor {ancla} does not exist: the molecule has {len(mol)} atoms "
+            f"(numbered from 0).")
 
     lista = sitios(slab, cara=cara, tipos=tipos)
     if rotaciones > 1 and len(mol) > 1:
@@ -337,10 +337,10 @@ def prepare(slab, molecula: str, outdir: str = "adsorb",
     extras = dict(vdw=vdw, nspin=nspin, magnetization=magnetization,
                   dipole_correction=3 if dipolo else False)
     run.jobs.append(sweep.write_scf_job(
-        slab, common, out / "_losa", "losa limpia", grid,
+        slab, common, out / "_losa", "clean slab", grid,
         meta={"papel": "slab"}, calculation=calc, **extras))
     run.jobs.append(sweep.write_scf_job(
-        mol_sola, common, out / "_molecula", f"{molecula} aislada", grid,
+        mol_sola, common, out / "_molecula", f"isolated {molecula}", grid,
         meta={"papel": "mol"}, calculation=calc, **extras))
 
     for s in lista:
@@ -357,37 +357,37 @@ def prepare(slab, molecula: str, outdir: str = "adsorb",
     cuenta = {}
     for s in lista:
         cuenta[s.tipo] = cuenta.get(s.tipo, 0) + 1
-    report = ["--- Sitios de adsorción ---",
-              f"Losa: {slab.get_chemical_formula()} ({len(slab)} átomos), "
-              f"cara {cara}",
-              f"Adsorbato: {molecula} ({len(mol)} átomos), "
-              f"ancla = átomo {ancla} ({mol.get_chemical_symbols()[ancla]}), "
-              f"altura inicial {altura:g} Å",
-              "Sitios no equivalentes: "
+    report = ["--- Adsorption sites ---",
+              f"Slab: {slab.get_chemical_formula()} ({len(slab)} atoms), "
+              f"face {cara}",
+              f"Adsorbate: {molecula} ({len(mol)} atoms), "
+              f"anchor = atom {ancla} ({mol.get_chemical_symbols()[ancla]}), "
+              f"initial height {altura:g} Å",
+              "Non-equivalent sites: "
               + ", ".join(f"{n} {t}" for t, n in sorted(cuenta.items()))
-              + f"  ({len(lista)} cálculos"
-              + (f", {rotaciones} rotaciones cada uno" if rotaciones > 1 else "")
+              + f"  ({len(lista)} calculations"
+              + (f", {rotaciones} rotations each" if rotaciones > 1 else "")
               + ")",
-              f"Malla k: {grid[0]}x{grid[1]}x{grid[2]}  |  "
-              + ("posiciones relajadas" if relax_ions else "posiciones fijas"),
-              "Referencias: losa limpia y molécula aislada, en la MISMA celda "
-              "y con los\n  mismos cutoffs y malla, para que la resta sea "
-              "válida."]
+              f"k-mesh: {grid[0]}x{grid[1]}x{grid[2]}  |  "
+              + ("relaxed positions" if relax_ions else "fixed positions"),
+              "References: clean slab and isolated molecule, in the SAME cell "
+              "and with the\n  same cutoffs and mesh, so that the difference is "
+              "valid."]
     if not vdw:
         report.append(
-            "AVISO: sin corrección de van der Waals. En fisisorción (moléculas "
-            "cerradas\n  sobre superficies) el enlace ES dispersión: sin --vdw "
-            "la energía sale\n  cerca de cero y la geometría desligada.")
+            "WARNING: no van der Waals correction. In physisorption (closed-shell "
+            "molecules\n  on surfaces) the bond IS dispersion: without --vdw "
+            "the energy comes out\n  near zero and the geometry unbound.")
     if not dipolo and cara == "top":
         report.append(
-            "Sugerencia: una molécula adsorbida en una sola cara deja la losa "
-            "polar.\n  Con --dipole se cancela el dipolo artificial a través "
-            "del vacío.")
+            "Suggestion: a molecule adsorbed on a single face leaves the slab "
+            "polar.\n  With --dipole the artificial dipole across the vacuum "
+            "is cancelled.")
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         report.append(warn)
-    report += ["", f"{len(run.jobs)} cálculos escritos en '{out.resolve()}'",
-               "Córrelos con --run, o a mano con ./run.sh dentro de esa carpeta."]
+    report += ["", f"{len(run.jobs)} calculations written to '{out.resolve()}'",
+               "Run them with --run, or by hand with ./run.sh inside that folder."]
     return run, "\n".join(report)
 
 
@@ -439,29 +439,29 @@ def collect(run: AdsorbRun, results: list = None) -> AdsorbRun:
 def report(run: AdsorbRun) -> str:
     if not run.energies:
         raise FaltanDatos(
-            "no hay resultados todavía. Corre los cálculos (--run, o ./run.sh "
-            "en la carpeta) y vuelve con --collect.")
-    L = ["--- Energías de adsorción ---",
-         f"Adsorbato: {run.molecula}   |   losa de {run.natoms_slab} átomos"]
+            "no results yet. Run the calculations (--run, or ./run.sh "
+            "in the folder) and come back with --collect.")
+    L = ["--- Adsorption energies ---",
+         f"Adsorbate: {run.molecula}   |   slab of {run.natoms_slab} atoms"]
     faltan = []
     if run.E_slab is None:
-        faltan.append("la losa limpia")
+        faltan.append("the clean slab")
     if run.E_mol is None:
-        faltan.append("la molécula aislada")
+        faltan.append("the isolated molecule")
     if faltan:
         L.append("")
-        L.append("No se puede calcular E_ads: falta la energía de "
-                 + " y ".join(faltan) + ".")
-        L.append("  Sin las dos referencias la resta no existe; corre esos "
-                 "dos cálculos\n  (están en _losa y _molecula) y vuelve con "
-                 "--collect.")
+        L.append("E_ads cannot be computed: missing the energy of "
+                 + " and ".join(faltan) + ".")
+        L.append("  Without both references there is no difference to take; run "
+                 "those two calculations\n  (they are in _losa and _molecula) and "
+                 "come back with --collect.")
         return "\n".join(L)
 
-    L.append(f"E(losa) = {run.E_slab:.6f} eV    "
+    L.append(f"E(slab) = {run.E_slab:.6f} eV    "
              f"E({run.molecula}) = {run.E_mol:.6f} eV")
     L.append("")
-    L.append(f"  {'sitio':<12s} {'E_ads (eV)':>11s} {'altura (Å)':>11s} "
-             f"{'contacto (Å)':>13s}")
+    L.append(f"  {'site':<12s} {'E_ads (eV)':>11s} {'height (Å)':>11s} "
+             f"{'contact (Å)':>13s}")
     L.append("  " + "-" * 51)
 
     eads = run.energias_ads
@@ -471,7 +471,7 @@ def report(run: AdsorbRun) -> str:
     for i, s in filas:
         e = eads[i]
         if e is None:
-            L.append(f"  {s.etiqueta:<12s} {'sin resultado':>11s}")
+            L.append(f"  {s.etiqueta:<12s} {'no result':>11s}")
             continue
         alt = run.alturas[i]
         con = run.contactos[i]
@@ -479,7 +479,7 @@ def report(run: AdsorbRun) -> str:
                 f"{(alt if alt is not None else float('nan')):>11.3f} "
                 f"{(con if con is not None else float('nan')):>13.3f}")
         if run.converged[i] is False:
-            fila += "   << SIN CONVERGER"
+            fila += "   << NOT CONVERGED"
         L.append(fila)
 
     validos = [(i, eads[i]) for i, _ in filas if eads[i] is not None]
@@ -487,58 +487,58 @@ def report(run: AdsorbRun) -> str:
         mejor_i, mejor_e = validos[0]
         s = run.sitios[mejor_i]
         L.append("")
-        L.append(f"Sitio más favorable: {s.etiqueta} ({s.tipo}), "
+        L.append(f"Most favourable site: {s.etiqueta} ({s.tipo}), "
                  f"E_ads = {mejor_e:.4f} eV")
         if mejor_e > 0:
             cerca = [run.contactos[i] for i, _ in filas
                      if run.contactos[i] is not None]
             if not run.relajado:
                 L.append(
-                    "  POSITIVA en todos los sitios, y el cálculo fue con "
-                    "posiciones FIJAS:\n  lo más probable es que la altura "
-                    f"inicial ({run.altura_inicial:g} Å) no sea la de "
-                    "equilibrio\n  y estés midiendo la repulsión. Quita "
-                    "--fixed-ions para que relaje.")
+                    "  POSITIVE at every site, and the calculation used "
+                    "FIXED positions:\n  most likely the initial height "
+                    f"({run.altura_inicial:g} Å) is not the equilibrium "
+                    "one\n  and you are measuring the repulsion. Remove "
+                    "--fixed-ions to let it relax.")
             elif cerca and min(cerca) < 1.2:
                 L.append(
-                    f"  POSITIVA, y el contacto más corto es {min(cerca):.2f} Å: "
-                    "los átomos están\n  encima unos de otros. Revisa la "
-                    "geometría antes de concluir nada.")
+                    f"  POSITIVE, and the shortest contact is {min(cerca):.2f} Å: "
+                    "the atoms are\n  sitting on top of each other. Check the "
+                    "geometry before concluding anything.")
             else:
-                L.append("  POSITIVA: en este nivel de teoría el adsorbato NO "
-                         "se pega en ningún\n  sitio probado. Si esperabas "
-                         "fisisorción, prueba con --vdw.")
+                L.append("  POSITIVE: at this level of theory the adsorbate does "
+                         "NOT bind at any\n  site tried. If you expected "
+                         "physisorption, try --vdw.")
         elif mejor_e > -0.30:
-            L.append("  Es fisisorción débil (|E_ads| < 0.3 eV): a temperatura "
-                     "ambiente la\n  molécula se desorbe. El número depende "
-                     "mucho de la corrección de dispersión.")
+            L.append("  Weak physisorption (|E_ads| < 0.3 eV): at room "
+                     "temperature the\n  molecule desorbs. The number depends "
+                     "strongly on the dispersion correction.")
         elif mejor_e < -2.0 and run.natoms_mol > 1:
-            L.append("  Enlace muy fuerte (|E_ads| > 2 eV): normalmente hay "
-                     "reacción, no\n  adsorción molecular. Mira la geometría "
-                     "relajada: quizá la molécula\n  se disoció y estás "
-                     "midiendo la energía de los fragmentos.")
+            L.append("  Very strong bond (|E_ads| > 2 eV): usually there is a "
+                     "reaction, not\n  molecular adsorption. Look at the relaxed "
+                     "geometry: the molecule may have\n  dissociated and you are "
+                     "measuring the energy of the fragments.")
         elif mejor_e < -2.0:
-            L.append("  Es quimisorción fuerte. Ojo con la referencia: este "
-                     "E_ads se mide contra\n  el ÁTOMO aislado, no contra la "
-                     "molécula. Para compararlo con la\n  literatura de "
-                     "moléculas diatómicas hay que restar media energía de\n"
-                     "  disociación.")
+            L.append("  Strong chemisorption. Mind the reference: this "
+                     "E_ads is measured against\n  the isolated ATOM, not the "
+                     "molecule. To compare with the\n  literature on "
+                     "diatomic molecules you must subtract half the\n"
+                     "  dissociation energy.")
         if len(validos) > 1:
             segundo = validos[1][1]
-            L.append(f"  Diferencia con el segundo sitio: "
+            L.append(f"  Difference from the second site: "
                      f"{abs(segundo - mejor_e):.4f} eV")
             if abs(segundo - mejor_e) < 0.05:
-                L.append("  Los dos primeros están dentro de 50 meV: a esta "
-                         "precisión no se puede\n  decir cuál gana; hacen falta "
-                         "cutoffs y malla más finos para separarlos.")
+                L.append("  The first two are within 50 meV: at this "
+                         "precision one cannot\n  say which wins; finer "
+                         "cutoffs and mesh are needed to separate them.")
 
     if run.slab_ok is False or run.mol_ok is False:
         L.append("")
-        L.append("AVISO: alguna referencia no convergió; E_ads hereda ese error.")
+        L.append("WARNING: a reference did not converge; E_ads inherits that error.")
     sin_conv = [run.sitios[i].etiqueta for i in range(len(run.sitios))
                 if run.converged[i] is False]
     if sin_conv:
-        L.append(f"SIN CONVERGER: {', '.join(sin_conv)}")
+        L.append(f"NOT CONVERGED: {', '.join(sin_conv)}")
     return "\n".join(L)
 
 
@@ -547,11 +547,11 @@ def export(run: AdsorbRun, outdir: str = ".") -> list:
     f = out / "ADSORCION.dat"
     eads = run.energias_ads
     lines = [provenance.header(
-        f"energias de adsorcion de {run.molecula}",
+        f"adsorption energies of {run.molecula}",
         {"E_slab_eV": run.E_slab, "E_mol_eV": run.E_mol,
          "atomos_losa": run.natoms_slab}),
-        f"# {'sitio':<12s} {'tipo':<8s} {'E_ads(eV)':>12s} "
-        f"{'altura(A)':>11s} {'contacto(A)':>12s}"]
+        f"# {'site':<12s} {'type':<8s} {'E_ads(eV)':>12s} "
+        f"{'height(A)':>11s} {'contact(A)':>12s}"]
     nan = float("nan")
     for i, s in enumerate(run.sitios):
         if eads[i] is None:
@@ -577,13 +577,13 @@ def plot(run: AdsorbRun, outfile: str = "adsorcion", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
 
     eads = run.energias_ads
     datos = [(run.sitios[i].etiqueta, run.sitios[i].tipo, eads[i])
              for i in range(len(run.sitios)) if eads[i] is not None]
     if not datos:
-        raise FaltanDatos("no hay energías de adsorción que graficar.")
+        raise FaltanDatos("there are no adsorption energies to plot.")
     datos.sort(key=lambda t: t[2])
 
     st = qstyle.apply(theme, size=size, family=family, background=background,

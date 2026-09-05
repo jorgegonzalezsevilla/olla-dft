@@ -90,7 +90,7 @@ def degauss_de_T(T: float) -> float:
     """Ensanchamiento de Fermi-Dirac en Ry que corresponde a T kelvin."""
     if T <= 0:
         raise ErrorDeUso(
-            f"la temperatura electrónica tiene que ser positiva; recibí {T}.")
+            f"the electronic temperature must be positive; received {T}.")
     return KB_RY * float(T)
 
 
@@ -106,14 +106,14 @@ def prepare(atoms, temperaturas, outdir: str = "fonones_T",
     temperaturas = sorted({float(T) for T in temperaturas})
     if len(temperaturas) < 2:
         raise ErrorDeUso(
-            "un barrido de temperatura necesita al menos dos valores; con uno "
-            "solo no hay nada que comparar. Prueba --tscan 300,1000,3000.")
+            "a temperature sweep needs at least two values; with only "
+            "one there is nothing to compare. Try --tscan 300,1000,3000.")
     if max(temperaturas) > 20000:
         raise ErrorDeUso(
-            f"{max(temperaturas):g} K de temperatura ELECTRÓNICA es enorme: "
-            "el ensanchamiento se come varios eV y las ocupaciones dejan de "
-            "parecerse a nada. Los estudios de ondas de densidad de carga "
-            "llegan a unos 6000 K.")
+            f"{max(temperaturas):g} K of ELECTRONIC temperature is huge: "
+            "the broadening swallows several eV and the occupations no longer "
+            "resemble anything. Charge-density-wave studies "
+            "go up to about 6000 K.")
 
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     run = BarridoT(temperaturas=temperaturas, gamma_only=gamma_only)
@@ -128,28 +128,28 @@ def prepare(atoms, temperaturas, outdir: str = "fonones_T",
         run.carpetas.append(str(sub))
         partes.append((T, rep))
 
-    report = ["--- Fonones a temperatura electrónica ---",
-              "Temperaturas: "
+    report = ["--- Phonons at electronic temperature ---",
+              "Temperatures: "
               + ", ".join(f"{T:g} K" for T in temperaturas),
-              "Ensanchamiento: fermi-dirac, degauss = k_B·T = "
+              "Broadening: fermi-dirac, degauss = k_B·T = "
               + ", ".join(f"{degauss_de_T(T):.5f}" for T in temperaturas)
               + " Ry",
               "",
-              "Se impone smearing='fermi-dirac' a propósito: es el único cuya "
-              "anchura ES una\n  temperatura. Con gaussiano o cold el "
-              "ensanchamiento es un truco numérico y\n  la curva "
-              "frecuencia-contra-temperatura no significaría nada.",
+              "smearing='fermi-dirac' is imposed on purpose: it is the only one whose "
+              "width IS a\n  temperature. With gaussian or cold the "
+              "broadening is a numerical trick and\n  the "
+              "frequency-versus-temperature curve would mean nothing.",
               "",
-              f"{len(temperaturas)} cálculos de fonones en "
+              f"{len(temperaturas)} phonon calculations in "
               f"'{out.resolve()}'.",
-              "Cada uno es la cadena entera (scf, ph.x y post-proceso): "
-              "esto cuesta N veces\n  un cálculo de fonones normal."]
+              "Each one is the full chain (scf, ph.x and post-processing): "
+              "this costs N times\n  a normal phonon calculation."]
     if not gamma_only:
         report.append(
-            "AVISO: barrido de temperatura con malla de q completa. Es lo "
-            "correcto si el\n  modo blando NO está en Γ (una onda de densidad "
-            "de carga casi nunca lo está),\n  pero multiplica un cálculo ya "
-            "caro por el número de temperaturas.")
+            "WARNING: temperature sweep with a full q-grid. This is "
+            "correct if the\n  soft mode is NOT at Γ (a charge density "
+            "wave almost never is),\n  but it multiplies an already "
+            "expensive calculation by the number of temperatures.")
     return run, "\n".join(report)
 
 
@@ -199,19 +199,19 @@ def report(run: BarridoT) -> str:
     Ts = run.con_datos
     if not Ts:
         raise FaltanDatos(
-            "no hay frecuencias que leer todavía. Corre las cadenas de "
-            "fonones y vuelve con --collect.")
-    L = ["--- Fonones contra temperatura electrónica ---",
-         f"Ensanchamiento fermi-dirac; {'solo Γ' if run.gamma_only else 'malla de q completa'}",
+            "there are no frequencies to read yet. Run the phonon "
+            "chains and come back with --collect.")
+    L = ["--- Phonons versus electronic temperature ---",
+         f"Fermi-Dirac broadening; {'Γ only' if run.gamma_only else 'full q-grid'}",
          "",
-         f"  {'T (K)':>8s} {'degauss (Ry)':>13s} {'modos imag.':>12s} "
-         f"{'peor (cm⁻¹)':>13s} {'menor real':>12s}"]
+         f"  {'T (K)':>8s} {'degauss (Ry)':>13s} {'imag. modes':>12s} "
+         f"{'worst (cm⁻¹)':>13s} {'lowest real':>12s}"]
     L.append("  " + "-" * 62)
     for T in run.temperaturas:
         f = run.frecuencias.get(T)
         if f is None:
             L.append(f"  {T:>8.0f} {degauss_de_T(T):>13.5f} "
-                     f"{'sin resultado':>12s}")
+                     f"{'no result':>12s}")
             continue
         im = run.imaginarias(T)
         reales = f[f >= -UMBRAL_IMAGINARIO]
@@ -223,39 +223,39 @@ def report(run: BarridoT) -> str:
     T_est = temperatura_de_estabilizacion(run)
     L.append("")
     if not monotono(run):
-        L.append("El número de modos imaginarios NO baja de forma monótona "
-                 "con la temperatura.\n  Suele querer decir que falta "
-                 "convergencia en la malla de k: con ensanchamiento\n  "
-                 "pequeño hace falta malla fina, y si no, el ruido se "
-                 "confunde con el modo blando.\n  Cualquier temperatura de "
-                 "estabilización sacada de aquí sería inventada.")
+        L.append("The number of imaginary modes does NOT decrease monotonically "
+                 "with temperature.\n  This usually means that the k-grid is not "
+                 "converged: with a small broadening\n  "
+                 "a fine grid is needed, otherwise the noise is "
+                 "confused with the soft mode.\n  Any stabilization "
+                 "temperature taken from here would be made up.")
     elif T_est is not None:
-        L += [f"La estructura se estabiliza alrededor de {T_est:.0f} K: por "
-              f"debajo hay modos\n  imaginarios y por encima no.",
-              "  Es la firma de una transición estructural o de una onda de "
-              "densidad de carga.\n  El número sale de interpolar entre dos "
-              "puntos del barrido, así que su\n  precisión es la del paso que "
-              "hayas usado."]
+        L += [f"The structure stabilizes around {T_est:.0f} K: below "
+              f"it there are imaginary\n  modes and above it there are none.",
+              "  This is the signature of a structural transition or of a charge "
+              "density wave.\n  The number comes from interpolating between two "
+              "points of the sweep, so its\n  precision is that of the step "
+              "you used."]
     elif all(len(run.imaginarias(T)) == 0 for T in Ts):
-        L.append("No hay modos imaginarios a ninguna temperatura: la "
-                 "estructura es estable\n  en todo el rango barrido.")
+        L.append("There are no imaginary modes at any temperature: the "
+                 "structure is stable\n  over the whole swept range.")
     elif all(len(run.imaginarias(T)) > 0 for T in Ts):
         peor_alta = run.imaginarias(Ts[-1])
-        L += [f"Sigue habiendo {len(peor_alta)} modo(s) imaginario(s) a "
-              f"{Ts[-1]:.0f} K, el peor en\n  {peor_alta.min():.1f} cm⁻¹. "
-              "O la inestabilidad no es de origen electrónico (y no se cura\n"
-              "  calentando), o hace falta subir más la temperatura, o la "
-              "celda es demasiado\n  pequeña para contener la distorsión que "
-              "el material quiere hacer."]
+        L += [f"There are still {len(peor_alta)} imaginary mode(s) at "
+              f"{Ts[-1]:.0f} K, the worst at\n  {peor_alta.min():.1f} cm⁻¹. "
+              "Either the instability is not of electronic origin (and is not cured\n"
+              "  by heating), or the temperature needs to go higher, or the "
+              "cell is too\n  small to contain the distortion the "
+              "material wants to make."]
     else:
-        L.append("Hay modos imaginarios en parte del rango, pero el barrido "
-                 "no llega a cruzar\n  el cero. Añade temperaturas más altas.")
+        L.append("There are imaginary modes in part of the range, but the sweep "
+                 "does not cross\n  zero. Add higher temperatures.")
 
     L += ["",
-          "Recordatorio: esto es temperatura ELECTRÓNICA. Los iones siguen "
-          "estando quietos\n  en sus posiciones de equilibrio; no hay "
-          "movimiento térmico ni dilatación. Para\n  eso hacen falta dinámica "
-          "molecular (olla-dft gen -p md) o la cuasi-armónica (olla-dft qha)."]
+          "Reminder: this is ELECTRONIC temperature. The ions remain "
+          "still\n  at their equilibrium positions; there is no "
+          "thermal motion or expansion. For\n  that you need molecular "
+          "dynamics (olla-dft gen -p md) or the quasi-harmonic approach (olla-dft qha)."]
     return "\n".join(L)
 
 
@@ -263,11 +263,11 @@ def export(run: BarridoT, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "FONONES_T.dat"
     lines = [provenance.header(
-        "fonones contra temperatura electronica",
+        "phonons versus electronic temperature",
         {"smearing": "fermi-dirac", "gamma_only": run.gamma_only,
          "T_estabilizacion_K": temperatura_de_estabilizacion(run)}),
         f"# {'T(K)':>10s} {'degauss(Ry)':>14s} {'n_imag':>8s} "
-        f"{'peor(cm-1)':>13s}"]
+        f"{'worst(cm-1)':>13s}"]
     for T in run.temperaturas:
         fr = run.frecuencias.get(T)
         if fr is None:
@@ -292,10 +292,10 @@ def plot(run: BarridoT, outfile: str = "fonones_T", formats="pdf,png",
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt
     except ImportError as exc:                              # pragma: no cover
-        raise RuntimeError("matplotlib no está instalado.") from exc
+        raise RuntimeError("matplotlib is not installed.") from exc
     Ts = run.con_datos
     if len(Ts) < 2:
-        raise FaltanDatos("hacen falta al menos dos temperaturas con datos.")
+        raise FaltanDatos("at least two temperatures with data are needed.")
 
     st = qstyle.apply(theme, size=size, family=family, background=background,
                       palette=palette, usetex=usetex, mono=mono)
@@ -314,7 +314,7 @@ def plot(run: BarridoT, outfile: str = "fonones_T", formats="pdf,png",
                dashes=[3.5, 2.0])
     lo = ax.get_ylim()[0]
     ax.axhspan(lo, 0.0, color=cols[0], alpha=0.07, lw=0)
-    ax.annotate("imaginarias", xy=(Ts[0], lo), xytext=(3, 4),
+    ax.annotate("imaginary", xy=(Ts[0], lo), xytext=(3, 4),
                 textcoords="offset points", fontsize=st["legend"],
                 color=qstyle.INK_SOFT)
     T_est = temperatura_de_estabilizacion(run)
@@ -324,8 +324,8 @@ def plot(run: BarridoT, outfile: str = "fonones_T", formats="pdf,png",
         ax.annotate(f"{T_est:.0f} K", xy=(T_est, 0.0), xytext=(4, 6),
                     textcoords="offset points", fontsize=st["legend"],
                     color=qstyle.INK_SOFT)
-    ax.set_xlabel("temperatura electrónica (K)")
-    ax.set_ylabel(r"frecuencia (cm$^{-1}$)")
+    ax.set_xlabel("electronic temperature (K)")
+    ax.set_ylabel(r"frequency (cm$^{-1}$)")
     written = qstyle.save(fig, outfile, formats, dpi=dpi, modulo="fonones_T")
     plt.close(fig)
     return written

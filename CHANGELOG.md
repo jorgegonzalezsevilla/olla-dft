@@ -2,6 +2,16 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.5.0 — 2026-09-05
+
+- Write scientific reports, diagnostics and new plot labels in English in every interface locale. Text output changes; structured identifiers, scientific values and calculation logic remain compatible.
+- Add Deutsch to the startup selector, saved preferences and `--language de`.
+- Correct the energy-axis labels of band and combined band/DOS figures, including unshifted energies.
+- Include German command help, menus, guided setup, recipes, wizard and explorer catalogs, a German README and generated command reference. Detailed theory for the German interface is shared in English.
+- Generate the initial explorer labels in the selected language before JavaScript starts.
+- Add `--all-languages` for reference/dashboard generation; retain the existing English/Spanish `--both` option. Standalone dashboards no longer link to language files that were not generated.
+- Use English as the default for standalone documentation and visualization APIs.
+
 ## 1.4.0 — 2026-09-05
 
 **Interactive behavior change:** no-command invocations with redirected input or output now print help and exit (status 0). Use direct commands instead of driving the menu with a heredoc. Interactive startup offers a language choice unless `--language` is supplied.

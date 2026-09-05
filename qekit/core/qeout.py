@@ -151,7 +151,7 @@ def find_xml(path: str = ".", prefix: str = None) -> Path:
     if p.is_file() and p.suffix == ".xml":
         return p
     if not p.exists():
-        raise FileNotFoundError(f"no existe la ruta '{path}'")
+        raise FileNotFoundError(f"path '{path}' does not exist")
 
     candidates = []
     search_dirs = [p, p / "out"]
@@ -178,9 +178,9 @@ def find_xml(path: str = ".", prefix: str = None) -> Path:
         except OSError:
             continue
     raise FileNotFoundError(
-        f"no se encontró el XML de salida de pw.x en '{path}'.\n"
-        "Ejecuta primero el cálculo, o indica la ruta al archivo .xml "
-        "(suele estar en la carpeta 'out/')."
+        f"pw.x output XML not found in '{path}'.\n"
+        "Run the calculation first, or give the path to the .xml file "
+        "(it is usually in the 'out/' folder)."
     )
 
 
@@ -192,8 +192,8 @@ def read_xml(path: str = ".", prefix: str = None) -> QEResult:
     out = _child(root, "output")
     if out is None:
         raise FaltanDatos(
-            f"'{xml_path}' no contiene una sección <output>. "
-            "El cálculo probablemente no terminó."
+            f"'{xml_path}' does not contain an <output> section. "
+            "The calculation probably did not finish."
         )
 
     res = QEResult(xml_path=str(xml_path))
@@ -248,7 +248,7 @@ def read_xml(path: str = ".", prefix: str = None) -> QEResult:
     # --- estructura de bandas ---
     bs = _child(out, "band_structure")
     if bs is None:
-        raise FaltanDatos(f"'{xml_path}' no contiene <band_structure>.")
+        raise FaltanDatos(f"'{xml_path}' does not contain <band_structure>.")
 
     res.nbnd = int(float(_text(bs, "nbnd", "0")))
     res.nelec = float(_text(bs, "nelec", "0"))
@@ -274,7 +274,7 @@ def read_xml(path: str = ".", prefix: str = None) -> QEResult:
 
     ks_list = _children(bs, "ks_energies")
     if not ks_list:
-        raise FaltanDatos(f"'{xml_path}' no contiene puntos k con eigenvalores.")
+        raise FaltanDatos(f"'{xml_path}' does not contain k-points with eigenvalues.")
 
     kcart_2pi_alat = []
     weights = []

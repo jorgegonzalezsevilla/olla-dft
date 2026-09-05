@@ -55,11 +55,11 @@ def portable_rows(rows):
     return output
 
 
-def generate(rows, destination, title='Olla-DFT', language='es', total_count=None, order='input_order'):
-    if language not in ('es', 'en'):
-        raise ErrorDeUso('Explorer language must be es or en.')
+def generate(rows, destination, title='Olla-DFT', language='en', total_count=None, order='input_order'):
+    if language not in ('es', 'en', 'de'):
+        raise ErrorDeUso('Explorer language must be en, es or de.')
     records = portable_rows(rows)
-    labels = {lang: json.loads((ASSETS/'i18n'/f'studio_{lang}.json').read_text(encoding='utf-8')) for lang in ('es', 'en')}
+    labels = {lang: json.loads((ASSETS/'i18n'/f'studio_{lang}.json').read_text(encoding='utf-8')) for lang in ('es', 'en', 'de')}
     payload = dict(schema_version=1, qekit_version=__version__, generated=results._now(),
                    title=str(title), language=language, total_count=total_count if total_count is not None else len(records),
                    rows=records, labels=labels, view=None, order=order)
@@ -72,6 +72,12 @@ def generate(rows, destination, title='Olla-DFT', language='es', total_count=Non
                      'SOURCE': f'{SOURCE_URL}/tree/v{__version__}'}
     text = re.sub(r'@@(LANG|TITLE|CSS|JS|PAYLOAD|LICENSE|SOURCE)@@',
                   lambda match: substitutions[match.group(1)], template)
+    # Render initial labels in the chosen locale as well as switching in JS.
+    # This avoids a flash of Spanish and keeps text readable before JS starts.
+    text = re.sub(r'(<[^>]+\bdata-label="([^"]+)"[^>]*>)([^<]*)(</[^>]+>)',
+                  lambda match: match.group(1) + html.escape(
+                      labels[language].get(match.group(2), match.group(3))) + match.group(4),
+                  text)
     target = Path(destination)
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(text, encoding='utf-8')

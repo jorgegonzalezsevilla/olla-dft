@@ -53,7 +53,7 @@ def check(path=".", project_path=None) -> dict:
     version_ok = sys.version_info >= (3, 9)
     checks.append(_item(
         "python.version", "Python", "ok" if version_ok else "fail",
-        platform.python_version(), "se requiere Python >= 3.9"))
+        platform.python_version(), "Python >= 3.9 is required"))
 
     missing = []
     installed = {}
@@ -63,19 +63,19 @@ def check(path=".", project_path=None) -> dict:
         except importlib.metadata.PackageNotFoundError:
             missing.append(name)
     checks.append(_item(
-        "python.dependencies", "Dependencias Python",
+        "python.dependencies", "Python dependencies",
         "fail" if missing else "ok",
-        "faltan: " + ", ".join(missing) if missing else
-        "todas las dependencias declaradas están instaladas",
+        "missing: " + ", ".join(missing) if missing else
+        "all declared dependencies are installed",
         json.dumps(installed, ensure_ascii=False, sort_keys=True)))
 
     found_qe = {name: shutil.which(name) for name in QE_BINARIES}
     found_qe = {name: value for name, value in found_qe.items() if value}
     if found_qe:
-        detail = f"{len(found_qe)}/{len(QE_BINARIES)} binarios encontrados"
+        detail = f"{len(found_qe)}/{len(QE_BINARIES)} binaries found"
         level = "ok"
     else:
-        detail = "no se encontró pw.x; Olla-DFT aún puede preparar y analizar archivos"
+        detail = "pw.x not found; Olla-DFT can still prepare and analyze files"
         level = "warn"
     checks.append(_item("qe.binaries", "Quantum ESPRESSO", level, detail,
                         ", ".join(f"{key}={value}" for key, value in found_qe.items())))
@@ -83,21 +83,21 @@ def check(path=".", project_path=None) -> dict:
     mpi = shutil.which("mpirun") or shutil.which("mpiexec")
     checks.append(_item(
         "mpi.launcher", "MPI", "ok" if mpi else "warn",
-        f"lanzador encontrado: {mpi}" if mpi else
-        "no hay mpirun/mpiexec; se podrá usar un solo proceso",
-        "opcional para preparación y post-proceso"))
+        f"launcher found: {mpi}" if mpi else
+        "no mpirun/mpiexec; a single process can be used",
+        "optional for preparation and post-processing"))
 
     try:
         values = config.load()
         pseudo = Path(values["pseudo_dir"]).expanduser()
         checks.append(_item(
-            "pseudos.directory", "Pseudopotenciales", "ok" if pseudo.is_dir() else "warn",
+            "pseudos.directory", "Pseudopotentials", "ok" if pseudo.is_dir() else "warn",
             str(pseudo) if pseudo.is_dir() else
-            f"no existe la carpeta configurada: {pseudo}",
-            "configura con olla-dft config set pseudo_dir RUTA"))
+            f"the configured folder does not exist: {pseudo}",
+            "configure with olla-dft config set pseudo_dir PATH"))
     except Exception as exc:  # noqa: BLE001
-        checks.append(_item("pseudos.config", "Pseudopotenciales", "warn",
-                            "no se pudo leer la configuración", str(exc)))
+        checks.append(_item("pseudos.config", "Pseudopotentials", "warn",
+                            "could not read the configuration", str(exc)))
 
     target = Path(path or ".").expanduser()
     if not target.exists():
@@ -105,20 +105,20 @@ def check(path=".", project_path=None) -> dict:
     try:
         free = shutil.disk_usage(target).free / 1024 ** 3
         level = "fail" if free < 0.5 else "warn" if free < 2.0 else "ok"
-        checks.append(_item("resources.disk", "Espacio disponible", level,
-                            f"{free:.2f} GiB libres", str(target.resolve())))
+        checks.append(_item("resources.disk", "Available disk space", level,
+                            f"{free:.2f} GiB free", str(target.resolve())))
     except OSError as exc:
-        checks.append(_item("resources.disk", "Espacio disponible", "warn",
-                            "no se pudo consultar el disco", str(exc)))
+        checks.append(_item("resources.disk", "Available disk space", "warn",
+                            "could not query the disk", str(exc)))
 
     memory = _memory_available_gb()
     if memory is not None:
         level = "fail" if memory < 0.5 else "warn" if memory < 2.0 else "ok"
-        checks.append(_item("resources.memory", "Memoria disponible", level,
-                            f"{memory:.2f} GiB disponibles", "/proc/meminfo"))
+        checks.append(_item("resources.memory", "Available memory", level,
+                            f"{memory:.2f} GiB available", "/proc/meminfo"))
     else:
-        checks.append(_item("resources.memory", "Memoria disponible", "warn",
-                            "no se pudo medir en esta plataforma"))
+        checks.append(_item("resources.memory", "Available memory", "warn",
+                            "could not be measured on this platform"))
 
     if project_path:
         try:
@@ -127,12 +127,12 @@ def check(path=".", project_path=None) -> dict:
             gate = quality.evaluate(root, data)
             level = "fail" if gate["fails"] else "warn" if gate["warnings"] else "ok"
             checks.append(_item(
-                "project.quality", "Proyecto", level,
+                "project.quality", "Project", level,
                 f"{data['name']}: {gate['verdict']} ({gate['score']}/100)",
                 str(root)))
         except Exception as exc:  # noqa: BLE001
-            checks.append(_item("project.load", "Proyecto", "fail",
-                                "no se pudo abrir el proyecto", str(exc)))
+            checks.append(_item("project.load", "Project", "fail",
+                                "could not open the project", str(exc)))
 
     fails = sum(item["level"] == "fail" for item in checks)
     warnings = sum(item["level"] == "warn" for item in checks)
@@ -142,13 +142,13 @@ def check(path=".", project_path=None) -> dict:
 
 
 def report(result: dict) -> str:
-    lines = ["--- Diagnóstico de instalación Olla-DFT ---",
-             f"Estado: {'LISTO' if result['ok'] else 'BLOQUEADO'} · "
-             f"avisos={result['warnings']} fallos={result['fails']}"]
-    marks = {"ok": "OK", "warn": "AVISO", "fail": "FALLO"}
+    lines = ["--- Olla-DFT installation diagnostics ---",
+             f"Status: {'READY' if result['ok'] else 'BLOCKED'} · "
+             f"warnings={result['warnings']} failures={result['fails']}"]
+    marks = {"ok": "OK", "warn": "WARN", "fail": "FAIL"}
     for item in result["checks"]:
         lines.append(f"  [{marks[item['level']]:5s}] {item['title']}: {item['detail']}")
         if item.get("evidence"):
             lines.append(f"         {item['evidence']}")
-    lines.append("\nPara reparar: olla-dft doctor --help")
+    lines.append("\nTo repair: olla-dft doctor --help")
     return "\n".join(lines)
