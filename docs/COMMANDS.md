@@ -1,6 +1,6 @@
 # Olla-DFT command reference
 
-The 79 `olla-dft` subcommands, grouped by area, with their options. Generated from the code itself with `python tools/build_docs.py`; the same information is printed by `olla-dft COMMAND --help --language en` and, as a browsable page, by `olla-dft docs --language en`.
+The 80 `olla-dft` subcommands, grouped by area, with their options. Generated from the code itself with `python tools/build_docs.py`; the same information is printed by `olla-dft COMMAND --help --language en` and, as a browsable page, by `olla-dft docs --language en`.
 
 ## Index
 
@@ -12,7 +12,7 @@ The 79 `olla-dft` subcommands, grouped by area, with their options. Generated fr
 - **Mechanics and stability**: [`converge`](#converge), [`eos`](#eos), [`elastic`](#elastic), [`strain`](#strain), [`layers`](#layers), [`xrd`](#xrd), [`exfoliate`](#exfoliate), [`gamma`](#gamma)
 - **Surfaces, defects and chemistry**: [`surface`](#surface), [`defect`](#defect), [`interface`](#interface), [`adsorb`](#adsorb), [`eform`](#eform), [`align`](#align), [`esm`](#esm), [`echem`](#echem), [`neb`](#neb), [`amorphous`](#amorphous)
 - **Automation and quality**: [`doctor`](#doctor), [`audit`](#audit), [`crosscheck`](#crosscheck), [`cost`](#cost), [`db`](#db), [`hull`](#hull), [`mlip`](#mlip), [`suggest`](#suggest), [`datasheet`](#datasheet), [`report`](#report), [`compare`](#compare), [`tune`](#tune), [`results`](#results), [`campaign`](#campaign), [`pseudos`](#pseudos)
-- **Project**: [`project`](#project)
+- **Project**: [`project`](#project), [`resilient`](#resilient)
 - **Appearance and configuration**: [`templates`](#templates), [`config`](#config)
 
 ## Getting started
@@ -2383,11 +2383,11 @@ recommend the next point of a convergence test
 
 ingest, query and export normalized project results
 
-**Usage:** `olla-dft results [-h] [--project PROJECT] [--db DB] [--tag TAG] [--formula FORMULA] [--calculation CALCULATION] [--status {invalid,not_converged,parsed_no_energy,parsed,converged}] [--review-status {unreviewed,accepted,rejected}] [--note NOTE] [--limit LIMIT] [--json] [-o OUTPUT] {ingest,list,show,review,export} [target] [extra_paths ...]`
+**Usage:** `olla-dft results [-h] [--project PROJECT] [--db DB] [--tag TAG] [--formula FORMULA] [--calculation CALCULATION] [--status {invalid,not_converged,parsed_no_energy,parsed,converged}] [--review-status {unreviewed,accepted,rejected}] [--note NOTE] [--limit LIMIT] [--json] [-o OUTPUT] {ingest,list,show,review,export,explore} [target] [extra_paths ...]`
 
 **Arguments:**
 
-- `action` {ingest,list,show,review,export} — action to perform (see the list above)
+- `action` {ingest,list,show,review,export,explore} — action to perform (see the list above)
 - `target` — input path for ingest, or id for show
 - `extra_paths` — more folders/XML files for ingest
 
@@ -2403,9 +2403,9 @@ ingest, query and export normalized project results
 | `--status {invalid,not_converged,parsed_no_energy,parsed,converged}` | filter by status: invalid, not_converged, parsed_no_energy, parsed or converged |
 | `--review-status {unreviewed,accepted,rejected}` | in review, status of the human review |
 | `--note` | in review, note that goes with the decision |
-| `--limit LIMIT` | maximum number of results to list (default: 100) |
+| `--limit LIMIT` | maximum records: list=100, explore=10000 |
 | `--json` | in list, print JSON |
-| `-o, --output` | JSON file for export |
+| `-o, --output` | output file: export=JSON, explore=interactive HTML |
 
 ### `campaign`
 
@@ -2498,6 +2498,34 @@ manage a reproducible project: sources, workflow, quality and dashboard
 | `--other` | in diff, snapshot or project to compare against |
 | `--json` | in diff, print JSON |
 
+### `resilient`
+
+recoverable QE jobs for interrupted servers
+
+**Usage:** `olla-dft resilient [-h] [--state STATE] [--pw-cmd PW_CMD] [--runtime-id RUNTIME_ID] [--checkpoint-seconds CHECKPOINT_SECONDS] [--grace-seconds GRACE_SECONDS] [--max-failures MAX_FAILURES] [--threads THREADS] [--keep KEEP] [--max-segments MAX_SEGMENTS] [--resume] [--user USER] [-o OUTPUT] {init,run,status,pause,service} target`
+
+**Arguments:**
+
+- `action` {init,run,status,pause,service} — action to perform (see the list above)
+- `target` — input file for init; durable state directory otherwise
+
+**Options:**
+
+| Option | Description |
+|---|---|
+| `--state` | new job directory on a retained persistent disk |
+| `--pw-cmd` | QE/launcher command, with fixed MPI flags (default: `pw.x`) |
+| `--runtime-id` | immutable runtime image identifier |
+| `--checkpoint-seconds CHECKPOINT_SECONDS` |  (default: `900`) |
+| `--grace-seconds GRACE_SECONDS` |  (default: `300`) |
+| `--max-failures MAX_FAILURES` |  (default: `3`) |
+| `--threads THREADS` |  (default: `1`) |
+| `--keep KEEP` | intact checkpoint generations to retain (minimum 2) (default: `2`) |
+| `--max-segments MAX_SEGMENTS` | stop after this many saved segments; 0 means unlimited |
+| `--resume` | clear an explicit pause before running |
+| `--user` | unprivileged user for the generated systemd service |
+| `-o, --output` | generated service file; installation is separate |
+
 ## Appearance and configuration
 
 ### `templates`
@@ -2531,4 +2559,4 @@ view or change the configuration
 
 ---
 
-*Olla-DFT 1.1.1*
+*Olla-DFT 1.2.0*

@@ -2,6 +2,22 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.2.0 — 2026-09-04
+
+- Add an offline result explorer with numeric axes, filtering, record selection and customizable figures.
+- Export scoped SVG, PNG, CSV, JSON and self-contained HTML; preserve original units, precision and uncertainties in data exports.
+- Replace the dashboard's misleading connected energy series with the interactive explorer.
+- Record k-grid and calculation parameters, warn about mixed methods, and declare snapshot/export limits.
+
+- Honor stop requests during restore, reap QE after PID-record failures, and clear stale terminal PIDs.
+
+- Add `resilient init/run/status/pause/service` for recoverable pw.x jobs.
+- Preserve two complete verified checkpoints and restore private workspaces after interruption.
+- Freeze input, UPFs, MPI command, threads, libraries and architecture; bound consecutive failures.
+- Generate a Linux service for automatic worker restart on a retained persistent disk.
+- Record restart/copy/compute overhead for Olla-Lungo cost comparisons without changing physical inputs.
+- Validate local QE 7.4 SCF, relax and vc-relax recovery after SIGTERM and SIGKILL; cloud replacement and net savings remain unmeasured.
+
 ## 1.1.1 — 2026-09-04
 
 - Fix gap analysis: occupied-only calculations report insufficient bands, never a false metal.
