@@ -59,16 +59,16 @@ def generate(rows, destination, title='Olla-DFT', language='es', total_count=Non
     if language not in ('es', 'en'):
         raise ErrorDeUso('Explorer language must be es or en.')
     records = portable_rows(rows)
-    labels = {lang: json.loads((ASSETS/'i18n'/f'studio_{lang}.json').read_text()) for lang in ('es', 'en')}
+    labels = {lang: json.loads((ASSETS/'i18n'/f'studio_{lang}.json').read_text(encoding='utf-8')) for lang in ('es', 'en')}
     payload = dict(schema_version=1, qekit_version=__version__, generated=results._now(),
                    title=str(title), language=language, total_count=total_count if total_count is not None else len(records),
                    rows=records, labels=labels, view=None, order=order)
     encoded = json.dumps(payload, ensure_ascii=False, allow_nan=False).replace('<', '\\u003c').replace('>', '\\u003e').replace('&', '\\u0026')
-    template = (ASSETS/'studio/studio.html').read_text()
+    template = (ASSETS/'studio/studio.html').read_text(encoding='utf-8')
     substitutions = {'LANG': language, 'TITLE': html.escape(str(title)),
-                     'CSS': (ASSETS/'studio/studio.css').read_text(),
-                     'JS': (ASSETS/'studio/studio.js').read_text(), 'PAYLOAD': encoded,
-                     'LICENSE': html.escape((ASSETS/'AGPL-3.0.txt').read_text()),
+                     'CSS': (ASSETS/'studio/studio.css').read_text(encoding='utf-8'),
+                     'JS': (ASSETS/'studio/studio.js').read_text(encoding='utf-8'), 'PAYLOAD': encoded,
+                     'LICENSE': html.escape((ASSETS/'AGPL-3.0.txt').read_text(encoding='utf-8')),
                      'SOURCE': f'{SOURCE_URL}/tree/v{__version__}'}
     text = re.sub(r'@@(LANG|TITLE|CSS|JS|PAYLOAD|LICENSE|SOURCE)@@',
                   lambda match: substitutions[match.group(1)], template)

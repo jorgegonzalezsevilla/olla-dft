@@ -12,6 +12,7 @@ All notable changes to Olla-DFT. Dates are ISO 8601.
 - Keep direct commands, help and non-terminal invocations free of language prompts; `--language` bypasses the startup selector.
 - Include the Spanish README, reference, theory, platform guide and example guides alongside English documentation.
 - Use one update source and Zenodo software identity; provide migration instructions for the former Spanish edition.
+- Read explorer translations and assets explicitly as UTF-8 on all platforms.
 - Scientific algorithms, calculation input formats and checkpoint formats are unchanged. Scientific report text is not fully translated.
 
 ## 1.3.1 — 2026-09-04

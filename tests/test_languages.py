@@ -158,7 +158,7 @@ def test_language_catalogs_and_documentation_are_packaged():
     root = Path(__file__).resolve().parents[1]
     for lang in ('en', 'es'):
         for name in ('menu', 'studio', 'onboarding', 'dashboard', 'cli'):
-            assert json.loads((root / f'qekit/data/i18n/{name}_{lang}.json').read_text())
+            assert json.loads((root / f'qekit/data/i18n/{name}_{lang}.json').read_text(encoding='utf-8'))
     for name in ('README.es.md', 'docs/COMANDOS.md', 'docs/TEORIA.md', 'docs/COMMANDS.md', 'docs/THEORY.md'):
         assert (root / name).is_file()
 
@@ -198,3 +198,14 @@ def test_invalid_flag_does_not_prompt_or_save(preferences, monkeypatch):
     terminal(monkeypatch, [])
     assert cli.main(['--language', 'fr']) == 2
     assert not preferences.exists()
+
+
+@pytest.mark.parametrize('language', ['en', 'es'])
+def test_explorer_keeps_utf8_labels_and_title(tmp_path, language):
+    from qekit.modules import studio
+    destination = studio.generate([], tmp_path / 'results.html',
+                                  title='Energía — silicio', language=language)
+    document = destination.read_text(encoding='utf-8')
+    assert f'lang="{language}"' in document
+    assert 'Energía — silicio' in document
+    assert 'Español' in document

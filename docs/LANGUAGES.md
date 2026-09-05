@@ -33,7 +33,7 @@ commands in batch scripts. Language codes are `en` and `es`; the environment
 also accepts uppercase codes. Other environment values fall back to the saved
 preference (or English); unsupported `--language` values are usage errors.
 Saving preferences is atomic, but simultaneous edits by multiple sessions
-are not merged. The configuration file is written with owner-only permissions.
+are not merged. On POSIX systems, the configuration file is written with owner-only permissions.
 
 Translated surfaces include command help, menus, guided setup, recipes,
 theory, the dashboard, reference HTML and the result explorer. **Some scientific
