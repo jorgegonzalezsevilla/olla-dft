@@ -2,6 +2,13 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.3.1 — 2026-09-04
+
+- Load Matplotlib and font discovery only when drawing figures; structure commands and help retain the same options without initializing plotting.
+- Keep EOS fitting independent of structure preparation and plotting imports.
+- Add fresh-process checks for English/Spanish structure commands, all three EOS fits, and figure export after deferred imports.
+- Scientific formulas, tolerances, generated inputs and benchmark competitors are unchanged.
+
 ## 1.3.0 — 2026-09-04
 
 - License project-owned software under AGPL-3.0-or-later; previous GPL releases remain available under their original terms.
