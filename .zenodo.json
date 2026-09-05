@@ -24,12 +24,6 @@
       "relation": "isSupplementTo",
       "resource_type": "software",
       "scheme": "url"
-    },
-    {
-      "identifier": "https://github.com/jorgegonzalezsevilla/olla-dft-esp",
-      "relation": "isVariantFormOf",
-      "resource_type": "software",
-      "scheme": "url"
     }
   ],
   "access_right": "open"
