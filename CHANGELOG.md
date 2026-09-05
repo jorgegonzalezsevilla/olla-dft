@@ -2,6 +2,13 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.1.1 — 2026-09-04
+
+- Fix gap analysis: occupied-only calculations report insufficient bands, never a false metal.
+- Report unconverged calculations and return nonzero status for an unavailable or unvalidated gap.
+- Reject nonpositive k-grids/cutoffs and nonfinite sampling parameters before writing inputs.
+- Add regression tests for the September benchmark audit.
+
 ## 1.1.0 — 2026-09-03
 
 Changes driven by the first benchmark runs (olla-dft-bench):
