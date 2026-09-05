@@ -32,8 +32,8 @@ OWNER = "jorgegonzalezsevilla"
 
 
 def repo_name() -> str:
-    """El repositorio del idioma de este paquete: olla-dft (en) u olla-dft-esp (es)."""
-    return "olla-dft-esp" if i18n.DEFAULT_LANGUAGE == "es" else "olla-dft"
+    """One release source for both interface languages."""
+    return "olla-dft"
 
 
 def repo_url() -> str:

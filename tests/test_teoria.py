@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 
 from qekit.cli import build_parser, main
-from qekit.core.i18n import DEFAULT_LANGUAGE
 from qekit.modules import theory
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -65,12 +64,13 @@ def test_las_formulas_estan_balanceadas():
             assert sec.texto.count("$$") % 2 == 0, f"[{lang}] {sec.comandos}"
 
 
-def test_los_documentos_publicados_estan_al_dia():
-    nombre = {"es": "TEORIA.md", "en": "THEORY.md"}[DEFAULT_LANGUAGE]
+@pytest.mark.parametrize("language", ["en", "es"])
+def test_los_documentos_publicados_estan_al_dia(language):
+    nombre = {"es": "TEORIA.md", "en": "THEORY.md"}[language]
     publicado = RAIZ / "docs" / nombre
     if not publicado.exists():
         pytest.skip("docs/ no está en el árbol instalado")
-    assert publicado.read_text(encoding="utf-8") == theory.documento(DEFAULT_LANGUAGE), \
+    assert publicado.read_text(encoding="utf-8") == theory.documento(language), \
         f"docs/{nombre} está desactualizado: corre python tools/build_docs.py"
 
 
@@ -87,15 +87,16 @@ def test_un_comando_sin_fundamento_da_error_de_uso(capsys):
     assert "no hay fundamento" in capsys.readouterr().err
 
 
-def test_la_referencia_de_comandos_publicada_esta_al_dia():
+@pytest.mark.parametrize("language", ["en", "es"])
+def test_la_referencia_de_comandos_publicada_esta_al_dia(language):
     import importlib.util
     guion = RAIZ / "tools" / "build_docs.py"
-    nombre = {"es": "COMANDOS.md", "en": "COMMANDS.md"}[DEFAULT_LANGUAGE]
+    nombre = {"es": "COMANDOS.md", "en": "COMMANDS.md"}[language]
     if not guion.exists() or not (RAIZ / "docs" / nombre).exists():
         pytest.skip("tools/ o docs/ no están en el árbol instalado")
     spec = importlib.util.spec_from_file_location("build_docs", guion)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     publicado = (RAIZ / "docs" / nombre).read_text(encoding="utf-8")
-    assert publicado == mod.comandos_md(DEFAULT_LANGUAGE), \
+    assert publicado == mod.comandos_md(language), \
         f"docs/{nombre} está desactualizado: corre python tools/build_docs.py"

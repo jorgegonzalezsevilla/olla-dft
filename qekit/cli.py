@@ -5595,6 +5595,10 @@ def _run_cli(argv: list, language="es") -> None:
     quien lo use unas cuantas veces ya puede escribir el comando directo o
     meterlo en un script.
     """
+    # Nested main() resets the process language. Pass the menu choice explicitly
+    # so an environment override cannot silently switch a submenu back.
+    argv, _ = i18n.extract_language(argv)
+    argv = ["--language", language, *argv]
     labels = _menu_labels(language)
     shown = " ".join(a if " " not in a else f'"{a}"' for a in argv)
     print(f"\n  {labels['equivalent']}:\n    olla-dft {shown}\n")
@@ -5722,7 +5726,7 @@ def _menu_catalog(language="es"):
     command = _ask(labels["prompt"]).strip()
     if not command:
         return
-    parsers = build_parser()._subparsers._group_actions[0].choices
+    parsers = build_parser(language)._subparsers._group_actions[0].choices
     if command not in parsers:
         print(f"{labels['not_found']} '{command}'.")
         return
@@ -5730,7 +5734,27 @@ def _menu_catalog(language="es"):
     parsers[command].print_help()
 
 
-def interactive_menu(language="es"):
+def _choose_language(default):
+    """Choose and remember the interface language; keep working if saving fails."""
+    print("\n  Olla-DFT — Language / Idioma\n  1) English\n  2) Español")
+    choices = {"1": "en", "en": "en", "english": "en",
+               "2": "es", "es": "es", "español": "es", "espanol": "es"}
+    while True:
+        answer = _ask("Choose / Elige", default).lower()
+        if answer in choices:
+            language = i18n.set_language(choices[answer])
+            try:
+                qcfg.set_value("language", language)
+            except (OSError, ValueError, qcfg.configparser.Error) as exc:
+                print("Could not save language; using it for this session. / "
+                      "No se pudo guardar el idioma; se usará en esta sesión. "
+                      f"({exc})", file=sys.stderr)
+            return language
+        print("Choose 1 (English) or 2 (Español). / Elige 1 o 2.")
+
+
+def interactive_menu(language="en"):
+    i18n.set_language(language)
     labels = _menu_labels(language)
     print(
         f"""
@@ -5745,10 +5769,13 @@ def interactive_menu(language="es"):
         if choice in ("0", "q", "salir", "exit"):
             print(labels["goodbye"])
             return
+        elif choice.lower() in ("l", "language", "idioma"):
+            language = _choose_language(language)
+            labels = _menu_labels(language)
         elif choice.lower() in ("r", "recetas"):
             _menu_recetas(language)
         elif choice.lower() in ("p", "proyecto", "inicio", "start"):
-            _run_cli(["start", "--language", language])
+            _run_cli(["start"], language)
         elif choice.lower() in ("a", "asistente", "wizard"):
             _menu_asistente(language)
         elif choice.lower() in ("c", "catalogo", "catálogo", "comandos"):
@@ -5831,12 +5858,19 @@ def main(argv=None) -> int:
     except ValueError as exc:
         print(f"Error: --language admite es o en, no '{exc}'.", file=sys.stderr)
         return 2
+    explicit_language = idioma is not None
     idioma = i18n.set_language(idioma)
     parser = build_parser(idioma)
     args = parser.parse_args(_pegar_negativos(limpio))
     args.language = idioma
     args.command = ALIASES.get(args.command, args.command)
     if args.command is None:
+        # Piped invocations must never wait for input or write preferences.
+        if not (sys.stdin.isatty() and sys.stdout.isatty()):
+            parser.print_help()
+            return 0
+        if not explicit_language:
+            idioma = _choose_language(idioma)
         interactive_menu(idioma)
         return 0
     # en modo --collect el cálculo ya corrió: no se reescriben los inputs

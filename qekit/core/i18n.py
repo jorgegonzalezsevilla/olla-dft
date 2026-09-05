@@ -6,7 +6,7 @@
 # Software Foundation, either version 3 of the License, or (at your option)
 # any later version. See the LICENSE file for details.
 
-"""Idioma de la interfaz: español (por defecto) o inglés.
+"""Idioma de la interfaz: inglés (por defecto) o español, en un solo paquete.
 
 Olla-DFT se escribió en español y ese sigue siendo el idioma de los
 informes científicos. Lo que sí se traduce es la *interfaz*: la ayuda de
@@ -18,7 +18,10 @@ El idioma se decide, en este orden:
   1. la bandera global ``--language en`` (se acepta en cualquier posición);
   2. la variable de entorno ``OLLA_DFT_LANG``;
   3. la clave ``language`` de la configuración (``olla-dft config set language en``);
-  4. español.
+  4. inglés.
+
+Al abrir el menú sin una bandera de idioma se ofrece un selector bilingüe.
+Su elección se guarda y se pasa explícitamente a los comandos del menú.
 
 Las traducciones viven en ``qekit/data/i18n/cli_en.json`` (ayuda de la CLI)
 y en los demás archivos de esa carpeta. Este módulo no traduce mensajes en

@@ -1,3 +1,5 @@
+[**English**](README.md) · [Español](README.es.md)
+
 # Gallery of visual templates
 
 The same silicon bands + DOS figure in every style (`templates`,

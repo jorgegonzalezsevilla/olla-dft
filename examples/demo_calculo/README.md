@@ -1,3 +1,5 @@
+[**English**](README.md) · [Español](README.es.md)
+
 # Silicon: convergence, equation of state and elastic constants
 
 The three calculation modules (`converge`, `eos`, `elastic`) run on silicon

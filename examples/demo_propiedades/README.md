@@ -1,3 +1,5 @@
+[**English**](README.md) · [Español](README.es.md)
+
 # Silicon: optical functions, phonons and effective mass
 
 The `optics`, `phonons` and `effmass` modules run on relaxed silicon (LDA,
