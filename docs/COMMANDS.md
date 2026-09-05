@@ -2531,4 +2531,4 @@ view or change the configuration
 
 ---
 
-*Olla-DFT 1.1.0*
+*Olla-DFT 1.1.1*
