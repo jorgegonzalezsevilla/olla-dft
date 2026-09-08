@@ -22,6 +22,16 @@ the affected commands.
   versus RHE, and the ΔG(U,pH) column and the energy ladder now move in the
   right direction. The ΔG_H* descriptor and the overpotential magnitude are
   unchanged.
+- `kappa`: weight the cumulative curve with phono3py's own per-mode `mode_kappa`
+  instead of reconstructing C·v²·τ/3 by hand, and build the mean free path from
+  the effective linewidth Γ_ph-ph + Γ_iso + Γ_boundary, the same sum phono3py
+  uses for κ. The curve now adds up to the reported κ by construction and
+  matches phono3py's own `kaccum`. Before, `--isotopes` and `--grain` changed κ
+  but left the mean free paths at their pure-infinite-crystal values: a silicon
+  run with a 1 µm grain reported Λ₉₀ = 14 µm, longer than the grain itself.
+- `kappa`: warn that Λ₉₀ is not converged below a 25³ q-grid. Measured in
+  silicon with a Stillinger-Weber potential on a 3×3×3 supercell, Λ₉₀ grows from
+  4.4 to 21.9 µm between 11³ and 31³ while Λ₅₀ moves only 21 % (0.68 → 0.82 µm).
 - `crosscheck`: stop applying a kbar→GPa factor to a pressure column that is
   already in GPa. The third route to B₀ was reported ten times too small and
   disagreed with the equation of state even when both agreed.

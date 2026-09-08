@@ -175,10 +175,32 @@ solution) plus the fc3 cutoff. The temperature dependence is the T⁻¹ of
 Umklapp processes. The mean-free-path distribution is the number that explains
 why nanostructuring silicon works so well for thermoelectrics, but **the figure
 that used to be here (Λ₅₀ = 1.0 µm) was obtained with the wrong lifetime
-convention** — it was missing the 2π that separates cyclic from angular
-frequency — and is pending recomputation with the corrected formula, which is
-phono3py's own: τ = 1/(2·2π·Γ). The factor affects the Λ axis only, not κ or
-its temperature dependence, which phono3py computes. The same calculation with MACE forces instead of
+convention**: it was missing the 2π that separates cyclic from angular
+frequency. The corrected formula is phono3py's own, τ = 1/(2·2π·Γ), and a test
+pins it against that library's `get_mfp`. The factor affects the Λ axis only; κ
+and its temperature dependence are computed by phono3py and do not move.
+
+Undoing that factor leaves the previous figure at Λ₅₀ ≈ 0.16 µm, about five
+times below the reference. **It has to be recomputed with DFT forces before
+being quoted again**, and whatever comes out must be compared against the
+reference below, not against the previous 1.0 µm.
+
+The easy explanation was ruled out. Using a Stillinger-Weber potential on the
+same 3×3×3 supercell, we measured how much each figure depends on the q-grid:
+
+| q-grid | κ (W/m·K) | Λ₅₀ | Λ₉₀ |
+|---|---|---|---|
+| 11³ | 496 | 0.678 µm | 4.4 µm |
+| 13³ | 518 | 0.711 µm | 7.5 µm |
+| 19³ | 557 | 0.750 µm | 14.3 µm |
+| 25³ | 572 | 0.798 µm | 18.2 µm |
+| 31³ | 579 | 0.821 µm | 21.9 µm |
+
+Λ₅₀ moves by 21 % from 11³ to 31³, so the grid does NOT account for a factor of
+five: if the corrected number lands far from the reference, the cause is the
+2×2×2 fc3 supercell, not the grid. Λ₉₀, in contrast, grows fivefold over that
+same range: **it is not converged at any grid in normal use and must not be
+quoted, nor used to size a grain**. The `kappa` report now warns below 25³. The same calculation with MACE forces instead of
 DFT takes 8 seconds instead of 40 minutes, reproduces the exponent and misses
 the absolute value by a factor of 2: that is why the report says so every
 time the forces do not come from DFT. Supercell convergence was checked
@@ -189,7 +211,7 @@ nothing), which is exactly what it is for.
 |---|---|---|---|
 | κ at 300 K, DFT forces, RTA | 101 W/m·K (96 with natural isotopes) | ~140 W/m·K | experiment |
 | Temperature exponent, DFT forces | κ ∝ T⁻¹·¹⁶ | T⁻¹ | Umklapp scattering |
-| Mean free path carrying half of κ | pending recomputation | ~1 µm | mean-free-path spectroscopy |
+| Mean free path carrying half of κ | pending recomputation | ~0.8–1 µm | see the note above: 40 ± 5 % of κ above 1 µm (FDTR, Regner et al. 2013) and ~47 % above 0.8 µm in pure Si from first principles (JAP 119, 245705, 2016) |
 | κ at 300 K, MACE forces | 51 W/m·K | 101 W/m·K (DFT) | this work |
 | Temperature exponent, MACE forces | κ ∝ T⁻¹·⁰⁶ | T⁻¹ | Umklapp scattering |
 | Supercell convergence (MACE), 2×2×2 → 3×3×3 | 50.1 → 50.8 W/m·K | converged | this work |

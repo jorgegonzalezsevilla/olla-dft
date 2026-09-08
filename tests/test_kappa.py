@@ -397,3 +397,99 @@ def test_plot_escribe_las_dos_figuras_cuando_hay_acumulada(tmp_path):
 def test_plot_sin_kappa_lo_dice(tmp_path):
     with pytest.raises(FaltanDatos):
         K.plot(K.KappaRun(), str(tmp_path / "k"), formats="png")
+
+
+# ----------------------------------------------------------------------
+# La acumulada tiene que cerrar con la κ que se informa arriba
+# ----------------------------------------------------------------------
+def _run_dos_modos(mode_kappa=True, iso=None, frontera=None):
+    """Dos modos con κ conocida por modo, para comprobar el reparto."""
+    run = K.KappaRun()
+    run.temperaturas, run.i300 = np.array([300.0]), 0
+    run.gamma = np.array([[[1.0, 4.0]]])                   # (nT, nq, nb)
+    run.velocidades = np.array([[[300.0, 0, 0], [100.0, 0, 0]]])
+    run.cv = np.array([[[1.0, 1.0]]])
+    run.pesos = np.array([1.0])
+    run.gamma_iso = iso
+    run.frontera = frontera
+    if mode_kappa:
+        # (nT, nq, nb, 6) en Voigt: 30 y 10 W/mK de traza/3
+        run.mode_kappa = np.zeros((1, 1, 2, 6))
+        run.mode_kappa[0, 0, 0, :3] = 30.0
+        run.mode_kappa[0, 0, 1, :3] = 10.0
+    return run
+
+
+def test_la_acumulada_reparte_la_kappa_de_cada_modo():
+    """El peso es `mode_kappa`, la descomposición que phono3py ya trae.
+
+    Con 30 y 10 W/mK, el modo pequeño (Λ menor) tiene que llevar el 25 % y el
+    grande el 75 % restante. Reconstruir el peso a mano como C·v²·τ daba otra
+    curva en cuanto había más de un canal de dispersión.
+    """
+    L, a = K.acumulada(_run_dos_modos())
+    assert len(a) == 2
+    assert L[0] < L[1], "el modo lento y ancho tiene que ir primero"
+    assert a[0] == pytest.approx(0.25)
+    assert a[1] == pytest.approx(1.0)
+
+
+def test_sin_mode_kappa_se_recae_en_la_reconstruccion():
+    """Versiones viejas de phono3py no la exponen: la curva sigue saliendo."""
+    L, a = K.acumulada(_run_dos_modos(mode_kappa=False))
+    assert L is not None and a[-1] == pytest.approx(1.0)
+
+
+def test_gamma_total_suma_isotopos_y_fronteras():
+    """Regresión: Λ usaba solo la parte fonón-fonón.
+
+    Con `--isotopes` o `--grain`, phono3py suma esos canales para calcular κ,
+    así que el informe daba la κ del cristal con isótopos y grano y, debajo, un
+    recorrido libre medio del cristal puro e infinito, sin decirlo.
+    """
+    solo_phph = K.gamma_total(_run_dos_modos(), 0)
+    assert np.allclose(solo_phph, [[1.0, 4.0]])
+
+    con_iso = K.gamma_total(_run_dos_modos(iso=np.array([[0.5, 0.5]])), 0)
+    assert np.allclose(con_iso, [[1.5, 4.5]])
+
+    # Γ_b = |v|·1e6·Å/(4π·L), la fórmula literal de phono3py
+    run = _run_dos_modos(frontera=2.0)
+    esperado = np.array([[1.0, 4.0]]) + np.array([300.0, 100.0]) * 1e6 * 1e-10 / (
+        4.0 * np.pi * 2.0)
+    assert np.allclose(K.gamma_total(run, 0), esperado)
+
+
+def test_un_grano_acorta_todos_los_recorridos():
+    """Ningún fonón puede recorrer más que el grano, y antes sí lo hacía."""
+    sin_grano = K.recorrido_representativo(_run_dos_modos(), 0.9)
+    con_grano = K.recorrido_representativo(_run_dos_modos(frontera=0.05), 0.9)
+    assert con_grano < sin_grano
+    assert con_grano < 0.05 * 1e4, "Λ90 tiene que quedar por debajo del grano"
+
+
+def _run_para_informe(malla):
+    run = K.KappaRun()
+    run.temperaturas, run.i300 = np.array([300.0]), 0
+    run.kappa = np.full((1, 6), 100.0)
+    run.dim, run.formula, run.malla = (3, 3, 3), "Si2", malla
+    run.fuente = "Quantum ESPRESSO"
+    run.gamma = np.array([[[1.0, 4.0]]])
+    run.velocidades = np.array([[[300.0, 0, 0], [100.0, 0, 0]]])
+    run.cv = np.array([[[1.0, 1.0]]])
+    run.pesos = np.array([1.0])
+    run.mode_kappa = np.zeros((1, 1, 2, 6))
+    run.mode_kappa[0, 0, 0, :3] = 30.0
+    run.mode_kappa[0, 0, 1, :3] = 10.0
+    return run
+
+
+def test_una_malla_floja_no_sirve_para_el_noventa_por_ciento():
+    """Λ90 vive en la cola de recorridos largos, que una malla floja no muestrea.
+
+    Medido en Si con Stillinger-Weber (supercelda 3×3×3): de 11³ a 31³, Λ50 va
+    de 0.68 a 0.82 µm (+21 %) mientras Λ90 pasa de 4.4 a 21.9 µm, cinco veces.
+    Citar Λ90 con la malla por omisión, o dimensionar un grano con él, no vale.
+    """
+    assert "NOT for Λ90" in K.report(_run_para_informe((13, 13, 13)))
+    assert "NOT for Λ90" not in K.report(_run_para_informe((31, 31, 31)))

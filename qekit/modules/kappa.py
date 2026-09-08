@@ -115,6 +115,8 @@ class KappaRun:
     pesos: np.ndarray = None
     velocidades: np.ndarray = None
     cv: np.ndarray = None
+    mode_kappa: np.ndarray = None   # (nT, gp, banda, 6) κ por modo, de phono3py
+    gamma_iso: np.ndarray = None    # (gp, banda) dispersión por isótopos
     i300: int = None
     avisos: list = field(default_factory=list)
     directorio: str = ""
@@ -277,8 +279,16 @@ def recoger(run, ph, tc, malla):
         run.gamma = np.asarray(tc.gamma[0], float)
         run.velocidades = np.asarray(tc.group_velocities, float)
         run.cv = np.asarray(tc.mode_heat_capacities, float)
+        # κ POR MODO, tal como la reparte phono3py. Es lo que hace que la
+        # acumulada sume por construcción la κ que se informa arriba, en vez
+        # de una reconstrucción a mano que se desviaba de ella.
+        mk = getattr(tc, "mode_kappa", None)
+        run.mode_kappa = None if mk is None else np.asarray(mk[0], float)
+        iso = getattr(tc, "gamma_isotope", None)
+        run.gamma_iso = None if iso is None else np.asarray(iso[0], float)
     except (AttributeError, TypeError, IndexError) as exc:
         run.gamma = run.velocidades = run.cv = None
+        run.mode_kappa = run.gamma_iso = None
         run.avisos.append(
             "this phono3py does not expose the per-mode data (gamma, group "
             f"velocities, heat capacities): {exc}.\n  κ(T) is unaffected, but "
@@ -289,19 +299,47 @@ def recoger(run, ph, tc, malla):
     return run
 
 
+# 1e-10 m: el «Angstrom» que phono3py mete en su término de fronteras.
+_ANGSTROM = 1e-10
+
+
+def gamma_total(run, iT):
+    """Γ efectiva del modo: fonón-fonón + isótopos + fronteras.
+
+    Es la suma que phono3py usa para κ (`grid_point_data.py`), y la que hay
+    que usar para Λ. Con solo la parte fonón-fonón, `--isotopes` y `--grain`
+    cambiaban la κ de la tabla pero NO el recorrido libre medio de debajo, que
+    seguía siendo el del cristal puro e infinito sin decirlo.
+    """
+    g = np.array(run.gamma[iT], dtype=float)
+    if run.gamma_iso is not None:
+        g = g + run.gamma_iso
+    if run.frontera and run.velocidades is not None:
+        # Γ_b = |v|·1e6·Angstrom/(4π·L), con L en µm; es literalmente la
+        # fórmula de phono3py (scattering_solvers.py).
+        vmod = np.sqrt((run.velocidades ** 2).sum(axis=-1))
+        g = g + vmod * 1e6 * _ANGSTROM / (4.0 * np.pi * float(run.frontera))
+    return g
+
+
 def acumulada(run, iT=None):
     """κ acumulada frente al recorrido libre medio.
 
     Es la curva que dice si nanoestructurar sirve: si el 80 % de κ lo llevan
     fonones con Λ > 100 nm, un grano de 50 nm corta ese 80 %. Si lo llevan
     fonones de 5 nm, no hay nada que hacer con el tamaño de grano.
+
+    El peso de cada modo es su `mode_kappa`, la descomposición que phono3py ya
+    tiene hecha, así que la curva suma EXACTAMENTE la κ que se informa arriba.
+    Reconstruirla a mano como C·v²·τ/3 daba una curva que no cerraba con ella
+    en cuanto entraba cualquier otro canal de dispersión. Si la librería no la
+    expone (versiones viejas), se usa esa reconstrucción como respaldo.
     """
     if run.gamma is None or run.velocidades is None or run.cv is None:
         return None, None
     iT = run.i300 if iT is None else int(iT)
-    if iT is None:
+    if iT is None or run.pesos is None:
         return None, None
-    v2 = (run.velocidades ** 2).sum(axis=-1) / 3.0        # (grid, banda)
     vmod = np.sqrt((run.velocidades ** 2).sum(axis=-1))
     # Los modos acústicos en Γ tienen Γ = 0 exactamente: τ es infinito y el
     # producto τ·v² es 0·∞ = NaN. No es un fallo, es que esos modos no
@@ -313,10 +351,17 @@ def acumulada(run, iT=None):
         # of lifetime»). Un 2 pasa la Γ de HWHM a anchura total y el 2π pasa
         # de frecuencia cíclica a angular, porque la Γ que devuelve viene en
         # THz ordinarios. Sin el 2π, Λ salía 6.28 veces más largo.
-        tau = 1.0 / (2.0 * 2.0 * np.pi * run.gamma[iT])
-        L = vmod * tau                                    # Å
-        contrib = run.cv[iT] * v2 * tau                   # ∝ κ del modo
-    w = run.pesos[:, None] * np.ones_like(contrib)
+        L = vmod / (2.0 * 2.0 * np.pi * gamma_total(run, iT))     # Å
+        if run.mode_kappa is not None:
+            # traza/3 de la κ del modo en notación de Voigt; ya lleva el peso
+            # del punto q, así que NO se vuelve a multiplicar por run.pesos
+            contrib = np.asarray(run.mode_kappa[iT])[..., :3].mean(axis=-1)
+            w = np.ones_like(contrib)
+        else:
+            v2 = (run.velocidades ** 2).sum(axis=-1) / 3.0
+            tau = 1.0 / (2.0 * 2.0 * np.pi * gamma_total(run, iT))
+            contrib = run.cv[iT] * v2 * tau
+            w = run.pesos[:, None] * np.ones_like(contrib)
     ok = np.isfinite(L) & np.isfinite(contrib) & (contrib > 0)
     Lf, cf, wf = L[ok], contrib[ok], w[ok]
     if Lf.size == 0:                    # ningún modo aporta (todo Γ o NaN)
@@ -348,6 +393,11 @@ def exponente_temperatura(run, T_min=200.0):
 
 
 def report(run) -> str:
+    # Los avisos se ARMAN aquí, en una lista local. Antes se hacía `append`
+    # sobre run.avisos, y como el CLI llama a report() y después a export()
+    # —que vuelve a llamarlo—, cada WARNING acababa duplicado en KAPPA.txt, y
+    # triplicado si algo más lo llamaba una tercera vez.
+    avisos = list(run.avisos)
     L = [f"--- Lattice thermal conductivity: {run.formula} ---",
          f"Forces: {run.fuente}",
          f"fc3 supercell: {run.dim[0]}×{run.dim[1]}×{run.dim[2]}"
@@ -392,6 +442,19 @@ def report(run) -> str:
               "  This is what tells whether nanostructuring helps: a grain "
               "smaller than that Λ cuts",
               "  that part of κ; a larger one does nothing."]
+        # Λ90 vive en la cola de fonones de recorrido largo, que es justo lo
+        # que una malla q floja no muestrea. Medido en Si con Stillinger-Weber
+        # (supercelda 3×3×3): de 11³ a 31³, Λ50 se mueve de 0.68 a 0.82 µm
+        # (+21 %) pero Λ90 pasa de 4.4 a 21.9 µm, cinco veces. Λ50 se puede
+        # citar con una malla normal; Λ90 no, y antes no se decía.
+        if run.malla and min(run.malla) < 25:
+            avisos.append(
+                f"the {run.malla[0]}×{run.malla[1]}×{run.malla[2]} q-grid is "
+                "enough for Λ50 but NOT for Λ90.\n  The 90 % figure lives in "
+                "the long-mean-free-path tail, which a coarse grid does not "
+                "sample:\n  in silicon it grows by a factor of five between "
+                "11³ and 31³ while Λ50 moves 20 %.\n  Converge the grid "
+                "before quoting Λ90 or sizing a grain from it.")
     L += ["", "What is NOT included, and is worth keeping in mind:",
           "  · This is RTA, not the exact solution of the Boltzmann equation. "
           "RTA underestimates κ",
@@ -405,11 +468,6 @@ def report(run) -> str:
                  "~10 % less than the")
         L.append("    isotopically pure one: if you compare with an experiment, "
                  "use --isotopes.")
-    # Los avisos se ARMAN aquí, en una lista local. Antes se hacía `append`
-    # sobre run.avisos, y como el CLI llama a report() y después a export()
-    # —que vuelve a llamarlo—, cada WARNING acababa duplicado en KAPPA.txt, y
-    # triplicado si algo más lo llamaba una tercera vez.
-    avisos = list(run.avisos)
     if run.fuente and "ESPRESSO" not in run.fuente.upper():
         avisos.append(
             f"The forces come from {run.fuente}, not from DFT. The shape of "

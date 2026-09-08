@@ -714,10 +714,10 @@ $$
 $$
 \bar\kappa = \frac{\kappa_{xx}+\kappa_{yy}+\kappa_{zz}}{3}, \qquad
 \kappa \propto T^{-n}\ (n \text{ por recta en } \ln\kappa\text{–}\ln T,\ T \ge 200\ \mathrm{K}), \qquad
-\kappa_{\mathrm{acum}}(\Lambda) = \frac{\sum_{\lambda:\Lambda_\lambda<\Lambda} w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}{\sum_\lambda w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}
+\kappa_{\mathrm{acum}}(\Lambda) = \frac{\sum_{\lambda:\Lambda_\lambda<\Lambda} \bar\kappa_\lambda}{\sum_\lambda \bar\kappa_\lambda}
 $$
 
-- $\Gamma_\lambda$: anchura de línea (THz de frecuencia ordinaria, HWHM) de phono3py — de ahí el $2\cdot 2\pi$ de $\tau$, que es el convenio del propio phono3py (`get_mfp`, y el $1/2\pi$ de su factor a W/mK); $\mathbf{v}_\lambda$: velocidad de grupo (THz·Å); $C_\lambda$: capacidad calorífica modal; $w_\lambda$: peso del punto q; $\Lambda$ en Å (se reporta en nm). Se descartan los modos con $\Gamma = 0$ (acústicos en Γ).
+- $\Gamma_\lambda$: anchura de línea (THz de frecuencia ordinaria, HWHM) de phono3py — de ahí el $2\cdot 2\pi$ de $\tau$, que es el convenio del propio phono3py (`get_mfp`, y el $1/2\pi$ de su factor a W/mK); $\mathbf{v}_\lambda$: velocidad de grupo (THz·Å); $C_\lambda$: capacidad calorífica modal; $w_\lambda$: peso del punto q; $\Lambda$ en Å (se reporta en nm). Se descartan los modos con $\Gamma = 0$ (acústicos en Γ). $\bar\kappa_\lambda$ es la traza/3 de la `mode_kappa` por modo del propio phono3py, que ya lleva $w_\lambda$ dentro, así que la curva acumulada suma por construcción la $\bar\kappa$ que aparece encima. La $\Gamma_\lambda$ de $\tau$ y $\Lambda$ es la anchura EFECTIVA, $\Gamma_{\mathrm{ph}} + \Gamma_{\mathrm{iso}} + \Gamma_{\mathrm{b}}$ con $\Gamma_{\mathrm{b}} = |\mathbf{v}_\lambda|/(4\pi L)$ para un grano de tamaño $L$ — la misma suma que phono3py usa para $\kappa$, así que `--isotopes` y `--grain` mueven también los recorridos libres medios.
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_kappa` → `qekit/modules/kappa.py: preparar`: `Phono3py(..., supercell_matrix=--dim (2x2x2), phonon_supercell_matrix=--dim-fc2, primitive_matrix="auto", symprec=1e-5)` y `generate_displacements(distance=--distance 0.03 Å)`.

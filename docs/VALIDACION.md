@@ -178,10 +178,34 @@ solución exacta) más el corte de la fc3. La dependencia con la temperatura es
 el T⁻¹ de los procesos Umklapp. La distribución de recorridos libres medios es
 la que dice por qué nanoestructurar el silicio funciona tan bien para
 termoeléctricos, pero **la cifra que había aquí (Λ₅₀ = 1.0 µm) se obtuvo con un
-convenio de vida media equivocado** —le faltaba el 2π que separa la frecuencia
-cíclica de la angular— y está pendiente de recalcular con la fórmula corregida,
-que es la del propio phono3py: τ = 1/(2·2π·Γ). El factor afecta solo al eje Λ,
-no a κ ni a su dependencia con la temperatura, que las calcula phono3py. El mismo
+convenio de vida media equivocado**: le faltaba el 2π que separa la frecuencia
+cíclica de la angular. La fórmula corregida es la del propio phono3py,
+τ = 1/(2·2π·Γ), y una prueba la ata contra su función `get_mfp`. El factor
+afecta solo al eje Λ; κ y su dependencia con la temperatura las calcula
+phono3py y no se mueven.
+
+Aplicado al revés, ese factor deja la cifra anterior en Λ₅₀ ≈ 0.16 µm, unas
+cinco veces por debajo de la referencia. **Hay que recalcularla con fuerzas
+DFT antes de volver a citarla**, y el número que salga hay que compararlo con
+la referencia de abajo, no con el 1.0 µm anterior.
+
+Se descartó la explicación fácil. Con un potencial de Stillinger-Weber sobre
+la misma supercelda 3×3×3 se midió cuánto depende cada cifra de la malla q:
+
+| malla q | κ (W/m·K) | Λ₅₀ | Λ₉₀ |
+|---|---|---|---|
+| 11³ | 496 | 0.678 µm | 4.4 µm |
+| 13³ | 518 | 0.711 µm | 7.5 µm |
+| 19³ | 557 | 0.750 µm | 14.3 µm |
+| 25³ | 572 | 0.798 µm | 18.2 µm |
+| 31³ | 579 | 0.821 µm | 21.9 µm |
+
+Λ₅₀ se mueve un 21 % de 11³ a 31³, así que la malla NO explica un factor cinco:
+si el número corregido queda lejos de la referencia, la causa hay que buscarla
+en la supercelda 2×2×2 de la fc3, no en la malla. Λ₉₀, en cambio, se multiplica
+por cinco en ese mismo intervalo: **no está convergido con ninguna malla de uso
+normal y no se debe citar ni usar para dimensionar un grano**. El informe de
+`kappa` ahora lo advierte por debajo de 25³. El mismo
 cálculo con fuerzas de MACE en lugar de DFT tarda 8 segundos en vez de 40
 minutos, reproduce el exponente y falla el valor absoluto por un factor 2: por
 eso el informe lo dice cada vez que las fuerzas no vienen de DFT. La
@@ -193,7 +217,7 @@ para lo que sirve.
 |---|---|---|---|
 | κ a 300 K, fuerzas DFT, RTA | 101 W/m·K (96 con isótopos naturales) | ~140 W/m·K | experimento |
 | Exponente de temperatura, fuerzas DFT | κ ∝ T⁻¹·¹⁶ | T⁻¹ | procesos Umklapp |
-| Recorrido libre medio que lleva la mitad de κ | pendiente de recalcular | ~1 µm | espectroscopía de recorrido libre |
+| Recorrido libre medio que lleva la mitad de κ | pendiente de recalcular | ~0.8–1 µm | ver la nota de arriba: 40 ± 5 % de κ por encima de 1 µm (FDTR, Regner y col. 2013) y ~47 % por encima de 0.8 µm en Si puro por primeros principios (JAP 119, 245705, 2016) |
 | κ a 300 K, fuerzas MACE | 51 W/m·K | 101 W/m·K (DFT) | este trabajo |
 | Exponente de temperatura, fuerzas MACE | κ ∝ T⁻¹·⁰⁶ | T⁻¹ | procesos Umklapp |
 | Convergencia de supercelda (MACE), 2×2×2 → 3×3×3 | 50.1 → 50.8 W/m·K | convergido | este trabajo |

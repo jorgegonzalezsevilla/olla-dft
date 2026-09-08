@@ -714,10 +714,10 @@ $$
 $$
 \bar\kappa = \frac{\kappa_{xx}+\kappa_{yy}+\kappa_{zz}}{3}, \qquad
 \kappa \propto T^{-n}\ (n \text{ by a straight line in } \ln\kappa\text{–}\ln T,\ T \ge 200\ \mathrm{K}), \qquad
-\kappa_{\mathrm{cum}}(\Lambda) = \frac{\sum_{\lambda:\Lambda_\lambda<\Lambda} w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}{\sum_\lambda w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}
+\kappa_{\mathrm{cum}}(\Lambda) = \frac{\sum_{\lambda:\Lambda_\lambda<\Lambda} \bar\kappa_\lambda}{\sum_\lambda \bar\kappa_\lambda}
 $$
 
-- $\Gamma_\lambda$: linewidth (THz, ordinary frequency, HWHM) from phono3py — hence the $2\cdot 2\pi$ in $\tau$, which is phono3py's own convention (`get_mfp`, and the $1/2\pi$ in its W/mK factor); $\mathbf{v}_\lambda$: group velocity (THz·Å); $C_\lambda$: modal heat capacity; $w_\lambda$: q-point weight; $\Lambda$ in Å (reported in nm). Modes with $\Gamma = 0$ (acoustic at Γ) are discarded.
+- $\Gamma_\lambda$: linewidth (THz, ordinary frequency, HWHM) from phono3py — hence the $2\cdot 2\pi$ in $\tau$, which is phono3py's own convention (`get_mfp`, and the $1/2\pi$ in its W/mK factor); $\mathbf{v}_\lambda$: group velocity (THz·Å); $C_\lambda$: modal heat capacity; $w_\lambda$: q-point weight; $\Lambda$ in Å (reported in nm). Modes with $\Gamma = 0$ (acoustic at Γ) are discarded. $\bar\kappa_\lambda$ is the trace/3 of phono3py's own per-mode `mode_kappa`, which already carries $w_\lambda$, so the cumulative curve adds up to the $\bar\kappa$ reported above it by construction. The $\Gamma_\lambda$ in $\tau$ and $\Lambda$ is the EFFECTIVE linewidth, $\Gamma_{\mathrm{ph}} + \Gamma_{\mathrm{iso}} + \Gamma_{\mathrm{b}}$ with $\Gamma_{\mathrm{b}} = |\mathbf{v}_\lambda|/(4\pi L)$ for a grain of size $L$ — the same sum phono3py uses for $\kappa$, so `--isotopes` and `--grain` move the mean free paths as well as $\kappa$.
 
 **How Olla-DFT computes it.**
 1. `qekit/cli.py: _cmd_kappa` → `qekit/modules/kappa.py: preparar`: `Phono3py(..., supercell_matrix=--dim (2x2x2), phonon_supercell_matrix=--dim-fc2, primitive_matrix="auto", symprec=1e-5)` and `generate_displacements(distance=--distance 0.03 Å)`.
