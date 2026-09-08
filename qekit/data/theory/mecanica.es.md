@@ -796,7 +796,7 @@ $$
 
 **Fundamento para no expertos.** Un electrón en una banda se mueve con velocidad $v = (1/\hbar)\,dE/dk$. A una temperatura dada solo los estados a unos $k_BT$ del potencial químico participan en el transporte (la "ventana" $-\partial f/\partial E$). Sumando velocidad por velocidad sobre esa ventana sale la conductividad; ponderando además por $(E-\mu)$ sale el Seebeck, que mide cuánto voltaje aparece por grado de diferencia de temperatura. La aproximación de tiempo de relajación constante (CRTA) supone que todos los electrones chocan con la misma frecuencia $1/\tau$: entonces $\tau$ se cancela en $S$ y en el número de Lorenz (predicciones reales) pero no en σ ni en κ_e, que se reportan divididas por τ.
 
-**Fórmulas.** (`transport._fd_derivative`, `transport.compute`, `lorenz`, `cancelacion`, `TransporteEspin`) Con $x = (E-\mu)/k_BT$, $-\partial f/\partial E = \mathrm{sech}^2(x/2)/(4k_BT)$, pesos $w_k = 1/N_k$, $V$ el volumen de la celda:
+**Fórmulas.** (`transport._fd_derivative`, `transport.compute`, `lorenz`, `cancelacion`, `TransporteEspin`) Con $x = (E-\mu)/k_BT$, $-\partial f/\partial E = \mathrm{sech}^2(x/2)/(4k_BT)$, pesos $w_k$ normalizados a la DEGENERACIÓN DE ESPÍN, como los $wk$ de Quantum ESPRESSO: $\sum_k w_k = 2$ sin polarizar (dos electrones por estado) y $=1$ por canal con `nspin=2`, $V$ el volumen de la celda:
 
 $$
 \mathbf{v}_{n\mathbf{k}} = \frac{1}{\hbar}\nabla_{\mathbf{k}}E_{n\mathbf{k}}\ (\text{diferencias finitas periódicas, } \texttt{np.gradient}), \qquad
@@ -811,7 +811,7 @@ $$
 $$
 
 $$
-n = \frac{N_{\mathrm{elec}} - 2\sum_{n\mathbf{k}} w_k f(E_{n\mathbf{k}})}{V}, \qquad
+n = \frac{N_{\mathrm{elec}} - \sum_{n\mathbf{k}} w_k f(E_{n\mathbf{k}})}{V}, \qquad
 L = \frac{\bar\kappa_e}{\bar\sigma T}, \qquad L_0 = 2.44\times10^{-8}\ \mathrm{W\,\Omega/K^2}, \qquad
 c = \frac{|\bar\kappa_e|}{|\bar\kappa_e + \bar S^2\bar\sigma T|}
 $$

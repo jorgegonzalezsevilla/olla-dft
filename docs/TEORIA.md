@@ -1907,7 +1907,7 @@ $$
 
 **Fundamento para no expertos.** Un electrón en una banda se mueve con velocidad $v = (1/\hbar)\,dE/dk$. A una temperatura dada solo los estados a unos $k_BT$ del potencial químico participan en el transporte (la "ventana" $-\partial f/\partial E$). Sumando velocidad por velocidad sobre esa ventana sale la conductividad; ponderando además por $(E-\mu)$ sale el Seebeck, que mide cuánto voltaje aparece por grado de diferencia de temperatura. La aproximación de tiempo de relajación constante (CRTA) supone que todos los electrones chocan con la misma frecuencia $1/\tau$: entonces $\tau$ se cancela en $S$ y en el número de Lorenz (predicciones reales) pero no en σ ni en κ_e, que se reportan divididas por τ.
 
-**Fórmulas.** (`transport._fd_derivative`, `transport.compute`, `lorenz`, `cancelacion`, `TransporteEspin`) Con $x = (E-\mu)/k_BT$, $-\partial f/\partial E = \mathrm{sech}^2(x/2)/(4k_BT)$, pesos $w_k = 1/N_k$, $V$ el volumen de la celda:
+**Fórmulas.** (`transport._fd_derivative`, `transport.compute`, `lorenz`, `cancelacion`, `TransporteEspin`) Con $x = (E-\mu)/k_BT$, $-\partial f/\partial E = \mathrm{sech}^2(x/2)/(4k_BT)$, pesos $w_k$ normalizados a la DEGENERACIÓN DE ESPÍN, como los $wk$ de Quantum ESPRESSO: $\sum_k w_k = 2$ sin polarizar (dos electrones por estado) y $=1$ por canal con `nspin=2`, $V$ el volumen de la celda:
 
 $$
 \mathbf{v}_{n\mathbf{k}} = \frac{1}{\hbar}\nabla_{\mathbf{k}}E_{n\mathbf{k}}\ (\text{diferencias finitas periódicas, } \texttt{np.gradient}), \qquad
@@ -1922,7 +1922,7 @@ $$
 $$
 
 $$
-n = \frac{N_{\mathrm{elec}} - 2\sum_{n\mathbf{k}} w_k f(E_{n\mathbf{k}})}{V}, \qquad
+n = \frac{N_{\mathrm{elec}} - \sum_{n\mathbf{k}} w_k f(E_{n\mathbf{k}})}{V}, \qquad
 L = \frac{\bar\kappa_e}{\bar\sigma T}, \qquad L_0 = 2.44\times10^{-8}\ \mathrm{W\,\Omega/K^2}, \qquad
 c = \frac{|\bar\kappa_e|}{|\bar\kappa_e + \bar S^2\bar\sigma T|}
 $$
@@ -2517,12 +2517,12 @@ Gran canónico (`esm.gran_canonico`, sólo biblioteca): $\Omega = E + q\,\Phi$.
 **Fórmulas.** En `qekit/modules/echem.py`.
 
 Dependencia con $U$ y pH (`Echem.dG`):
-$$\Delta G_i(U, \mathrm{pH}) = \Delta G_i(0,0) - eU - k_B T\ln 10\cdot\mathrm{pH} = \Delta G_i(0,0) - e\,U_{\mathrm{RHE}}$$
+$$\Delta G_i(U, \mathrm{pH}) = \Delta G_i(0,0) - n_e\left(eU + k_B T\ln 10\cdot\mathrm{pH}\right) = \Delta G_i(0,0) - n_e\,e\,U_{\mathrm{RHE}}, \qquad n_e = \begin{cases} +1 & \text{OER: el paso LIBERA } \mathrm{H^+ + e^-} \\ -1 & \text{HER: el paso lo CONSUME} \end{cases}$$
 $$U_{\mathrm{RHE}} = U_{\mathrm{SHE}} + k_B T\ln 10\cdot\mathrm{pH}\quad(\text{`echem.u_rhe`; } 0.0592\,\mathrm{pH\ V\ a\ 298\ K})$$
 - $k_B$ = `KB_EV` = $8.617333262\times10^{-5}$ eV/K; $T$ = `--temperature` (298.15 K); $U$ = `-U` en V **frente al SHE** (a pH 0 coincide con RHE); el término de pH es exactamente la conversión SHE → RHE, así que en la escala RHE los $\Delta G$ no dependen del pH. Un electrón por paso.
 
 HER (`echem.her`):
-$$\Delta G_{\mathrm{H^*}} = E_{\mathrm{ads}}(\mathrm{H}) + c_{\mathrm{H}},\qquad \text{pasos: } (+\Delta G_{\mathrm{H^*}},\ -\Delta G_{\mathrm{H^*}})$$
+$$\Delta G_{\mathrm{H^*}} = E_{\mathrm{ads}}(\mathrm{H}) + c_{\mathrm{H}},\qquad \text{Volmer } \mathrm{H^+ + e^- + {*} \to H^*}\ (+\Delta G_{\mathrm{H^*}}),\quad \text{Heyrovsky } \mathrm{H^* + H^+ + e^- \to H_2 + {*}}\ (-\Delta G_{\mathrm{H^*}})$$
 - $E_{\mathrm{ads}}(\mathrm{H})$: `--her`, referida a $\tfrac12\mathrm{H_2}$ (eV); $c_{\mathrm{H}}$ = ZPE − TΔS = 0.24 eV por omisión (`CORRECCIONES`).
 
 OER (`echem.oer`), con $G_X = E_{\mathrm{ads}}(X) + c_X$:
@@ -2530,7 +2530,7 @@ $$\Delta G_1 = G_{\mathrm{OH}},\quad \Delta G_2 = G_{\mathrm{O}} - G_{\mathrm{OH
 - $c_{\mathrm{OH}} = 0.35$, $c_{\mathrm{O}} = 0.05$, $c_{\mathrm{OOH}} = 0.40$ eV por omisión; `DG_AGUA_TOTAL` = 4.92 eV (experimental, $2\mathrm{H_2O} \to \mathrm{O_2} + 2\mathrm{H_2}$).
 
 Potencial limitante y sobrepotencial (`Echem.U_limitante`, `Echem.sobrepotencial`):
-$$U_L = \max_i \Delta G_i(0,0)/e,\qquad \eta = U_L - U_{\mathrm{eq}},\quad U_{\mathrm{eq}}^{\mathrm{OER}} = 1.229\ \mathrm{V},\ U_{\mathrm{eq}}^{\mathrm{HER}} = 0$$
+$$U_L = n_e\max_i \Delta G_i(0,0)/e,\qquad \eta = n_e\left(U_L - U_{\mathrm{eq}}\right),\quad U_{\mathrm{eq}}^{\mathrm{OER}} = 1.229\ \mathrm{V},\ U_{\mathrm{eq}}^{\mathrm{HER}} = 0$$
 - $\eta$ se devuelve **con signo**: positivo = en $U_{\mathrm{eq}}$ el paso limitante sigue cuesta arriba (con los perfiles de aquí nunca sale negativo; sólo podría con un `dG_total` distinto del experimental).
 
 Relación de escala (`echem.escala_ooh_oh`, OER) y su límite (`echem.sobrepotencial_minimo_escala`):
@@ -2558,7 +2558,7 @@ Rejilla tipo Pourbaix (`echem.pourbaix`, sólo biblioteca): $\Delta G_{\lim}(U,\
 
 **Límites y trampas.**
 - *"El CHE es termodinámica de intermedios: NO hay barreras cinéticas, ni disolvente explícito, ni doble capa."*
-- `-U` es frente al **SHE** (ayuda de la CLI: *"a pH 0 es el mismo que frente al RHE; el pH lo convierte"*); $U_L$ y $\eta$ están en la escala RHE. Para la HER $U_L = |\Delta G_{\mathrm{H^*}}|$, así que $\eta \ge 0$ siempre.
+- `-U` es frente al **SHE** (ayuda de la CLI: *"a pH 0 es el mismo que frente al RHE; el pH lo convierte"*); $U_L$ y $\eta$ están en la escala RHE. La HER es CATÓDICA: sus pasos consumen $\mathrm{H^+ + e^-}$, así que $U_L = -|\Delta G_{\mathrm{H^*}}|/e < 0$ y $\eta = U_{\mathrm{eq}} - U_L = |\Delta G_{\mathrm{H^*}}|/e \ge 0$. Aplicarle el signo de la OER, como decía antes este documento, daba un $U_L$ positivo para una reacción catódica y movía la escalera de energías al revés con $U$ y el pH.
 - Cuarto paso por diferencia: *"El cuarto paso sale NEGATIVO… o hay un error en las referencias, o tu superficie liga los intermedios muchísimo."*
 - `pourbaix()` no está conectada a ningún comando: el "diagrama de Pourbaix" del título del módulo no se produce desde la CLI.
 

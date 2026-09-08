@@ -165,3 +165,23 @@ def test_export(tmp_path):
     f = echem.export(e, str(tmp_path))
     assert len(f) == 2
     assert "sobrepotencial_V" in (tmp_path / "ECHEM.dat").read_text()
+
+
+def test_la_teoria_documenta_el_signo_que_usa_el_codigo():
+    """La referencia científica y el código tienen que decir lo mismo.
+
+    Al corregir el signo de la HER en `echem.py` la teoría se quedó atrás
+    describiendo el convenio viejo (ΔG = ΔG₀ − eU para todos los pasos y
+    U_L = max ΔG/e). Un documento que contradice al código es peor que no
+    tenerlo: quien lo lea creerá que el número que ve significa otra cosa.
+    """
+    from pathlib import Path
+    raiz = Path(__file__).resolve().parents[1]
+    for idioma in ("en", "es"):
+        texto = (raiz / "qekit" / "data" / "theory"
+                 / f"espectros.{idioma}.md").read_text(encoding="utf-8")
+        assert "n_e" in texto, f"{idioma}: la teoría no distingue el signo por reacción"
+        assert "Heyrovsky" in texto, f"{idioma}: los pasos de la HER siguen sin electrón"
+    # y el código sigue el mismo convenio
+    assert echem.her(0.0).n_electron == -1.0
+    assert echem.oer(RUO2, correcciones=SIN_CORR).n_electron == 1.0
