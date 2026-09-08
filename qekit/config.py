@@ -114,6 +114,23 @@ def save(values: dict) -> None:
             temporary.unlink(missing_ok=True)
 
 
+# Claves numéricas y qué se admite en cada una. Sin esto, `config set
+# ecutwfc sesenta` respondía «saved» y el fallo aparecía mucho después, en
+# otro comando y como error del programa con traza, en vez de aquí.
+CLAVES_NUMERICAS = {
+    "ecutwfc": (float, True),        # (tipo, tiene que ser > 0)
+    "dual": (float, True),
+    "kspacing": (float, True),
+    "kspacing_nscf": (float, True),
+    "degauss": (float, False),       # 0 es válido: sin smearing
+    "band_points": (int, True),
+    "nproc": (int, True),
+}
+
+SMEARINGS = ("gaussian", "methfessel-paxton", "mp", "marzari-vanderbilt",
+             "cold", "mv", "fermi-dirac", "fd")
+
+
 def set_value(key: str, value: str) -> None:
     if key not in DEFAULTS:
         raise KeyError(
@@ -121,6 +138,20 @@ def set_value(key: str, value: str) -> None:
         )
     if key == "language" and value not in ("es", "en", "de"):
         raise KeyError("language must be 'en', 'es' or 'de'")
+    if key in CLAVES_NUMERICAS:
+        tipo, positivo = CLAVES_NUMERICAS[key]
+        nombre = "an integer" if tipo is int else "a number"
+        try:
+            numero = tipo(value)
+        except (TypeError, ValueError):
+            raise KeyError(f"{key} must be {nombre}, not '{value}'") from None
+        if positivo and numero <= 0:
+            raise KeyError(f"{key} must be greater than 0, not '{value}'")
+        if not positivo and numero < 0:
+            raise KeyError(f"{key} cannot be negative, not '{value}'")
+    if key == "smearing" and value not in SMEARINGS:
+        raise KeyError(
+            f"smearing must be one of: {', '.join(SMEARINGS)}, not '{value}'")
     values = load()
     values[key] = value
     save(values)

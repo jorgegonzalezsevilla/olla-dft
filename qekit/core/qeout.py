@@ -481,7 +481,11 @@ def _read_diagnostics(root, res) -> None:
 def read_kpath_labels(path: str) -> list:
     """Lee KPATH.txt (generado por `olla-dft gen`) -> [(etiqueta, frac), ...]."""
     labels = []
-    with open(path) as fh:
+    # UTF-8 explícito: inputgen escribe KPATH.txt en UTF-8 y las etiquetas
+    # llevan Γ, Δ, Σ, Λ. Sin `encoding` se lee con la codificación de la
+    # locale, y en Windows (cp1252) Γ se convierte en 'Î“' —los ticks de
+    # alta simetría salían con mojibake— o directamente en UnicodeDecodeError.
+    with open(path, encoding="utf-8") as fh:
         for line in fh:
             line = line.strip()
             if not line or line.startswith("#"):

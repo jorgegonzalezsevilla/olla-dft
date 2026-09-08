@@ -2,6 +2,51 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## Unreleased
+
+**Scientific values change.** Three correctness fixes alter numbers reported by
+earlier versions. Results produced before this release should be recomputed for
+the affected commands.
+
+- `transport`: fix the transformation of dE/dk from fractional to Cartesian
+  coordinates (the transpose was inverted). Band velocities, and therefore σ/τ,
+  κ_e/τ and the Seebeck tensor, were wrong for every cell whose reciprocal
+  lattice is not symmetric — hexagonal, trigonal, monoclinic and triclinic. The
+  Seebeck coefficient of cubic, tetragonal and orthorhombic cells is unaffected.
+- `transport`: carry the spin degeneracy in the k-point weights, as Quantum
+  ESPRESSO does. Without spin polarization σ/τ, κ_e/τ and the power factor were
+  reported at half their value; the Seebeck coefficient and the Lorenz number
+  are ratios and were already correct.
+- `echem --her`: apply the potential and pH terms with the sign of a reduction.
+  The HER consumes H⁺+e⁻, so ΔG = ΔG₀ + eU: its limiting potential is negative
+  versus RHE, and the ΔG(U,pH) column and the energy ladder now move in the
+  right direction. The ΔG_H* descriptor and the overpotential magnitude are
+  unchanged.
+- `crosscheck`: stop applying a kbar→GPa factor to a pressure column that is
+  already in GPa. The third route to B₀ was reported ten times too small and
+  disagreed with the equation of state even when both agreed.
+
+Other fixes, with no effect on scientific values:
+
+- Do not split an executable path on spaces when building the pw.x command.
+  `C:\Program Files\QE\bin\pw.exe` — the default location on Windows —
+  failed with «not found: C:\Program».
+- Read `KPATH.txt` as UTF-8: the Γ, Δ, Σ and Λ tick labels of band figures came
+  out as mojibake on Windows, or raised `UnicodeDecodeError`.
+- Validate numeric configuration values in `config set`, instead of accepting
+  them and failing later in another command.
+- Report bad `--position`, `--miller` and `--fix` values as usage errors rather
+  than as program incidents with a traceback; `--miller` now checks it got
+  three indices.
+- Write the `kappa` run script with POSIX line endings and the execute bit, as
+  the other generated scripts already did.
+- Sort the volumes in `qha` before fitting, instead of assuming the input file
+  is ordered.
+- Return no accumulation in `kappa` when no mode contributes, instead of
+  raising `IndexError`.
+- Open documentation with a valid `file://` URI on Windows.
+- Write Hubbard cards, thermochemistry reports and exported themes as UTF-8.
+
 ## 1.5.0 — 2026-09-05
 
 - Write scientific reports, diagnostics and new plot labels in English in every interface locale. Text output changes; structured identifiers, scientific values and calculation logic remain compatible.

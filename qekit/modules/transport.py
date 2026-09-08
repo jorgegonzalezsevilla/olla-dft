@@ -70,7 +70,8 @@ ANG_M = 1e-10
 @dataclass
 class TransportRun:
     energies: np.ndarray = None       # (nk, nbnd) eV
-    weights: np.ndarray = None        # (nk,) pesos de la malla
+    weights: np.ndarray = None        # (nk,) pesos CON degeneración de espín
+    nspin: int = 1                    # 1 sin polarizar, 2 por canal
     velocities: np.ndarray = None     # (nk, nbnd, 3) m/s
     volume: float = None              # A^3
     nelec: float = None
@@ -101,11 +102,17 @@ def _fd_derivative(E_grid: np.ndarray, cell: np.ndarray, grid: tuple):
     d1, d2, d3 = np.gradient(ext, 1.0 / n1, 1.0 / n2, 1.0 / n3,
                              axis=(0, 1, 2))
     d1, d2, d3 = d1[1:-1, 1:-1, 1:-1], d2[1:-1, 1:-1, 1:-1], d3[1:-1, 1:-1, 1:-1]
-    # dE/dk_cart = sum_i (dE/dfrac_i) * (b_i / 2pi)... cadena completa:
-    # k_cart = sum_i frac_i * b_i  =>  dE/dk_cart = B^{-T} dE/dfrac
+    # Regla de la cadena. Con `recip` en FILAS (b_i) y k_cart = sum_i frac_i b_i:
+    #   dE/dfrac_i = sum_j (dE/dk_j) recip[i,j]   =>   dfrac = B . dcart
+    # y por tanto dcart = B^{-1} dfrac. Con los vectores en la ÚLTIMA
+    # dimensión eso es dcart = dfrac @ B^{-T}, es decir @ inv_bt.
+    # Ojo: usar inv_bt.T aquí aplica B^{-1} en vez de B^{-T}, lo que solo
+    # es inocuo si B es simétrica (cúbica, tetragonal, ortorrómbica). En
+    # hexagonal, trigonal, monoclínica o triclínica mete una componente
+    # espuria en v y sube |v|^2.
     dfrac = np.stack([d1, d2, d3], axis=-1)          # (n1,n2,n3,nbnd,3)
-    inv_bt = np.linalg.inv(recip.T)                  # (3,3)
-    dcart = dfrac @ inv_bt.T                         # eV*A
+    inv_bt = np.linalg.inv(recip.T)                  # B^{-T}
+    dcart = dfrac @ inv_bt                           # eV*A
     # v = (1/hbar) dE/dk : eV*A -> m/s
     return dcart * (ANG_M / HBAR_EVS)
 
@@ -232,7 +239,15 @@ def load(xml_path, spin: int = 0) -> TransportRun:
         -1, E.shape[1], 3)
     # reordenar las energías igual que las velocidades
     run.energies = E_grid.reshape(-1, E.shape[1])
-    run.weights = np.full(len(run.energies), 1.0 / len(run.energies))
+    # CONVENIO DE PESOS: los pesos llevan la degeneración de espín, igual
+    # que los wk de QE. Sin polarizar cada estado aloja DOS electrones, así
+    # que suman 2; con nspin=2 cada canal aloja uno y suman 1. Normalizar
+    # siempre a 1 dejaba sigma/tau y kappa_e/tau a la MITAD en el caso sin
+    # polarizar, que es el de por omisión (S y el número de Lorenz no lo
+    # notaban por ser cocientes).
+    run.nspin = int(np.asarray(res.eigenvalues).shape[0])
+    degeneracion = 2.0 if run.nspin == 1 else 1.0
+    run.weights = np.full(len(run.energies), degeneracion / len(run.energies))
     ntot = n1 * n2 * n3
     if min(run.grid) < 24 or ntot < 12000:
         run.warnings.append(
@@ -304,9 +319,11 @@ def compute(run: TransportRun, T=None, mu=None, mu_span: float = 1.0,
             kappa0 = (E_CHARGE / (vol_m3 * t)) * s2
             kappa[it, im] = kappa0 - (S_mat @ S_mat) @ sig * t
 
-            # portadores: electrones por celda por encima de mu menos huecos
+            # portadores: electrones por celda por encima de mu menos huecos.
+            # La degeneración de espín ya va dentro de los pesos (ver `load`),
+            # así que aquí NO se vuelve a multiplicar por 2.
             f = 1.0 / (1.0 + np.exp(np.clip(x, -300, 300)))
-            n_e = 2.0 * float(np.sum(run.weights[:, None] * f))
+            n_e = float(np.sum(run.weights[:, None] * f))
             carriers[it, im] = (run.nelec - n_e) / (run.volume * 1e-24)
 
     run.T, run.mu = T, mu

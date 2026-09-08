@@ -209,3 +209,38 @@ def test_explorer_keeps_utf8_labels_and_title(tmp_path, language):
     assert f'lang="{language}"' in document
     assert 'Energía — silicio' in document
     assert 'Español' in document
+
+
+# ----------------------------------------------------------------------
+# Validación de los valores de configuración
+# ----------------------------------------------------------------------
+@pytest.mark.parametrize('key,value', [
+    ('ecutwfc', 'sesenta'),
+    ('dual', 'ocho'),
+    ('kspacing', 'x'),
+    ('band_points', '20.5'),
+    ('nproc', 'abc'),
+    ('nproc', '0'),
+    ('ecutwfc', '-30'),
+    ('degauss', '-0.01'),
+    ('smearing', 'raro'),
+])
+def test_config_set_rechaza_valores_invalidos(preferences, key, value):
+    """Regresión: `set_value` solo validaba `language`.
+
+    `config set ecutwfc sesenta` respondía «saved» con rc=0 y el fallo
+    aparecía mucho después, en otro comando y como error del programa con
+    traza, en vez de aquí y como error de uso.
+    """
+    with pytest.raises(KeyError):
+        config.set_value(key, value)
+
+
+@pytest.mark.parametrize('key,value', [
+    ('ecutwfc', '60'), ('ecutwfc', '60.5'), ('dual', '4'),
+    ('kspacing', '0.20'), ('band_points', '20'), ('nproc', '8'),
+    ('degauss', '0'), ('degauss', '0.01'), ('smearing', 'cold'),
+])
+def test_config_set_acepta_los_valores_de_siempre(preferences, key, value):
+    config.set_value(key, value)
+    assert config.load()[key] == value

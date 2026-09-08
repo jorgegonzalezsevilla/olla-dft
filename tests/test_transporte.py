@@ -162,3 +162,108 @@ def test_sin_polarizacion_lo_dice():
 def test_la_termopotencia_de_espin_es_la_diferencia():
     te = _espin(1.0, 1.0, 80e-6, 20e-6)
     assert te.seebeck_de_espin[1] * 1e6 == pytest.approx(60.0)
+
+
+# ----------------------------------------------------------------------
+# Regresiones: la transformación de las velocidades y el convenio de pesos
+# ----------------------------------------------------------------------
+def test_las_velocidades_son_correctas_en_una_celda_hexagonal():
+    """La red recíproca hexagonal NO es simétrica, y ahí se veía el fallo.
+
+    Con E = kx² la velocidad tiene que ir toda en x. Aplicar B⁻¹ en vez de
+    B⁻ᵀ metía una v_y = −v_x/2 espuria y subía |v|² un 25 %. En cúbica no se
+    notaba porque ahí B sí es simétrica, que es por lo que el resto de las
+    pruebas del módulo no lo cazaban.
+    """
+    a, c, n = 2.46, 10.0, 12
+    cell = np.array([[a, 0.0, 0.0],
+                     [-a / 2, a * np.sqrt(3) / 2, 0.0],
+                     [0.0, 0.0, c]])
+    recip = 2 * np.pi * np.linalg.inv(cell).T
+    f = (np.arange(n) + 0.5) / n - 0.5
+    F = np.array(np.meshgrid(f, f, f, indexing="ij")).reshape(3, -1).T
+    kcart = F @ recip                                   # Å⁻¹
+    E = (kcart[:, 0] ** 2).reshape(n, n, n, 1)          # eV, E = kx²
+
+    v = tr._fd_derivative(E, cell, (n, n, n))            # (n,n,n,1,3)
+    esperado = 2.0 * kcart[:, 0].reshape(n, n, n) * (tr.ANG_M / tr.HBAR_EVS)
+
+    assert np.allclose(v[..., 1], 0.0), \
+        "aparece una componente v_y que no existe: falta la traspuesta"
+    assert np.allclose(v[..., 2], 0.0)
+    # El módulo se compara en el INTERIOR del eje f1: ahí la diferencia
+    # central es exacta para una parábola. En la primera y la última capa el
+    # np.pad(mode="wrap") envuelve una función que no es periódica (una banda
+    # de verdad sí lo es), y eso es artefacto de la prueba, no del módulo.
+    assert np.allclose(v[1:-1, :, :, 0, 0], esperado[1:-1], rtol=1e-9)
+
+
+def test_las_velocidades_no_cambian_al_girar_la_celda():
+    """Invariancia física: girar cristal y malla no cambia el módulo de v."""
+    n = 8
+    cell = np.array([[3.0, 0.0, 0.0], [1.0, 3.5, 0.0], [0.0, 0.4, 4.0]])
+    rng = np.random.default_rng(0)
+    E = rng.normal(size=(n, n, n, 2))
+    th = 0.7
+    R = np.array([[np.cos(th), -np.sin(th), 0.0],
+                  [np.sin(th), np.cos(th), 0.0],
+                  [0.0, 0.0, 1.0]])
+
+    v1 = tr._fd_derivative(E, cell, (n, n, n))
+    v2 = tr._fd_derivative(E, cell @ R.T, (n, n, n))
+    assert np.allclose(np.linalg.norm(v1, axis=-1),
+                       np.linalg.norm(v2, axis=-1))
+
+
+class _XMLFalso:
+    """Lo mínimo que `load` mira de un nscf, para no depender de datos de QE."""
+
+    def __init__(self, nspin, n=4, a=4.0):
+        f = np.arange(n) / n
+        self.cell = np.eye(3) * a
+        self.calculation = "nscf"
+        self.volume = a ** 3
+        self.nelec = 2.0
+        self.fermi = 0.0
+        self.kpoints_frac = np.array(
+            np.meshgrid(f, f, f, indexing="ij")).reshape(3, -1).T
+        nk = len(self.kpoints_frac)
+        self.eigenvalues = np.zeros((nspin, nk, 1))
+
+
+def test_load_pone_la_degeneracion_de_espin_en_los_pesos(monkeypatch):
+    """Los pesos siguen el convenio de QE: suman 2 sin polarizar, 1 por canal.
+
+    Normalizarlos siempre a 1 dejaba σ/τ y κ_e/τ a la MITAD en el caso sin
+    polarizar, que es el de por omisión.
+    """
+    for nspin, total in ((1, 2.0), (2, 1.0)):
+        monkeypatch.setattr(tr.qeout, "read_xml",
+                            lambda _p, _n=nspin: _XMLFalso(_n))
+        run = tr.load("da igual.xml")
+        assert run.nspin == nspin
+        assert float(run.weights.sum()) == pytest.approx(total), \
+            f"con nspin={nspin} los pesos tienen que sumar {total}"
+
+
+def test_sigma_lleva_la_degeneracion_de_espin():
+    """σ/τ es LINEAL en los pesos, y los pesos llevan el espín.
+
+    Sin polarizar cada estado aloja dos electrones (los pesos suman 2). Si
+    se normalizaran a 1, σ/τ y κ_e/τ saldrían a la mitad; S y el número de
+    Lorenz no lo notarían por ser cocientes, que es justo lo que escondía
+    el fallo.
+    """
+    run = gas_de_electrones()
+    mitad = tr.TransportRun(volume=run.volume, nelec=run.nelec,
+                            fermi=run.fermi, grid=run.grid)
+    mitad.energies, mitad.velocities = run.energies, run.velocities
+    mitad.weights = run.weights / 2.0
+    mitad = tr.compute(mitad, T=[300.0], mu=np.array([run.fermi]))
+
+    s_doble = np.trace(run.sigma[0, 0]) / 3.0
+    s_mitad = np.trace(mitad.sigma[0, 0]) / 3.0
+    assert s_doble == pytest.approx(2.0 * s_mitad, rel=1e-12)
+    # el número de Lorenz es un cociente: no puede moverse
+    assert float(tr.lorenz(mitad, 0)[0]) == pytest.approx(
+        float(tr.lorenz(run, 0)[0]), rel=1e-12)

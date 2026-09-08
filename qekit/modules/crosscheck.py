@@ -404,7 +404,12 @@ def run(project=".", masas=None, volumen=None, natoms=None,
             if bien.sum() >= 3:
                 # hidrostática: V = V0(1+ε)³  ->  B = −dP/d(lnV) = −dP/dε / 3
                 pend = np.polyfit(eps[bien], P[bien], 1)[0]
-                b0_strain = -pend / 3.0 * 0.1        # kbar -> GPa
+                # La columna 3 de STRAIN.dat ya viene en GPa (la escribe
+                # strain.export con cabecera P(GPa), desde res.pressure, que
+                # qeout convierte con HA_BOHR3_GPA). No hay nada que pasar
+                # de kbar: multiplicar por 0.1 dejaba B0 diez veces pequeño
+                # y esta tercera ruta discrepaba siempre.
+                b0_strain = -pend / 3.0
                 if b0_strain > 0:
                     res.checks.append(Check(
                         nombre="bulk modulus B₀ (third route)",

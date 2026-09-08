@@ -299,6 +299,62 @@ def _malla_2d(texto: str, nombre: str = "--grid") -> tuple:
     return vals
 
 
+def _posicion(texto: str, nombre: str = "--position"):
+    """Convierte '0.5,0.5,0.5' en [0.5, 0.5, 0.5] con un error legible.
+
+    Igual que `_malla`: una errata del usuario tiene que salir como error
+    de uso, no como un ValueError con traza archivado como incidencia del
+    programa.
+    """
+    if not texto:
+        return None
+    partes = [q for q in str(texto).replace(",", " ").split() if q]
+    if len(partes) != 3:
+        raise ErrorDeUso(
+            f"{nombre} needs THREE coordinates separated by commas, for "
+            f"example 0.5,0.5,0.5; got '{texto}' ({len(partes)} value"
+            f"{'s' if len(partes) != 1 else ''}).")
+    try:
+        return [float(q) for q in partes]
+    except ValueError:
+        raise ErrorDeUso(
+            f"{nombre} only accepts numbers; got '{texto}'.") from None
+
+
+def _miller(texto: str, nombre: str = "--miller") -> tuple:
+    """Convierte '1,1,1' o '1 1 1' en (1, 1, 1)."""
+    partes = [q for q in str(texto).replace(",", " ").split() if q]
+    if len(partes) != 3:
+        raise ErrorDeUso(
+            f"{nombre} needs THREE Miller indices, for example 1,1,1; "
+            f"got '{texto}' ({len(partes)} value"
+            f"{'s' if len(partes) != 1 else ''}).")
+    try:
+        vals = tuple(int(q) for q in partes)
+    except ValueError:
+        raise ErrorDeUso(
+            f"{nombre} only accepts integers; got '{texto}'.") from None
+    if all(v == 0 for v in vals):
+        raise ErrorDeUso(f"{nombre} cannot be 0,0,0: that is not a plane.")
+    return vals
+
+
+def _indices(texto: str, nombre: str = "--fix") -> list:
+    """Convierte '0,1,5' o '0 1 5' en [0, 1, 5] de índices de átomo."""
+    if not texto:
+        return None
+    partes = [q for q in re.split(r"[,\s]+", str(texto).strip()) if q]
+    try:
+        vals = [int(q) for q in partes]
+    except ValueError:
+        raise ErrorDeUso(
+            f"{nombre} is a list of atom indices separated by commas, for "
+            f"example 0,1,5; got '{texto}'.") from None
+    if any(v < 0 for v in vals):
+        raise ErrorDeUso(f"{nombre} does not accept negative indices.")
+    return vals
+
+
 # Opciones cuyo valor puede empezar por '-'. argparse las rompe: ve el guion
 # y decide que '-4:4:5' es otra bandera, no el valor de --range. Se pegan
 # antes de parsear para que '-r -5:5:11' funcione igual que '-r=-5:5:11',
@@ -938,7 +994,7 @@ def _cmd_eform(args) -> int:
             f"-2,-1,0,1,2; got '{args.charges}'.") from None
     if not cargas:
         raise ErrorDeUso("--charges needs at least one charge state.")
-    pos = [float(x) for x in args.position.split(",")] if args.position else None
+    pos = _posicion(args.position)
     nspin = getattr(args, "nspin", 1)
     mag = {}
     if getattr(args, "mag", None):
@@ -1363,7 +1419,7 @@ def _cmd_surface(args) -> int:
     from qekit.modules import builder
 
     atoms = structure.load(args.file)
-    miller = tuple(int(x) for x in args.miller.replace(",", " ").split())
+    miller = _miller(args.miller)
     info = builder.surface(atoms, miller=miller, layers=args.layers,
                            vacuum=args.vacuum, fix_layers=args.fix)
     print(builder.report_slab(info))
@@ -1388,9 +1444,7 @@ def _cmd_defect(args) -> int:
 
     atoms = structure.load(args.file)
     sc = _malla(args.supercell, "--supercell") or (2, 2, 2)
-    pos = None
-    if args.position:
-        pos = [float(x) for x in args.position.split(",")]
+    pos = _posicion(args.position)
     perfecto, info = builder.defect(
         atoms, kind=args.kind, site=args.site,
         new_element=args.new_element, supercell=sc, position=pos)
@@ -1673,7 +1727,7 @@ def _cmd_hubbard(args) -> int:
                         run.sitios, pares, proyeccion=args.projection,
                         umbral_v=args.v_threshold)
                     destino = Path(args.outdir) / "HUBBARD.card"
-                    destino.write_text(tarjeta)
+                    destino.write_text(tarjeta, encoding="utf-8")
                     print()
                     print("Card for the next scf (QE >= 7.1):")
                     print("  " + str(destino))
@@ -1807,8 +1861,7 @@ def _cmd_neb(args) -> int:
             "  olla-dft neb reactant.cif product.cif -o path")
     ini = structure.load(args.file)
     fin = structure.load(args.final)
-    fijos = [int(x) for x in re.split(r"[,\s]+", args.fix.strip())
-             if x] if args.fix else None
+    fijos = _indices(args.fix)
     _c, rep = nb.prepare(
         ini, fin, outdir=args.outdir, n_imagenes=args.images,
         ci=not args.no_ci, pseudo_dir=args.pseudo_dir,
@@ -1843,7 +1896,8 @@ def _cmd_thermochem(args) -> int:
     if args.outdir:
         out = Path(args.outdir); out.mkdir(parents=True, exist_ok=True)
         f = out / "TERMOQUIMICA.txt"
-        f.write_text(tc.report(tq, E_dft=args.energy) + "\n")
+        f.write_text(tc.report(tq, E_dft=args.energy) + "\n",
+                     encoding="utf-8")
         print(f"\n  {f}")
     return 0
 
@@ -2428,6 +2482,7 @@ def _temperaturas(texto, nombre="--temps"):
 
 
 def _cmd_kappa(args) -> int:
+    from qekit.core import plataforma
     from qekit.modules import kappa as kp, sweep
 
     atoms = structure.load(args.file)
@@ -2484,13 +2539,18 @@ def _cmd_kappa(args) -> int:
         if s2:
             kp.escribir_inputs(s2, out / "fc2", common,
                                kspacing=args.kspacing)
-        (out / "correr.sh").write_text(
+        # Por `escribir_script` como los otros seis .sh del paquete: fuerza
+        # finales de línea POSIX (con write_text, en Windows salen CRLF y el
+        # guion muere en WSL con «bad interpreter: /bin/bash^M») y pone el
+        # bit de ejecución.
+        plataforma.escribir_script(
+            out / "correr.sh",
             "#!/bin/bash\nfor d in fc3/d*/ fc2/d*/; do\n"
             "  [ -d \"$d\" ] || continue\n"
             "  if [ -f \"$d/pw.out\" ] && grep -q 'JOB DONE' "
             "\"$d/pw.out\"; then continue; fi\n"
             "  (cd \"$d\" && pw.x -in pw.in > pw.out 2>&1)\n"
-            "done\n", encoding="utf-8")
+            "done\n")
         print(f"--- Lattice thermal conductivity: {run.formula} ---")
         print(f"fc3 supercell {dim[0]}×{dim[1]}×{dim[2]}: {len(s3)} "
               f"configurations of {len(s3[0])} atoms")
@@ -2874,7 +2934,11 @@ def _cmd_docs(args) -> int:
           "date.")
     if args.abrir:
         import webbrowser
-        webbrowser.open(f"file://{Path(destinos[0]).resolve()}")
+        # as_uri() y no un f-string: en Windows "file://C:\Users\...\docs.html"
+        # es una URI inválida (hacen falta tres barras y separadores /), y
+        # WindowsDefault se traga el OSError, así que --abrir no abría nada y
+        # no decía por qué. También escapa espacios y acentos en POSIX.
+        webbrowser.open(Path(destinos[0]).resolve().as_uri())
     return 0
 
 

@@ -109,11 +109,46 @@ def test_al_potencial_limitante_ningun_paso_es_cuesta_arriba():
 
 
 def test_el_ph_entra_con_kT_ln10():
+    """El tamaño del término de pH es kT·ln10 por unidad, y el SIGNO depende
+    de la reacción: la OER suelta H⁺ (subir el pH la ayuda) y la HER lo
+    consume (subir el pH la estorba)."""
+    magnitud = 7.0 * echem.KB_EV * 298.15 * np.log(10.0)
+
+    o = echem.oer(RUO2, correcciones=SIN_CORR)
+    assert o.dG(0.0, 0.0)[0][1] - o.dG(0.0, 7.0)[0][1] == pytest.approx(
+        magnitud, rel=1e-9)
+
+    h = echem.her(-0.33)
+    assert h.dG(0.0, 7.0)[0][1] - h.dG(0.0, 0.0)[0][1] == pytest.approx(
+        magnitud, rel=1e-9), \
+        "en la HER, subir el pH tiene que ENCARECER el paso, no abaratarlo"
+
+
+def test_la_her_necesita_potencial_catodico():
+    """Regresión: la HER llevaba el signo de potencial de la OER.
+
+    Sus pasos consumen H⁺+e⁻, así que ΔG = ΔG₀ + eU: el potencial que pone
+    a cero el paso peor es NEGATIVO frente al RHE. Con el signo de la OER se
+    informaba U_L = +|ΔG| para una reacción catódica, y la escalera de
+    energías se movía al revés al aplicar potencial.
+    """
+    e = echem.her(0.0)                       # ΔG_H* = +0.24 eV
+    assert e.dG_H == pytest.approx(0.24)
+    assert e.U_limitante == pytest.approx(-0.24), \
+        "la HER es catódica: su potencial limitante es negativo"
+    # η se sigue informando positivo (es lo que hay que aplicar de más)
+    assert e.sobrepotencial == pytest.approx(0.24)
+    # y a ese potencial ningún paso queda cuesta arriba
+    assert max(g for _, g in e.dG(e.U_limitante, 0.0)) == pytest.approx(
+        0.0, abs=1e-9)
+
+
+def test_el_pt_sigue_en_la_cumbre_del_volcan():
+    """El descriptor no cambia con el signo: |ΔG_H*| de Pt(111) es 0.09 eV."""
     e = echem.her(-0.33)
-    g0 = e.dG(0.0, 0.0)[0][1]
-    g7 = e.dG(0.0, 7.0)[0][1]
-    esperado = 7.0 * echem.KB_EV * e.T * np.log(10.0)
-    assert g0 - g7 == pytest.approx(esperado, rel=1e-9)
+    assert e.dG_H == pytest.approx(-0.09)
+    assert e.sobrepotencial == pytest.approx(0.09)
+    assert e.U_limitante == pytest.approx(-0.09)
 
 
 def test_el_diagrama_de_pourbaix_tiene_la_forma_pedida():

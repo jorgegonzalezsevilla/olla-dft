@@ -150,6 +150,15 @@ def run(volumenes, energias, frecuencias, T=None, natoms: int = 1,
     """
     V = np.asarray(volumenes, dtype=float)
     E = np.asarray(energias, dtype=float)
+    # ORDENAR por volumen antes de nada. La parábola se toma por ÍNDICE
+    # alrededor del mínimo y el C_v se interpola con np.interp, que exige V
+    # creciente: un fichero con los volúmenes al revés (listar carpetas
+    # V_1.10, V_1.05... da justo eso) ajustaba puntos arbitrarios y devolvía
+    # un C_v sin sentido, sin avisar de nada.
+    orden = np.argsort(V)
+    if not np.array_equal(orden, np.arange(len(V))):
+        V, E = V[orden], E[orden]
+        frecuencias = [frecuencias[i] for i in orden]
     if T is None:
         T = np.arange(0.0, 1001.0, 10.0)
     T = np.asarray(T, dtype=float)

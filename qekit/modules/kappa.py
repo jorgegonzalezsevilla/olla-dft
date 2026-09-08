@@ -297,6 +297,8 @@ def acumulada(run, iT=None):
     w = run.pesos[:, None] * np.ones_like(contrib)
     ok = np.isfinite(L) & np.isfinite(contrib) & (contrib > 0)
     Lf, cf, wf = L[ok], contrib[ok], w[ok]
+    if Lf.size == 0:                    # ningún modo aporta (todo Γ o NaN)
+        return None, None
     orden = np.argsort(Lf)
     acum = np.cumsum(cf[orden] * wf[orden])
     if acum[-1] <= 0:
