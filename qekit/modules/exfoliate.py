@@ -36,6 +36,18 @@ from qekit.core.errors import ErrorDeUso
 
 EV_A2_TO_J_M2 = 16.02176634
 
+# E_exf = (E_monocapa − E_bulk/N)/A da por hecho que las N capas de la celda
+# son IGUALES: solo entonces E_bulk/N es la energía de una capa. En una
+# heteroestructura (grafeno sobre h-BN, por ejemplo) `make_slab` aísla UNA de
+# ellas y el reparto por N mezcla capas distintas, así que el número no
+# significa nada. Antes esto pasaba en silencio.
+AVISO_CAPAS_DISTINTAS = (
+    "WARNING: the layers in the cell are NOT equivalent ({formulas}).\n"
+    "E_exf divides E(bulk) by the number of layers, which only makes sense when\n"
+    "they are all the same. For a heterostructure compute the separation energy\n"
+    "of the specific interface instead; this number is not meaningful."
+)
+
 
 @dataclass
 class ExfoliationRun:
@@ -48,6 +60,12 @@ class ExfoliationRun:
     jobs: list = field(default_factory=list)   # [bulk, slab]
     E_bulk: float = None          # eV
     E_slab: float = None          # eV
+    layer_formulas: list = field(default_factory=list)   # una por capa
+
+    @property
+    def equivalent_layers(self) -> bool:
+        """¿Son todas las capas iguales? De eso depende que E_bulk/N valga."""
+        return len(set(self.layer_formulas)) <= 1
 
 
 def prepare(atoms, outdir: str = "exfoliacion", vacuum: float = 20.0,
@@ -83,6 +101,7 @@ def prepare(atoms, outdir: str = "exfoliacion", vacuum: float = 20.0,
     run = ExfoliationRun(
         n_layers=len(ana.layers), area=area, natoms_bulk=len(atoms),
         natoms_slab=len(slab), vacuum=vacuum, vdw=vdw,
+        layer_formulas=[capa.formula for capa in ana.layers],
     )
 
     report = ["--- Exfoliation energy ---",
@@ -94,6 +113,9 @@ def prepare(atoms, outdir: str = "exfoliacion", vacuum: float = 20.0,
               f"Monolayer: {run.natoms_slab} atoms with {vacuum:g} Å of vacuum",
               f"k-grids: bulk {grid_bulk[0]}x{grid_bulk[1]}x{grid_bulk[2]}, "
               f"monolayer {grid_slab[0]}x{grid_slab[1]}x{grid_slab[2]}"]
+    if not run.equivalent_layers:
+        report.append(AVISO_CAPAS_DISTINTAS.format(
+            formulas=", ".join(run.layer_formulas)))
     if vdw:
         report.append(f"Dispersion correction: vdw_corr = '{vdw}'")
         lda_like = any(t in p["filename"].lower()
@@ -161,6 +183,10 @@ def report_result(run: ExfoliationRun) -> str:
     per_area = diff / run.area               # eV/Å²
     per_atom = diff / run.natoms_slab * 1000.0
 
+    if not run.equivalent_layers:
+        lines.append(AVISO_CAPAS_DISTINTAS.format(
+            formulas=", ".join(run.layer_formulas)))
+        lines.append("")
     lines += [
         f"E(bulk)      = {run.E_bulk / qeout.RY_EV:16.8f} Ry  "
         f"({run.natoms_bulk} atoms, {run.n_layers} layers)",

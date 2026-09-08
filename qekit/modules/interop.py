@@ -95,7 +95,8 @@ def envelope(tipo: str, datos: dict, atoms=None, notas: str = "") -> dict:
 def write(doc: dict, path) -> str:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+    path.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n",
+                    encoding="utf-8")
     return str(path)
 
 

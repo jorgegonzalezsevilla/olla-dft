@@ -506,9 +506,9 @@ def export(run: HubbardRun, outdir: str = ".") -> list:
     filas = ["# site   species   U(eV)"]
     for s in run.sitios:
         filas.append(f"{s.sitio:7d} {s.etiqueta:>8s} {s.U:9.4f}")
-    f.write_text(cab + "\n" + "\n".join(filas) + "\n")
+    f.write_text(cab + "\n" + "\n".join(filas) + "\n", encoding="utf-8")
     txt = out / "HUBBARD_U.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

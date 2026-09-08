@@ -363,7 +363,7 @@ def export(res: Amorfo, outdir: str = ".") -> list:
     cif = out / "amorfo.cif"
     structure.convert(res.atoms, str(cif))
     txt = out / "AMORFO.txt"
-    txt.write_text(report(res) + "\n")
+    txt.write_text(report(res) + "\n", encoding="utf-8")
     dat = out / "AMORFO.dat"
     p = res.protocolo
     lineas = [provenance.header(
@@ -375,5 +375,5 @@ def export(res: Amorfo, outdir: str = ".") -> list:
         f"# {'sample':>8s} {'T(K)':>10s} {'E(eV)':>16s}"]
     for i, (T, e) in enumerate(zip(res.temperaturas, res.energias), 1):
         lineas.append(f"{i:10d} {T:10.2f} {e:16.6f}")
-    dat.write_text("\n".join(lineas) + "\n")
+    dat.write_text("\n".join(lineas) + "\n", encoding="utf-8")
     return [str(cif), str(dat), str(txt)]

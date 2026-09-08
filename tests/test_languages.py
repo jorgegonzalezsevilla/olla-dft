@@ -159,8 +159,29 @@ def test_language_catalogs_and_documentation_are_packaged():
     for lang in ('en', 'es', 'de'):
         for name in ('menu', 'studio', 'onboarding', 'dashboard', 'cli'):
             assert json.loads((root / f'qekit/data/i18n/{name}_{lang}.json').read_text(encoding='utf-8'))
-    for name in ('README.es.md', 'docs/COMANDOS.md', 'docs/TEORIA.md', 'docs/COMMANDS.md', 'docs/THEORY.md'):
+    # El alemán se quedaba fuera de esta lista aunque el bucle de arriba ya lo
+    # recorra: README.de.md y docs/BEFEHLE.md no estaban protegidos por nada.
+    for name in ('README.md', 'README.es.md', 'README.de.md',
+                 'docs/COMANDOS.md', 'docs/TEORIA.md',
+                 'docs/COMMANDS.md', 'docs/THEORY.md', 'docs/BEFEHLE.md'):
         assert (root / name).is_file()
+
+
+def test_los_tres_readme_advierten_del_alcance_de_la_resiliencia():
+    """La salvedad tiene que estar en los TRES, no solo en en/es.
+
+    README.de.md no mencionaba `resilient` en ningún punto, así que el lector
+    alemán no veía que la recuperación tras apagón físico o pérdida de disco no
+    está demostrada. Es justo el límite que no se puede omitir.
+    """
+    root = Path(__file__).resolve().parents[1]
+    marcas = {'README.md': 'has not been demonstrated',
+              'README.es.md': 'no está demostrada',
+              'README.de.md': 'ist nicht nachgewiesen'}
+    for nombre, marca in marcas.items():
+        texto = (root / nombre).read_text(encoding='utf-8')
+        assert 'resilient' in texto, f'{nombre} no menciona el comando'
+        assert marca in texto, f'{nombre} no advierte del alcance'
 
 
 def test_legacy_settings_survive_language_selection(preferences, monkeypatch):

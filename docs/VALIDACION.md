@@ -175,10 +175,13 @@ Las 57 configuraciones desplazadas de una supercelda 2×2×2 se calcularon con
 pw.x y la ecuación de Boltzmann de fonones en RTA da κ a 300 K por debajo de lo
 medido en la diferencia que se espera de la RTA (10–15 % por debajo de la
 solución exacta) más el corte de la fc3. La dependencia con la temperatura es
-el T⁻¹ de los procesos Umklapp, y la mitad de κ la llevan fonones con recorrido
-libre medio mayor que 1.0 µm, que es justo lo que miden los experimentos de
-espectroscopía de recorrido libre en silicio — es el número que dice por qué
-nanoestructurar el silicio funciona tan bien para termoeléctricos. El mismo
+el T⁻¹ de los procesos Umklapp. La distribución de recorridos libres medios es
+la que dice por qué nanoestructurar el silicio funciona tan bien para
+termoeléctricos, pero **la cifra que había aquí (Λ₅₀ = 1.0 µm) se obtuvo con un
+convenio de vida media equivocado** —le faltaba el 2π que separa la frecuencia
+cíclica de la angular— y está pendiente de recalcular con la fórmula corregida,
+que es la del propio phono3py: τ = 1/(2·2π·Γ). El factor afecta solo al eje Λ,
+no a κ ni a su dependencia con la temperatura, que las calcula phono3py. El mismo
 cálculo con fuerzas de MACE en lugar de DFT tarda 8 segundos en vez de 40
 minutos, reproduce el exponente y falla el valor absoluto por un factor 2: por
 eso el informe lo dice cada vez que las fuerzas no vienen de DFT. La
@@ -190,7 +193,7 @@ para lo que sirve.
 |---|---|---|---|
 | κ a 300 K, fuerzas DFT, RTA | 101 W/m·K (96 con isótopos naturales) | ~140 W/m·K | experimento |
 | Exponente de temperatura, fuerzas DFT | κ ∝ T⁻¹·¹⁶ | T⁻¹ | procesos Umklapp |
-| Recorrido libre medio que lleva la mitad de κ | 1.0 µm | ~1 µm | espectroscopía de recorrido libre |
+| Recorrido libre medio que lleva la mitad de κ | pendiente de recalcular | ~1 µm | espectroscopía de recorrido libre |
 | κ a 300 K, fuerzas MACE | 51 W/m·K | 101 W/m·K (DFT) | este trabajo |
 | Exponente de temperatura, fuerzas MACE | κ ∝ T⁻¹·⁰⁶ | T⁻¹ | procesos Umklapp |
 | Convergencia de supercelda (MACE), 2×2×2 → 3×3×3 | 50.1 → 50.8 W/m·K | convergido | este trabajo |

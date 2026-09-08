@@ -532,7 +532,7 @@ def export(run: ElPhRun, outdir: str = ".") -> list:
                    comments="# ")
         escritos.append(str(f))
     txt = out / "ELPH.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     escritos.append(str(txt))
     return escritos
 

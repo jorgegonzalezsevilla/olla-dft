@@ -366,5 +366,5 @@ def export(res: XPSResult, outdir: str = ".") -> list:
         vals = " ".join(f"{res.contributions[k][i]:14.6f}"
                         for k in res.contributions)
         lines.append(f"{i+1:8d} {sym:>8s} {vals}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return [str(f)]

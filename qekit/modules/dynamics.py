@@ -573,7 +573,7 @@ def export(a: AnalisisMD, outdir: str = ".") -> list:
         escritos.append(str(f))
 
     txt = out / "MD.txt"
-    txt.write_text(report(a) + "\n")
+    txt.write_text(report(a) + "\n", encoding="utf-8")
     escritos.append(str(txt))
     return escritos
 

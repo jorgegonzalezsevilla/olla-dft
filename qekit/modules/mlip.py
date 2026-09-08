@@ -318,7 +318,7 @@ def write_provenance(run: MlipRun, destino) -> str:
                   "ESPRESSO energies: different energy surface."),
     }
     f = carpeta / MARCA
-    f.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+    f.write_text(json.dumps(doc, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return str(f)
 
 
@@ -331,7 +331,7 @@ def read_provenance(carpeta):
     if not f.exists():
         return None
     try:
-        return json.loads(f.read_text())
+        return json.loads(f.read_text(encoding="utf-8"))
     except Exception:                                  # noqa: BLE001
         return None
 

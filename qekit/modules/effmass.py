@@ -365,10 +365,12 @@ def prepare(atoms, bs: bands_mod.BandStructure, outdir: str = "masa_efectiva",
            "Order: pw.x -in scf.in  ->  pw.x -in masa.in",
            "Then: olla-dft effmass structure.cif --collect -o " + str(outdir)]
     if sweep.writing_inputs():
-        (out / "masa_meta.json").write_text(json.dumps(
-            {"lineas": [{"portador": c, "direccion": d, "npts": n,
-                         "kindex": int(k)} for c, d, n, k in meta]},
-            ensure_ascii=False, indent=2))
+        (out / "masa_meta.json").write_text(
+            json.dumps(
+                {"lineas": [{"portador": c, "direccion": d, "npts": n,
+                             "kindex": int(k)} for c, d, n, k in meta]},
+                ensure_ascii=False, indent=2),
+            encoding="utf-8")
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -382,7 +384,7 @@ def load_meta(outdir) -> list:
         raise FileNotFoundError(
             f"{f} is missing: first run 'olla-dft effmass ... --bands-dir ...' "
             "to prepare the fine calculation")
-    d = json.loads(f.read_text())
+    d = json.loads(f.read_text(encoding="utf-8"))
     return [(x["portador"], x["direccion"], x["npts"], x["kindex"])
             for x in d["lineas"]]
 
@@ -513,5 +515,5 @@ def export(run: EffMassRun, outdir: str = ".") -> list:
         lines.append(f"{x.carrier:12s} {x.band + 1:6d} {x.mass:10.4f} "
                      f"{x.r2:8.4f} {x.npts:4d} {x.window:10.4f}  "
                      f"{x.direction}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return [str(f)]

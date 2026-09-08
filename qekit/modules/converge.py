@@ -57,7 +57,13 @@ class ConvergenceRun:
         ])
 
     def converged_index(self):
-        """Primer punto a partir del cual todos quedan bajo el umbral."""
+        """Primer punto a partir del cual todos quedan bajo el umbral.
+
+        OJO con el último: es la propia referencia, así que su diferencia es
+        0 y SIEMPRE cumple. Un índice igual al último no significa que la
+        serie haya convergido, sino que no hay ningún punto posterior con
+        que comprobarlo — `report` lo distingue y pide alargar la serie.
+        """
         d = self.per_atom_diffs()
         if d.size == 0:
             return None
@@ -66,6 +72,40 @@ class ConvergenceRun:
             if np.all(np.isnan(tail) | (tail <= self.threshold)):
                 return i
         return None
+
+
+def _grid_pedida(v, atoms) -> tuple:
+    """Un valor de --values para kmesh: o '8x8x8', o un espaciado en Å⁻¹.
+
+    Sin esto, '4x4' llegaba como tupla de dos y reventaba más adelante con un
+    IndexError al escribir la etiqueta, y un valor no numérico salía como
+    ValueError crudo en vez de como error de uso.
+    """
+    texto = str(v)
+    if "x" in texto.lower():
+        partes = [q for q in texto.lower().split("x") if q != ""]
+        if len(partes) != 3:
+            raise ErrorDeUso(
+                f"a k-mesh needs THREE numbers separated by x, for example "
+                f"8x8x8; got '{v}' ({len(partes)} value"
+                f"{'s' if len(partes) != 1 else ''}).")
+        try:
+            grid = tuple(int(q) for q in partes)
+        except ValueError:
+            raise ErrorDeUso(
+                f"a k-mesh only accepts integers; got '{v}'.") from None
+        if any(g < 1 for g in grid):
+            raise ErrorDeUso(f"a k-mesh cannot have zero points; got '{v}'.")
+        return grid
+    try:
+        espaciado = float(texto)
+    except ValueError:
+        raise ErrorDeUso(
+            f"--values takes either meshes like 8x8x8 or k-spacings in "
+            f"1/Angstrom like 0.20; got '{v}'.") from None
+    if espaciado <= 0:
+        raise ErrorDeUso(f"a k-spacing must be positive; got '{v}'.")
+    return kpoints.kgrid_from_spacing(atoms, espaciado)
 
 
 # ----------------------------------------------------------------------
@@ -124,9 +164,7 @@ def prepare(atoms, kind: str, outdir: str = "convergencia",
 
     else:  # kmesh
         if values:
-            grids = [tuple(int(x) for x in str(v).split("x")) if "x" in str(v)
-                     else kpoints.kgrid_from_spacing(atoms, float(v))
-                     for v in values]
+            grids = [_grid_pedida(v, atoms) for v in values]
             shown = values
         else:
             spacings = [0.40, 0.30, 0.25, 0.20, 0.15, 0.12]
@@ -191,16 +229,16 @@ def report(run: ConvergenceRun) -> str:
 
     idx = run.converged_index()
     lines.append("")
-    if idx is None:
+    # Con puntos suficientes `converged_index` nunca devuelve None: el último
+    # es su propia referencia y cumple siempre. Por eso el caso "no ha
+    # convergido" es justamente ese, y no una rama aparte (la que había aquí
+    # antes no se podía alcanzar nunca y prometía un mensaje que nadie veía).
+    if idx == len(run.labels) - 1:
         lines.append(
             f"NOT converged within {run.threshold:g} meV/atom with the values "
-            "tried.\nExtend the series towards denser values."
-        )
-    elif idx == len(run.labels) - 1:
-        lines.append(
-            f"Only the last point is below {run.threshold:g} meV/atom, so "
-            "there is no margin\nto be sure it has flattened there: extend the "
-            "series further."
+            "tried: only the\nlast point is below the threshold, and it is the "
+            "reference itself, so there is\nno margin to tell that the curve has "
+            "flattened. Extend the series towards\ndenser values."
         )
     else:
         lines.append(f"CONVERGES at: {run.labels[idx]}")
@@ -233,10 +271,10 @@ def export(run: ConvergenceRun, outdir: str = ".") -> list:
         if e is None:
             continue
         lines.append(f"{v:16.6f} {e / qeout.RY_EV:18.10f} {diff:16.4f}")
-    fname.write_text("\n".join(lines) + "\n")
+    fname.write_text("\n".join(lines) + "\n", encoding="utf-8")
     written = [str(fname)]
     txt = out / "CONVERGENCIA.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     written.append(str(txt))
     return written
 
@@ -259,8 +297,14 @@ def plot(run: ConvergenceRun, outfile: str = "convergencia",
     d = run.per_atom_diffs()
     xs = [v for v, e in zip(run.values, run.energies) if e is not None]
     ys = [diff for diff, e in zip(d, run.energies) if e is not None]
-    if not xs:
-        raise FaltanDatos("there are no converged points to plot")
+    # Con UN solo punto terminado, per_atom_diffs devuelve un array vacío (no
+    # hay contra qué comparar) y `ys` se queda sin elementos: matplotlib moría
+    # con «x and y must have same first dimension». La curva necesita dos.
+    if len(xs) < 2 or len(ys) != len(xs):
+        raise FaltanDatos(
+            "at least TWO finished calculations are needed to draw the "
+            f"convergence curve; there {'is' if len(xs) == 1 else 'are'} "
+            f"{len(xs)}.")
 
     fig, ax = qstyle.new_figure(width, journal, aspect)
     color = qstyle.palette(1, mono=mono)[0]

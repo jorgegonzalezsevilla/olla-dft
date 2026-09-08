@@ -26,6 +26,17 @@ the affected commands.
   already in GPa. The third route to B₀ was reported ten times too small and
   disagreed with the equation of state even when both agreed.
 
+- `kappa --grain`: pass the grain size to phono3py in micrometres, the unit it
+  documents, instead of converting it to Angstrom. The conversion made boundary
+  scattering 10,000 times weaker than requested, so `--grain` had no effect on κ
+  while the report stated it had been applied.
+- `kappa`: use phono3py's own lifetime convention, τ = 1/(2·2π·Γ). The missing
+  2π — which converts cyclic to angular frequency — made every reported mean
+  free path 2π times too long. κ, its temperature dependence and the shape of
+  the cumulative curve are unaffected (the factor cancels on normalisation);
+  only the Λ axis moves. **The Λ₅₀ = 1.0 µm figure recorded in the validation
+  documents was obtained with the old convention and is pending recomputation.**
+
 Other fixes, with no effect on scientific values:
 
 - Do not split an executable path on spaces when building the pw.x command.
@@ -45,6 +56,31 @@ Other fixes, with no effect on scientific values:
 - Return no accumulation in `kappa` when no mode contributes, instead of
   raising `IndexError`.
 - Open documentation with a valid `file://` URI on Windows.
+- Write every generated file as UTF-8 explicitly, and read back as UTF-8 the
+  files the program itself wrote. 51 writes across 33 modules used the machine's
+  locale encoding: on Windows, exporting any report containing Δ, Å, κ or ⁻¹
+  raised `UnicodeEncodeError`, and JSON state written as UTF-8 came back as
+  mojibake. A test now enforces the convention for the whole package.
+- `exfoliate`: warn when the layers in the cell are not equivalent. E_exf
+  divides E(bulk) by the number of layers, which is meaningless for a
+  heterostructure; the number came out silently.
+- `converge`: reject malformed `--values` k-meshes (`4x4` raised `IndexError`),
+  and require two finished calculations before drawing the curve (one raised a
+  matplotlib error). The "not converged" branch of the report was unreachable —
+  the densest point is its own reference and always qualifies — so its advice
+  never reached anyone; the reachable branch now carries it.
+- `doctor --system`: measure available memory on macOS and Windows instead of
+  only Linux, look for the platform's binary names (`pw.exe` on Windows), and
+  stop reporting a Quantum ESPRESSO installation as fine when pw.x is missing.
+- `kappa`: build the report warnings without mutating the run, so they are no
+  longer duplicated in `KAPPA.txt`; and say so when phono3py does not expose the
+  per-mode data instead of dropping a section, a file and a figure in silence.
+- Run the lattice-thermal-conductivity tests in CI. Their `phono3py` skip was at
+  module level, so all 30 were skipped and three of them had been failing since
+  the 1.5.0 English translation without anyone seeing it.
+- Add the resilience scope caveat to `README.de.md`, which did not mention
+  `resilient` at all, so German readers never saw that recovery after a physical
+  power outage or disk loss has not been demonstrated.
 - Write Hubbard cards, thermochemistry reports and exported themes as UTF-8.
 
 ## 1.5.0 — 2026-09-05

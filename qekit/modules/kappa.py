@@ -249,7 +249,14 @@ def resolver(ph, fuerzas, fuerzas_fc2=None, malla=11, temperaturas=None,
     ph.run_thermal_conductivity(
         temperatures=temperaturas,
         is_isotope=bool(isotopos),
-        boundary_mfp=(float(frontera_um) * 1e4 if frontera_um else 1e6),
+        # boundary_mfp de phono3py está EN MICRÓMETROS: su propio código
+        # calcula Γ_b = |v|·1e6·Angstrom/(4π·boundary_mfp) y lo documenta así
+        # (scattering_solvers.py). Pasarlo en Å multiplicando por 1e4 hacía la
+        # dispersión por fronteras 10⁴ veces más débil de lo pedido: --grain
+        # quedaba inerte y κ salía la del cristal infinito, mientras el informe
+        # decía que se había aplicado. El 1e6 de «sin fronteras» (= 1 m) ya
+        # estaba en µm, que es lo que delataba la incoherencia.
+        boundary_mfp=(float(frontera_um) if frontera_um else 1e6),
         write_kappa=False)
     return ph.thermal_conductivity, m
 
@@ -261,12 +268,22 @@ def recoger(run, ph, tc, malla):
     run.kappa = np.asarray(tc.kappa[0], float)          # (nT, 6) Voigt
     run.frecuencias = np.asarray(tc.frequencies, float)
     run.pesos = np.asarray(tc.grid_weights, float)
+    # Estos tres son los que alimentan la curva de recorrido libre medio. Si
+    # phono3py renombra uno, antes desaparecían EN SILENCIO la sección del
+    # informe, KAPPA_recorrido.dat y la segunda figura, y el usuario solo veía
+    # que faltaba salida. Ahora se acota a lo que puede pasar de verdad
+    # (un atributo que ya no está) y queda dicho en los avisos.
     try:
         run.gamma = np.asarray(tc.gamma[0], float)
         run.velocidades = np.asarray(tc.group_velocities, float)
         run.cv = np.asarray(tc.mode_heat_capacities, float)
-    except Exception:                                       # noqa: BLE001
-        pass
+    except (AttributeError, TypeError, IndexError) as exc:
+        run.gamma = run.velocidades = run.cv = None
+        run.avisos.append(
+            "this phono3py does not expose the per-mode data (gamma, group "
+            f"velocities, heat capacities): {exc}.\n  κ(T) is unaffected, but "
+            "there is no mean free path section, no KAPPA_recorrido.dat and no "
+            "second figure.")
     d = np.abs(run.temperaturas - 300.0)
     run.i300 = int(np.argmin(d)) if len(d) else None
     return run
@@ -291,7 +308,12 @@ def acumulada(run, iT=None):
     # transportan calor en un cristal infinito; se descartan más abajo. El
     # errestate tiene que cubrir TAMBIÉN los productos, no solo la división.
     with np.errstate(divide="ignore", invalid="ignore"):
-        tau = 1.0 / (2.0 * run.gamma[iT])
+        # τ = 1/(2·2π·Γ), el convenio del propio phono3py (su get_mfp calcula
+        # |v|/(2·2π·Γ) y su factor a W/mK lleva el mismo 1/2π «from definition
+        # of lifetime»). Un 2 pasa la Γ de HWHM a anchura total y el 2π pasa
+        # de frecuencia cíclica a angular, porque la Γ que devuelve viene en
+        # THz ordinarios. Sin el 2π, Λ salía 6.28 veces más largo.
+        tau = 1.0 / (2.0 * 2.0 * np.pi * run.gamma[iT])
         L = vmod * tau                                    # Å
         contrib = run.cv[iT] * v2 * tau                   # ∝ κ del modo
     w = run.pesos[:, None] * np.ones_like(contrib)
@@ -383,8 +405,13 @@ def report(run) -> str:
                  "~10 % less than the")
         L.append("    isotopically pure one: if you compare with an experiment, "
                  "use --isotopes.")
+    # Los avisos se ARMAN aquí, en una lista local. Antes se hacía `append`
+    # sobre run.avisos, y como el CLI llama a report() y después a export()
+    # —que vuelve a llamarlo—, cada WARNING acababa duplicado en KAPPA.txt, y
+    # triplicado si algo más lo llamaba una tercera vez.
+    avisos = list(run.avisos)
     if run.fuente and "ESPRESSO" not in run.fuente.upper():
-        run.avisos.append(
+        avisos.append(
             f"The forces come from {run.fuente}, not from DFT. The shape of "
             f"κ(T) usually comes out right,\n  but the absolute value may be "
             f"far off: with small MACE-MP silicon gives\n  ~51 W/mK at 300 K "
@@ -392,13 +419,13 @@ def report(run) -> str:
             f"and\n  the grid, and repeat with Quantum ESPRESSO before "
             f"publishing anything.")
     if int(np.prod(run.dim)) <= 8:
-        run.avisos.append(
+        avisos.append(
             f"The fc3 supercell is {run.dim[0]}×{run.dim[1]}×{run.dim[2]}"
             f", which is small. κ has to converge\n  in the supercell "
             f"size AND in the q-grid at the same time: raise one, then the "
             f"other,\n  and do not trust it until neither of the two moves the "
             f"result.")
-    for a in run.avisos:
+    for a in avisos:
         L += ["", f"WARNING: {a}"]
     return "\n".join(L)
 

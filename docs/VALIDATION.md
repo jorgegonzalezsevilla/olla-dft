@@ -172,10 +172,13 @@ The 57 displaced configurations of a 2×2×2 supercell were computed with pw.x
 and the phonon Boltzmann equation in the RTA gives κ at 300 K below the
 measured value by the amount expected from the RTA (10–15 % under the exact
 solution) plus the fc3 cutoff. The temperature dependence is the T⁻¹ of
-Umklapp processes, and half of κ is carried by phonons with mean free path
-above 1.0 µm, which is exactly what mean-free-path spectroscopy measures in
-silicon and the number that explains why nanostructuring silicon works so
-well for thermoelectrics. The same calculation with MACE forces instead of
+Umklapp processes. The mean-free-path distribution is the number that explains
+why nanostructuring silicon works so well for thermoelectrics, but **the figure
+that used to be here (Λ₅₀ = 1.0 µm) was obtained with the wrong lifetime
+convention** — it was missing the 2π that separates cyclic from angular
+frequency — and is pending recomputation with the corrected formula, which is
+phono3py's own: τ = 1/(2·2π·Γ). The factor affects the Λ axis only, not κ or
+its temperature dependence, which phono3py computes. The same calculation with MACE forces instead of
 DFT takes 8 seconds instead of 40 minutes, reproduces the exponent and misses
 the absolute value by a factor of 2: that is why the report says so every
 time the forces do not come from DFT. Supercell convergence was checked
@@ -186,7 +189,7 @@ nothing), which is exactly what it is for.
 |---|---|---|---|
 | κ at 300 K, DFT forces, RTA | 101 W/m·K (96 with natural isotopes) | ~140 W/m·K | experiment |
 | Temperature exponent, DFT forces | κ ∝ T⁻¹·¹⁶ | T⁻¹ | Umklapp scattering |
-| Mean free path carrying half of κ | 1.0 µm | ~1 µm | mean-free-path spectroscopy |
+| Mean free path carrying half of κ | pending recomputation | ~1 µm | mean-free-path spectroscopy |
 | κ at 300 K, MACE forces | 51 W/m·K | 101 W/m·K (DFT) | this work |
 | Temperature exponent, MACE forces | κ ∝ T⁻¹·⁰⁶ | T⁻¹ | Umklapp scattering |
 | Supercell convergence (MACE), 2×2×2 → 3×3×3 | 50.1 → 50.8 W/m·K | converged | this work |

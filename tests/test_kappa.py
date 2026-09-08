@@ -5,13 +5,23 @@ dependencia opcional, y el resto del módulo (informe, acumulada, ajustes)
 tiene que funcionar y probarse sin ella.
 """
 
+import importlib.util
+
 import numpy as np
 import pytest
 
 from qekit.core.errors import ErrorDeUso, FaltanDatos
 from qekit.modules import kappa as K
 
-p3 = pytest.importorskip("phono3py", reason="phono3py es opcional")
+# phono3py es un extra opcional y CI solo instala `.[test]`. Cuando este
+# importorskip estaba a nivel de MÓDULO se saltaban las 30 pruebas, incluidas
+# las del post-proceso, que no lo necesitan para nada: el módulo quedaba con
+# 1 de 13 funciones ejercitadas y tres pruebas llevaban rotas desde la
+# traducción al inglés sin que nadie lo viera. Ahora solo lo llevan las que
+# tocan la librería.
+necesita_phono3py = pytest.mark.skipif(
+    importlib.util.find_spec("phono3py") is None,
+    reason="phono3py es un extra opcional (pip install olla-dft[kappa])")
 
 
 def _si():
@@ -22,6 +32,7 @@ def _si():
 # ----------------------------------------------------------------------
 # Configuraciones desplazadas
 # ----------------------------------------------------------------------
+@necesita_phono3py
 def test_el_silicio_2x2x2_pide_57_configuraciones():
     """Es un número fijo: lo fija la simetría, no una elección.
 
@@ -35,6 +46,7 @@ def test_el_silicio_2x2x2_pide_57_configuraciones():
     assert s2 == []
 
 
+@necesita_phono3py
 def test_una_supercelda_aparte_para_la_parte_armonica():
     ph = K.preparar(_si(), (2, 2, 2), dim_fc2=(3, 3, 3))
     s3, s2 = K.configuraciones(ph)
@@ -42,6 +54,7 @@ def test_una_supercelda_aparte_para_la_parte_armonica():
     assert len(s2) >= 1 and len(s2[0]) == 54
 
 
+@necesita_phono3py
 def test_las_configuraciones_son_estructuras_de_ase_periodicas():
     ph = K.preparar(_si(), (2, 2, 2))
     s3, _ = K.configuraciones(ph)
@@ -53,6 +66,7 @@ def test_las_configuraciones_son_estructuras_de_ase_periodicas():
     assert not np.allclose(a.get_positions(), b.get_positions())
 
 
+@necesita_phono3py
 def test_el_desplazamiento_es_el_pedido():
     """Se mide sobre las propias estructuras, no sobre la API de phono3py.
 
@@ -68,6 +82,7 @@ def test_el_desplazamiento_es_el_pedido():
     assert (movidos > 1e-9).sum() == 1        # solo uno se mueve en la fc3
 
 
+@necesita_phono3py
 def test_escribir_inputs_hace_una_carpeta_por_configuracion(tmp_path):
     from qekit.modules import sweep
     ph = K.preparar(_si(), (2, 2, 2))
@@ -126,30 +141,43 @@ def test_sin_datos_no_hay_exponente():
 def test_el_informe_dice_que_es_rta_y_que_faltan_los_isotopos():
     r = K.report(_run_sintetico())
     assert "RTA" in r
-    assert "isótopos" in r
-    assert "cuatro" in r          # los procesos de cuatro fonones
+    assert "isotope" in r
+    assert "four-phonon" in r      # los procesos de cuatro fonones
 
 
 def test_el_informe_avisa_de_que_el_potencial_no_es_dft():
     run = _run_sintetico()
     run.fuente = "MACE"
     r = K.report(run)
-    assert any("no de DFT" in a for a in run.avisos)
+    assert "not from DFT" in r
     assert "MACE" in r
 
 
 def test_el_informe_avisa_de_una_supercelda_pequena():
     run = _run_sintetico()
     run.dim = (2, 2, 2)
-    K.report(run)
-    assert any("pequeña" in a for a in run.avisos)
+    assert "supercell is 2×2×2, which is small" in K.report(run)
 
 
 def test_una_supercelda_grande_no_dispara_el_aviso():
+    """Antes buscaba «pequeña» en un informe en inglés: pasaba sin comprobar nada."""
     run = _run_sintetico()
     run.dim = (3, 3, 3)
-    K.report(run)
-    assert not any("pequeña" in a for a in run.avisos)
+    assert "which is small" not in K.report(run)
+
+
+def test_el_informe_no_duplica_los_avisos_al_llamarlo_dos_veces():
+    """Regresión: `report` hacía append sobre run.avisos.
+
+    El CLI lo llama y después llama a `export`, que vuelve a llamarlo, así que
+    cada WARNING salía dos veces en KAPPA.txt (y tres si algo más lo pedía).
+    """
+    run = _run_sintetico()
+    run.fuente, run.dim = "MACE", (2, 2, 2)
+    primero = K.report(run)
+    assert primero.count("WARNING:") == 2
+    assert K.report(run).count("WARNING:") == 2
+    assert run.avisos == [], "report() no debe modificar el KappaRun"
 
 
 def test_el_informe_reconoce_el_uno_partido_por_t_de_umklapp():
@@ -222,3 +250,150 @@ def test_lista_de_temperaturas_mal_escrita(mal):
     from qekit.cli import _temperaturas
     with pytest.raises(ErrorDeUso):
         _temperaturas(mal)
+
+
+# ----------------------------------------------------------------------
+# Lo que se le pide a phono3py y con qué convenio se lee lo que devuelve.
+# Dos fallos que no cambiaban nada visible: la opción quedaba inerte y el
+# eje Λ salía escalado. Ninguna de las dos pruebas necesita la librería.
+# ----------------------------------------------------------------------
+class _Phono3pyFalso:
+    """Registra lo que `resolver` le pide, sin calcular nada."""
+
+    def __init__(self):
+        self.kw = {}
+        self.mesh_numbers = None
+        self.forces = None
+        self.phonon_forces = None
+        self.thermal_conductivity = "tc"
+        self.llamadas = []
+
+    def __getattr__(self, nombre):
+        if nombre.startswith(("produce_", "symmetrize_", "init_")):
+            return lambda *a, **k: self.llamadas.append(nombre)
+        raise AttributeError(nombre)
+
+    def run_thermal_conductivity(self, **kw):
+        self.kw = kw
+
+
+def test_el_tamano_de_grano_se_pasa_en_micrometros():
+    """Regresión: se convertía a Å (×1e4) y phono3py lo espera en µm.
+
+    El propio phono3py calcula Γ_b = |v|·1e6·Å/(4π·boundary_mfp) y lo
+    documenta en µm. Con el ×1e4 la dispersión por fronteras salía 10⁴ veces
+    más débil: `--grain 0.1` daba la κ del cristal infinito mientras el
+    informe decía que se había aplicado el grano.
+    """
+    ph = _Phono3pyFalso()
+    K.resolver(ph, np.zeros((1, 2, 3)), frontera_um=0.1, malla=5)
+    assert ph.kw["boundary_mfp"] == pytest.approx(0.1)
+
+
+def test_sin_grano_se_pide_el_cristal_infinito():
+    ph = _Phono3pyFalso()
+    K.resolver(ph, np.zeros((1, 2, 3)), malla=5)
+    assert ph.kw["boundary_mfp"] >= 1e6      # 1 m: sin fronteras
+    assert ph.mesh_numbers == [5, 5, 5]
+
+
+def _run_de_un_modo(gamma=0.5, v=200.0):
+    """Un único modo, para poder comprobar Λ a mano."""
+    run = K.KappaRun()
+    run.temperaturas = np.array([300.0])
+    run.i300 = 0
+    run.gamma = np.array([[[gamma]]])                  # (nT, nq, nb)
+    run.velocidades = np.array([[[v, 0.0, 0.0]]])      # (nq, nb, 3)
+    run.cv = np.array([[[1.0]]])                       # (nT, nq, nb)
+    run.pesos = np.array([1.0])
+    return run
+
+
+def test_la_vida_media_lleva_el_2pi_del_convenio_de_phono3py():
+    """Λ = |v|/(2·2π·Γ), no |v|/(2Γ).
+
+    Un 2 pasa Γ de HWHM a anchura total y el 2π pasa de frecuencia cíclica a
+    angular, porque la Γ que devuelve phono3py viene en THz ordinarios. Sin el
+    2π todos los recorridos libres medios salían 6.28 veces más largos.
+    """
+    gamma, v = 0.5, 200.0
+    L, _ = K.acumulada(_run_de_un_modo(gamma, v))
+    assert L[0] == pytest.approx(v / (2.0 * 2.0 * np.pi * gamma))
+
+
+@necesita_phono3py
+def test_el_recorrido_coincide_con_el_de_phono3py():
+    """La comprobación que zanja el convenio: contra la propia librería."""
+    from phono3py.conductivity.utils import get_mfp
+
+    gamma, v = 0.5, 200.0
+    L, _ = K.acumulada(_run_de_un_modo(gamma, v))
+    suyo = get_mfp(np.array([[gamma]]), np.array([[[v, 0.0, 0.0]]]))
+    assert L[0] == pytest.approx(float(suyo[0, 0]))
+
+
+def test_la_fraccion_acumulada_no_depende_del_convenio():
+    """El 2π se cancela al normalizar: solo se mueve el eje Λ, no la curva."""
+    run = K.KappaRun()
+    run.temperaturas, run.i300 = np.array([300.0]), 0
+    run.gamma = np.array([[[0.5, 2.0]]])
+    run.velocidades = np.array([[[100.0, 0, 0], [300.0, 0, 0]]])
+    run.cv = np.array([[[1.0, 1.0]]])
+    run.pesos = np.array([1.0])
+    L, a = K.acumulada(run)
+    assert a[-1] == pytest.approx(1.0)
+    assert np.all(np.diff(a) >= -1e-12)
+
+
+def test_recoger_pasa_lo_de_phono3py_a_los_campos_del_run():
+    """Sin la librería: basta con un objeto que exponga los mismos atributos."""
+    from types import SimpleNamespace
+
+    T = np.array([100.0, 300.0, 500.0])
+    tc = SimpleNamespace(
+        temperatures=T,
+        kappa=np.arange(3 * 6, dtype=float).reshape(1, 3, 6),
+        frequencies=np.ones((4, 2)),
+        grid_weights=np.ones(4),
+        gamma=np.full((1, 3, 4, 2), 0.5),
+        group_velocities=np.full((4, 2, 3), 100.0),
+        mode_heat_capacities=np.ones((3, 4, 2)),
+    )
+    run = K.recoger(K.KappaRun(), None, tc, (5, 5, 5))
+    assert run.malla == (5, 5, 5)
+    assert run.i300 == 1, "i300 tiene que ser el índice del T más cercano a 300"
+    assert run.kappa.shape == (3, 6)
+    assert run.gamma.shape == (3, 4, 2)
+    assert run.avisos == []
+
+
+def test_recoger_avisa_si_faltan_los_datos_por_modo():
+    """Regresión: un `except Exception: pass` los borraba sin decir nada.
+
+    κ(T) sigue saliendo, pero la sección de recorrido libre medio desaparecía
+    junto con su fichero y su figura, y el usuario no sabía por qué.
+    """
+    from types import SimpleNamespace
+
+    tc = SimpleNamespace(
+        temperatures=np.array([300.0]),
+        kappa=np.zeros((1, 1, 6)),
+        frequencies=np.ones((2, 1)),
+        grid_weights=np.ones(2),
+    )                              # sin gamma / group_velocities / cv
+    run = K.recoger(K.KappaRun(), None, tc, (5, 5, 5))
+    assert run.kappa is not None
+    assert run.gamma is None
+    assert any("mean free path" in a for a in run.avisos)
+
+
+def test_plot_escribe_las_dos_figuras_cuando_hay_acumulada(tmp_path):
+    escritos = K.plot(_run_con_modos(), str(tmp_path / "k"), formats="png")
+    assert escritos
+    assert any("recorrido" in f for f in escritos), \
+        f"falta la figura del recorrido libre medio: {escritos}"
+
+
+def test_plot_sin_kappa_lo_dice(tmp_path):
+    with pytest.raises(FaltanDatos):
+        K.plot(K.KappaRun(), str(tmp_path / "k"), formats="png")

@@ -66,7 +66,7 @@ def atomic_json(path, data):
 
 def _load(path):
     try:
-        return json.loads(Path(path).read_text())
+        return json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         raise ErrorDeUso(f'Cannot read durable state {path}: {exc}') from exc
 
@@ -215,7 +215,7 @@ def init(input_path, state, pw_cmd='pw.x', checkpoint_seconds=900,
     try:
         assets = staging / 'assets'
         (assets / 'pp').mkdir(parents=True)
-        (assets / 'original.in').write_text(text)
+        (assets / 'original.in').write_text(text, encoding="utf-8")
         for name in set(pseudos):
             shutil.copyfile(pseudo_dir / name, assets / 'pp' / name)
         for p in assets.rglob('*'):
@@ -381,12 +381,14 @@ def _cleanup_attempts(root):
 
 
 def _write_input(root, work, job, restarting):
-    params, cards = _namelists((root / 'assets' / 'original.in').read_text())
+    params, cards = _namelists(
+        (root / 'assets' / 'original.in').read_text(encoding="utf-8"))
     params.setdefault('control', {})
     params['control'].update(restart_mode='restart' if restarting else 'from_scratch',
                              max_seconds=job['checkpoint_seconds'], outdir='./out', wfcdir='./out',
                              pseudo_dir=str(root / 'assets' / 'pp'))
-    (work / 'pw.in').write_text(params.to_string() + '\n' + '\n'.join(cards) + '\n')
+    (work / 'pw.in').write_text(
+        params.to_string() + '\n' + '\n'.join(cards) + '\n', encoding="utf-8")
     (work / (job['prefix'] + '.EXIT')).unlink(missing_ok=True)
     (work / 'out' / (job['prefix'] + '.EXIT')).unlink(missing_ok=True)
 
@@ -596,7 +598,7 @@ UMask=0077
 [Install]
 WantedBy=multi-user.target
 '''
-    Path(output).write_text(text)
+    Path(output).write_text(text, encoding="utf-8")
     return text
 
 

@@ -664,7 +664,7 @@ def export(run: ElasticRun, outdir: str = ".") -> list:
                    comments="# ")
     written.append(str(fname))
     txt = out / "ELASTIC.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     written.append(str(txt))
     return written
 

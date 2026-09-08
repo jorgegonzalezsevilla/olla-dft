@@ -58,12 +58,26 @@ erzeuge ihn erneut, wenn weitere Ergebnisse hinzugekommen sind.
 
 [Beispiele](examples/) · [Galerie](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html) · [Exporthinweise (Englisch)](docs/RESULTS-EXPLORER.md)
 
+## Nach einer Unterbrechung weiterrechnen
+
+`olla-dft resilient` schreibt und prüft Checkpoints, um unterstützte
+`pw.x`-Rechnungen fortzusetzen, solange die Festplatte erhalten bleibt. Dafür
+muss zuerst die persistente Umgebung eingerichtet werden:
+[Wiederherstellungsanleitung (Spanisch)](docs/resilience/RECUPERACION.md).
+
+Geprüft wurden lokale SCF-, `relax`- und `vc-relax`-Paare mit simulierten
+Prozessabbrüchen. Die Wiederherstellung nach einem physischen Stromausfall oder
+einem Festplattenverlust **ist nicht nachgewiesen**.
+[Ergebnisse und Toleranzen](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html) ·
+[Wiederherstellungsvertrag (Englisch)](docs/resilience/CONTRACT.md).
+
 ## Dokumentation und Lizenz
 
 Ein Projekt von **Jorge Enrique González Sevilla**, unabhängig von Quantum
 ESPRESSO. Freie Software unter **AGPL-3.0-or-later** mit den dokumentierten
 Ausnahmen für einzelne Dateien. Keine automatische Telemetrie.
 
+[Befehle](docs/BEFEHLE.md) · [Wissenschaftliche Referenz (Englisch)](docs/THEORY.md) · [Validierung (Englisch)](docs/VALIDATION.md) ·
 [Sprachen und Migration](docs/LANGUAGES.md) · [Änderungen](CHANGELOG.md) ·
 [Fehler melden](https://github.com/jorgegonzalezsevilla/olla-dft/issues) ·
 [Lizenz](LICENSE) · [Lizenzumfang](LICENSING.md)

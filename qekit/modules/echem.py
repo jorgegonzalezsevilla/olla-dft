@@ -368,9 +368,9 @@ def export(e: Echem, outdir: str = ".") -> list:
         f"# {'step':46s} {'dG0(eV)':>10s}"]
     for nom, g in e.pasos:
         lines.append(f"  {nom:46s} {g:10.5f}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     txt = out / "ECHEM.txt"
-    txt.write_text(report(e) + "\n")
+    txt.write_text(report(e) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

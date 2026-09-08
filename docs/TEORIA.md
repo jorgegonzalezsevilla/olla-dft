@@ -1819,7 +1819,7 @@ $$
 **Fórmulas.** Las resuelve phono3py (`kappa.resolver`); Olla-DFT post-procesa:
 
 $$
-\kappa_L^{\alpha\beta} = \frac{1}{NV}\sum_\lambda C_\lambda\, v_\lambda^\alpha v_\lambda^\beta\, \tau_\lambda, \qquad \tau_\lambda = \frac{1}{2\Gamma_\lambda}, \qquad \Lambda_\lambda = |\mathbf{v}_\lambda|\,\tau_\lambda
+\kappa_L^{\alpha\beta} = \frac{1}{NV}\sum_\lambda C_\lambda\, v_\lambda^\alpha v_\lambda^\beta\, \tau_\lambda, \qquad \tau_\lambda = \frac{1}{2\cdot 2\pi\,\Gamma_\lambda}, \qquad \Lambda_\lambda = |\mathbf{v}_\lambda|\,\tau_\lambda
 $$
 
 $$
@@ -1828,13 +1828,13 @@ $$
 \kappa_{\mathrm{acum}}(\Lambda) = \frac{\sum_{\lambda:\Lambda_\lambda<\Lambda} w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}{\sum_\lambda w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}
 $$
 
-- $\Gamma_\lambda$: anchura de línea (THz) de phono3py; $\mathbf{v}_\lambda$: velocidad de grupo (THz·Å); $C_\lambda$: capacidad calorífica modal; $w_\lambda$: peso del punto q; $\Lambda$ en Å (se reporta en nm). Se descartan los modos con $\Gamma = 0$ (acústicos en Γ).
+- $\Gamma_\lambda$: anchura de línea (THz de frecuencia ordinaria, HWHM) de phono3py — de ahí el $2\cdot 2\pi$ de $\tau$, que es el convenio del propio phono3py (`get_mfp`, y el $1/2\pi$ de su factor a W/mK); $\mathbf{v}_\lambda$: velocidad de grupo (THz·Å); $C_\lambda$: capacidad calorífica modal; $w_\lambda$: peso del punto q; $\Lambda$ en Å (se reporta en nm). Se descartan los modos con $\Gamma = 0$ (acústicos en Γ).
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_kappa` → `qekit/modules/kappa.py: preparar`: `Phono3py(..., supercell_matrix=--dim (2x2x2), phonon_supercell_matrix=--dim-fc2, primitive_matrix="auto", symprec=1e-5)` y `generate_displacements(distance=--distance 0.03 Å)`.
 2. `kappa.configuraciones` convierte las superceldas desplazadas a ASE (fc3 y, si hay, fc2).
 3. Fuerzas: (a) `--model mace|chgnet|m3gnet` → `kappa.fuerzas_mlip`; (b) sin `--model` → `kappa.escribir_inputs` escribe un `scf` por configuración en `fc3/dNNNN/pw.in` (y `fc2/`), `conv_thr = 1e-10`, malla por `--kspacing` 0.35 Å⁻¹, `occupations='fixed'` salvo `--metal` (smearing), más `correr.sh`; se niega por encima de 150 configuraciones sin `--force`; (c) `--collect` → `kappa.leer_fuerzas` lee `<forces>` de cada XML (Ha/bohr → eV/Å) y exige TODAS.
-4. `kappa.resolver`: `produce_fc3`, `produce_fc2`, simetrización, `mesh_numbers = --mesh (13)`, `init_phph_interaction`, `run_thermal_conductivity(temperatures=--temps 100:800:8, is_isotope=--isotopes, boundary_mfp=--grain µm ×1e4 Å o 1e6)`.
+4. `kappa.resolver`: `produce_fc3`, `produce_fc2`, simetrización, `mesh_numbers = --mesh (13)`, `init_phph_interaction`, `run_thermal_conductivity(temperatures=--temps 100:800:8, is_isotope=--isotopes, boundary_mfp=--grain en µm, o 1e6 µm = 1 m si no hay fronteras)`.
 5. `kappa.recoger` guarda κ (Voigt 6), Γ, velocidades, $C_\lambda$, pesos; `kappa.report`, `export` (`KAPPA.dat`, `KAPPA_recorrido.dat`, `KAPPA.txt`), `plot` (κ(T) log-log con guía $T^{-1}$; acumulada vs Λ).
 
 **De dónde sale cada dato.**

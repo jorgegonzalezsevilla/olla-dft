@@ -391,7 +391,7 @@ def export(run: NebRun, outdir: str = ".") -> list:
                    titulo="NEB energy profile") + "\n" +
                "  ".join(f"{n:>14s}" for n in nombres), comments="# ")
     txt = out / "NEB.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

@@ -654,9 +654,9 @@ def export(run: DefectRun, outdir: str = ".") -> list:
             vals = [run.E_f(q, ef) for q in run.cargas]
             lines.append(f"{ef:12.5f} " + " ".join(
                 f"{v:12.5f}" if v is not None else f"{'nan':>12s}" for v in vals))
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     txt = out / "FORMACION.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

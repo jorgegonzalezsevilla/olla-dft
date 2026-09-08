@@ -322,11 +322,11 @@ def export(run: EOSRun, outdir: str = ".", cell_a: float = None) -> list:
         if e is None:
             continue
         lines.append(f"{v:16.6f} {e / qeout.RY_EV:20.10f} {e:18.8f}")
-    fname.write_text("\n".join(lines) + "\n")
+    fname.write_text("\n".join(lines) + "\n", encoding="utf-8")
     written.append(str(fname))
 
     txt = out / "EOS.txt"
-    txt.write_text(report(run, cell_a) + "\n")
+    txt.write_text(report(run, cell_a) + "\n", encoding="utf-8")
     written.append(str(txt))
     return written
 

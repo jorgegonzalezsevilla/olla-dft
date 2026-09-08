@@ -373,7 +373,7 @@ def export(pattern: Pattern, outdir: str = ".") -> list:
     for p in sorted(pattern.peaks, key=lambda q: q.two_theta):
         lines.append(f"{p.two_theta:11.4f} {p.d:10.5f} {p.intensity:9.2f}  "
                      f"{p.label}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     written.append(str(f))
     return written
 

@@ -428,5 +428,6 @@ def export(het: Heteroestructura, outdir: str = ".",
         {"deformacion_pct": round(het.coincidencia.eps_pct, 3),
          "separacion_A": round(het.separacion, 3),
          "natoms": het.coincidencia.natoms},
-        titulo="Lattice matching") + "\n" + report(het) + "\n")
+        titulo="Lattice matching") + "\n" + report(het) + "\n",
+                   encoding="utf-8")
     return [str(cif), str(txt)]

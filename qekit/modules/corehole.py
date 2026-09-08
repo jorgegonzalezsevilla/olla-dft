@@ -387,7 +387,7 @@ def generar(simbolo: str, borde: str = "K", outdir: str = "pseudos",
                           dft=dft, prefix=f"{simbolo}_{etiqueta}",
                           titulo=titulo, rel=rel, pseudotype=pseudotype)
         entrada = out / f"ld1_{etiqueta}.in"
-        entrada.write_text(texto)
+        entrada.write_text(texto, encoding="utf-8")
         g.entradas.append(str(entrada))
         if correr:
             _correr_ld1(entrada, out / f"ld1_{etiqueta}.out", ld1_cmd)
@@ -517,5 +517,6 @@ def export(g: Generacion, outdir: str = ".") -> list:
         "core-hole pseudopotentials",
         {"elemento": g.elemento, "borde": g.borde, "funcional": g.funcional,
          "rcut_bohr": g.rcut},
-        titulo="Pseudopotential generation") + "\n" + report(g) + "\n")
+        titulo="Pseudopotential generation") + "\n" + report(g) + "\n",
+                 encoding="utf-8")
     return [str(f)]
