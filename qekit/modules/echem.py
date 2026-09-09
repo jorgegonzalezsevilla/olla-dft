@@ -174,8 +174,14 @@ def her(E_ads_H: float, correccion: float = None, T: float = 298.15) -> Echem:
 
     Dos pasos, y el descriptor es que ΔG_H* esté cerca de cero: si el
     hidrógeno se pega demasiado poco no llega a adsorberse, y si se pega
-    demasiado no se suelta. Es la cumbre del volcán de Nørskov, y en Pt(111)
-    vale −0.09 eV.
+    demasiado no se suelta.
+
+    La cumbre del volcán de Nørskov está EN ΔG_H* = 0, no en −0.09 eV. El
+    −0.09 eV es el valor calculado para el Pt(111), que es el mejor
+    catalizador conocido justamente porque cae muy cerca de la cumbre; es
+    una referencia experimental, no la posición del máximo. Confundir las
+    dos cosas lleva a "optimizar" un material hacia −0.09 en vez de hacia
+    cero.
     """
     c = CORRECCIONES["H"] if correccion is None else float(correccion)
     e = Echem(reaccion="her", T=T,
@@ -304,8 +310,9 @@ def report(e: Echem) -> str:
         g = e.dG_H
         L += ["", f"Descriptor ΔG_H* = {g:+.3f} eV"]
         if abs(g) < 0.10:
-            L.append("  Very close to zero: at the top of the volcano, like "
-                     "Pt (−0.09 eV).")
+            L.append("  Very close to zero, which is where the top of the "
+                     "volcano is. Pt(111) sits\n  at −0.09 eV: near the top, "
+                     "not the top itself.")
         elif g < 0:
             L.append("  Negative: hydrogen binds too strongly and is hard to "
                      "release. The left\n  branch of the volcano; the slow step "

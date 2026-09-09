@@ -525,6 +525,7 @@ Pourbaix-like grid (`echem.pourbaix`, library only): $\Delta G_{\lim}(U,\mathrm{
 
 **Limits and pitfalls.**
 - *"El CHE es termodinámica de intermedios: NO hay barreras cinéticas, ni disolvente explícito, ni doble capa."*
+- The top of the HER volcano is at $\Delta G_{\mathrm{H^*}} = 0$. The $-0.09$ eV that appears in the report and in `selftest` is the computed value for Pt(111), which is the best known catalyst precisely because it falls very close to the top — an experimental reference point, not the position of the maximum. Reading it as the target sends an optimisation towards $-0.09$ instead of towards zero.
 - `-U` is versus the **SHE** (CLI help: *"a pH 0 es el mismo que frente al RHE; el pH lo convierte"*); $U_L$ and $\eta$ are on the RHE scale. The HER is CATHODIC: its steps consume $\mathrm{H^+ + e^-}$, so $U_L = -|\Delta G_{\mathrm{H^*}}|/e < 0$ and $\eta = U_{\mathrm{eq}} - U_L = |\Delta G_{\mathrm{H^*}}|/e \ge 0$. Applying the OER sign to it, as this document said before, gave a positive $U_L$ for a cathodic reaction and moved the energy ladder the wrong way with $U$ and pH.
 - Fourth step by difference: *"El cuarto paso sale NEGATIVO… o hay un error en las referencias, o tu superficie liga los intermedios muchísimo."*
 - `pourbaix()` is not wired to any command: the "Pourbaix diagram" of the module title is not produced from the CLI.
@@ -746,6 +747,7 @@ With `--strain both`: target cell $= (w A' + v B')/(w+v)$ with $w = n_1\,|\det \
 | Search limits | `--max-index`, `--tol`, `--max-atoms` | 4, 0.05, 200 |
 
 **Limits and pitfalls.**
+- The convention matters when comparing with another tool: $\boldsymbol\epsilon$ is the LINEARISED (engineering) strain, not Green-Lagrange $\tfrac12(B'^{-T}A'^TA'B'^{-1}-I)$ — they agree to first order and separate as the square of the mismatch (0.1 % apart at 5 %, 2 % apart at 20 %) — and it is referred to the cell that IS DEFORMED, $B'$. With `--strain first` material 1 is $B'$ and with `--strain second` it is material 2, so the same pair gives $\boldsymbol\epsilon$ of opposite sign depending on the choice. ZSL-type matchers report the mismatch referred to the substrate and with their own tolerance criterion, so a number from here and a number from there do not compare without translating first.
 - The **largest component** $\max|\epsilon_{ij}|$ of the matrix is reported, not a norm or an average: *"una deformación de 0 % en una dirección y 6 % en la otra no es '3 %'."*
 - *"La deformación es del X %. Por encima de ~3 % no se está modelando el material sino una versión estirada de él."*
 - The separation is a starting point: *"con un funcional sin corrección de dispersión la distancia de equilibrio saldrá demasiado grande."*

@@ -252,10 +252,14 @@ def report(run: ConvergenceRun) -> str:
             if g:
                 lines.append(f"  Recommended mesh: {g[0]}x{g[1]}x{g[2]}")
     lines.append("")
-    lines.append("Remember that convergence depends on the property: the total "
-                 "energy\nconverges before stresses or phonons. For "
-                 "elastic constants\nit is advisable to raise the cutoff above what "
-                 "the energy requires.")
+    lines.append(
+        "This threshold is on the total ENERGY, and it is the loosest of the "
+        "criteria:\nstresses and phonons converge later and against their own "
+        "yardsticks. The SSSP\nprotocol, on the same pseudopotentials, asks "
+        "for 1 % on the pressure and 2 cm⁻¹\non the phonon frequencies, and "
+        "reaching those usually takes a higher cutoff\nthan the energy does. "
+        "For elastic constants, phonons or an equation of state,\nraise the "
+        "cutoff above what this number says and check the property itself.")
     return "\n".join(lines)
 
 

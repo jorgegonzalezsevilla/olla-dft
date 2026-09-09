@@ -51,7 +51,7 @@ $$
 n_{\text{bnd}} = \left\lceil 1.25\cdot\frac{N_{\text{el}}}{2} + 4 \right\rceil, \qquad N_{\text{el}} = \sum_{\text{atoms}} Z^{\text{UPF}}_{\text{val}}
 $$
 
-With `--nspin 2` it is enlarged to $\lfloor 1.2\,n_{\text{bnd}}\rfloor + 2$. If any UPF does not declare `z_valence`, `nbnd` is not written and pw.x uses its own default.
+With `--nspin 2` it is enlarged to $\lfloor 1.2\,n_{\text{bnd}}\rfloor + 2$. If any UPF does not declare `z_valence`, `nbnd` is not written and pw.x uses its own default. This estimate is **not** pw.x's default and must not be presented as comparable to it: pw.x uses $N_{\text{el}}/2$ with `occupations='fixed'` (exactly the occupied bands — no conduction bands, no gap) and $\max(1.2 N_{\text{el}}/2,\ N_{\text{el}}/2 + 4)$ with smearing. Olla-DFT is deliberately more generous, because an nscf without spare empty bands truncates the gap and the DOS precisely where they are wanted.
 
 MD time step (`inputgen.build_pw_input`): $\mathrm{dt}_{\text{Ry}} = \mathrm{dt}_{\text{fs}} / 0.048378$, because pw.x asks for `dt` in Rydberg atomic units (`_FS_POR_UA = 4.8378e-2` fs).
 

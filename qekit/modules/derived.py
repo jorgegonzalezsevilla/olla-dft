@@ -84,7 +84,17 @@ def sound_velocities(B_GPa: float, G_GPa: float, rho: float) -> tuple:
 
 
 def debye_from_velocity(v_m: float, natoms: int, volumen_A3: float) -> float:
-    """Temperatura de Debye elástica (límite acústico, baja temperatura)."""
+    """Temperatura de Debye elástica (límite acústico, baja temperatura).
+
+    Es la theta_D TRADICIONAL: mete los 3N modos en una esfera de Debye con
+    la densidad de átomos, es decir trata el cristal como si fuera
+    monoatómico con la masa promedio. En un compuesto las ramas ópticas
+    quedan dobladas dentro y ni la capacidad calorífica a temperatura
+    intermedia ni la conductividad salen de aquí sin más: para eso hace
+    falta la theta acústica, theta_a = theta_D * n^(-1/3) con n los átomos
+    de la celda primitiva, que es la que cuenta solo las tres ramas
+    acústicas.
+    """
     if not v_m:
         return None
     n = natoms / (volumen_A3 * 1e-30)          # átomos por m^3

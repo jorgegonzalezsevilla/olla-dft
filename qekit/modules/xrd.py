@@ -17,9 +17,17 @@ Física implementada:
 - posiciones por la ley de Bragg sobre todos los hkl alcanzables;
 - intensidades |F(hkl)|² con factores de dispersión atómica analíticos
   (f(s) = Z − 41.78214·s²·Σ aᵢ·e^(−bᵢ·s²), s = sinθ/λ; coeficientes del
-  archivo de datos tomado de pymatgen, licencia MIT — mismos valores de las
-  International Tables), corregidas por Lorentz–polarización
-  (1+cos²2θ)/(sin²θ·cosθ);
+  archivo de datos tomado de pymatgen, licencia MIT), corregidas por
+  Lorentz–polarización (1+cos²2θ)/(sin²θ·cosθ);
+  ESA NO ES la parametrización de Cromer-Mann de rayos X. Los aᵢ, bᵢ son
+  los factores de dispersión de ELECTRONES de las International Tables y
+  el 41.78214 es 8π²a₀: la expresión es la inversión de Mott-Bethe, que
+  devuelve el factor de rayos X a partir del de electrones. Coincide con
+  Cromer-Mann por debajo de s ≈ 0.5 Å⁻¹ y se separa después; medido contra
+  Cromer-Mann: 1.6 % en s = 0.6, 7 % en s = 1.0 y 26 % en s = 1.5 (Si).
+  Como I ∝ |f|², ese 26 % son un 60 % en intensidad. Con Cu Kα el patrón
+  no llega más allá de s = 1/λ = 0.65 y el error se queda por debajo del
+  2 %; con Mo Kα y Ag Kα sí se llega, y el informe avisa;
 - la multiplicidad sale sola de enumerar todos los hkl y agrupar por 2θ;
 - perfil pseudo-Voigt, con anchura fija o dada por tamaño de cristalito
   (Scherrer), que es lo que ensancha los picos de un laminar real;
@@ -47,7 +55,18 @@ WAVELENGTHS = {
     "CoKa": 1.79026, "CoKa1": 1.78896,
     "FeKa": 1.93735, "CrKa": 2.29100, "AgKa": 0.56087,
 }
+#: Constante de forma de Scherrer. El 0.9 es el valor de uso corriente y
+#: supone cristalitos aproximadamente esfericos con la anchura medida como
+#: FWHM. Depende de la forma (0.89 para una esfera, 0.94 para un cubo con
+#: FWHM, 1.0 si se usa la anchura integral en vez de la FWHM), asi que el
+#: tamano que sale de aqui tiene un +-10 % que no es de la medida sino del
+#: convenio, y hay que decir cual se uso al publicarlo.
 SCHERRER_K = 0.9
+
+#: Por encima de esta s = sen(theta)/lambda la inversion de Mott-Bethe de
+#: los factores de dispersion se separa de la tabulacion de rayos X mas de
+#: un 2 % (medido contra Cromer-Mann en Si, O, Fe y C).
+S_MOTT_BETHE_FIABLE = 0.9
 
 
 def _load_scattering():
@@ -345,6 +364,27 @@ def report(pattern: Pattern, top: int = 12) -> str:
     lines.append("")
     lines.append(f"{len(pattern.peaks)} reflections in total "
                  "(full table in XRD_HKL.dat).")
+    # s = sen(theta)/lambda = 1/(2d): donde deja de valer la inversion de
+    # Mott-Bethe con la que se calculan los factores de dispersion
+    s_max = max((1.0 / (2.0 * q.d) for q in pattern.peaks), default=0.0)
+    if s_max > S_MOTT_BETHE_FIABLE:
+        lines += ["",
+                  f"WARNING: the pattern reaches s = sinθ/λ = {s_max:.2f} Å⁻¹. "
+                  "The atomic scattering\nfactors come from the Mott-Bethe "
+                  "inversion of the ELECTRON factors, which\ndeparts from the "
+                  "X-ray tabulation above about "
+                  f"{S_MOTT_BETHE_FIABLE:.1f} Å⁻¹: measured against\n"
+                  "Cromer-Mann it is 7 % at s = 1.0 and 26 % at s = 1.5, and "
+                  "the intensity goes\nas |f|². The peak POSITIONS are "
+                  "unaffected; the high-angle INTENSITIES are.\nWith Cu Kα "
+                  "the pattern never gets there (s ≤ 1/λ = 0.65)."]
+    if pattern.size_nm:
+        lines += ["",
+                  f"Widths from Scherrer with K = {SCHERRER_K}, which assumes "
+                  "roughly spherical\ncrystallites and the width taken as "
+                  "FWHM. K runs from 0.89 (sphere) to 1.0\n(integral breadth), "
+                  "so the size carries a ±10 % that is convention, not\n"
+                  "measurement: say which K you used."]
     return "\n".join(lines)
 
 

@@ -77,6 +77,13 @@ from qekit.core.compat import trapezoid
 from qekit.core.errors import ErrorDeUso
 
 HBAR_EVS = 6.582119569e-16       # eV*s
+
+#: Hasta donde se ajustaron f1 y f2 contra soluciones numericas de las
+#: ecuaciones de Eliashberg. Allen-Dynes es un AJUSTE, no una derivacion:
+#: por encima de este acoplamiento subestima Tc y lo que toca es resolver
+#: Eliashberg. Con lambda = 1.55 y omega_log = 56 K reproduce los 7.2 K del
+#: plomo, que es el caso con el que se calibro.
+LAMBDA_MAX_AJUSTE = 1.5
 KB_EV = 8.617333262e-5           # eV/K
 THZ_K = 47.9924                  # 1 THz en K (h*nu/k_B)
 THZ_CM1 = 33.35641
@@ -159,9 +166,14 @@ def factores_correccion(lam: float, mustar: float,
     """Los factores f1 y f2 de Allen-Dynes para acoplamiento fuerte.
 
     La fórmula desnuda SUBESTIMA Tc cuando lambda pasa de 1: para el
-    plomo da 6.0 K contra 7.2 K experimentales. f1 corrige el
-    acoplamiento fuerte y f2 la forma del espectro. Con lambda < 1 los
-    dos valen casi 1 y no cambian nada.
+    plomo da 6.6 K contra 7.2 K experimentales, y con f1 da 7.20 K. f1
+    corrige el acoplamiento fuerte y f2 la forma del espectro. Con
+    lambda < 1 los dos valen casi 1 y no cambian nada.
+
+    Los dos son AJUSTES a soluciones numéricas de Eliashberg hasta
+    lambda ~ 1.5 (`LAMBDA_MAX_AJUSTE`). Por encima de ahí se extrapola:
+    la Tc que sale es una cota inferior, no una predicción, y el informe
+    lo dice.
     """
     if not np.isfinite(lam) or lam <= 0:
         return 1.0, 1.0
@@ -469,6 +481,14 @@ def report(run: ElPhRun, T_debye: float = None,
             lines.append("  With such a low lambda, Tc is practically zero: "
                          "this material is not\n  an appreciable conventional "
                          "superconductor.")
+        if lam > LAMBDA_MAX_AJUSTE:
+            lines.append(
+                f"  WARNING: lambda = {lam:.2f} is beyond where Allen-Dynes "
+                "was fitted. f1 and f2\n  were obtained from numerical "
+                f"solutions of Eliashberg up to lambda ~ {LAMBDA_MAX_AJUSTE:.1f};\n"
+                "  past that the formula underestimates Tc and the honest "
+                "route is to solve\n  Eliashberg itself. Report it as a lower "
+                "bound, not as a prediction.")
 
         lines += ["", "Phonon-limited relaxation time (1/tau = "
                   "2*pi*lambda*k_B*T/hbar):",

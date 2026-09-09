@@ -343,3 +343,72 @@ def test_la_debye_por_momento_de_la_dos_usa_el_segundo_momento():
     assert derived.debye_from_dos(w, 7.5 * dos, natoms=1) == pytest.approx(
         theta, rel=1e-12)
     assert trapezoid(dos, w) > 0
+
+
+# ----------------------------------------------------------------------
+# Superconductividad: Allen-Dynes contra su caso de calibración
+# ----------------------------------------------------------------------
+def test_allen_dynes_reproduce_los_7_2_K_del_plomo():
+    """El plomo (λ = 1.55, ω_log = 56 K, μ* = 0.10) es el caso con el que se
+    calibró la fórmula. Ata a la vez el 1.04, el 0.62, el 1.2 y el factor f1:
+    sin f1 la fórmula desnuda da 6.6 K."""
+    from qekit.modules.elph import allen_dynes
+
+    assert allen_dynes(1.55, 56.0, 0.10) == pytest.approx(7.2, abs=0.1)
+    assert allen_dynes(1.55, 56.0, 0.10, correcciones=False) == pytest.approx(
+        6.6, abs=0.1)
+
+
+def test_el_informe_avisa_cuando_lambda_sale_del_ajuste():
+    from qekit.modules import elph
+
+    run = elph.ElPhRun()
+    run.sigmas = np.array([0.02])
+    run.omega_log = np.array([400.0])
+    run.mustar = 0.10
+    run.lambdas = np.array([2.4])
+    assert "beyond where Allen-Dynes was fitted" in elph.report(run)
+    run.lambdas = np.array([0.8])
+    assert "beyond where Allen-Dynes was fitted" not in elph.report(run)
+
+
+# ----------------------------------------------------------------------
+# Difracción: hasta dónde vale la inversión de Mott-Bethe
+# ----------------------------------------------------------------------
+def test_los_factores_de_dispersion_son_mott_bethe_y_no_cromer_mann():
+    """El 41.78214 es 8π²a₀. Concuerda con Cromer-Mann por debajo de
+    s ≈ 0.5 Å⁻¹ y se separa después: es una condición de validez, no un
+    error, pero hay que saberla."""
+    from qekit.modules import xrd
+
+    assert 8 * np.pi ** 2 * 0.529177210903 == pytest.approx(41.78214, abs=1e-4)
+    # Cromer-Mann del silicio (International Tables C, tabla 6.1.1.4)
+    a = np.array([6.2915, 3.0353, 1.9891, 1.5410])
+    b = np.array([2.4386, 32.3337, 0.6785, 81.6937])
+    c = 1.1407
+    ab = xrd.scattering_params("Si")
+    for s, tol in [(0.0, 0.01), (0.2, 0.02), (0.5, 0.05), (1.5, None)]:
+        s2 = s ** 2
+        mb = 14 - 41.78214 * s2 * np.sum(ab[:, 0] * np.exp(-ab[:, 1] * s2))
+        cm = float(np.sum(a * np.exp(-b * s2)) + c)
+        if tol is None:                      # a s alta se separan de verdad
+            assert abs(mb - cm) / cm > 0.15
+        else:
+            assert abs(mb - cm) / cm < tol
+
+
+def test_el_difractograma_avisa_solo_cuando_llega_a_s_alta():
+    from ase.build import bulk
+
+    from qekit.modules import xrd
+
+    at = bulk("Si", "diamond", a=5.431, cubic=True)
+    rango = (5.0, 140.0)
+    cu = xrd.report(xrd.compute(at, wavelength="CuKa", two_theta_range=rango))
+    ag = xrd.report(xrd.compute(at, wavelength="AgKa", two_theta_range=rango))
+    assert "Mott-Bethe" not in cu          # con Cu no se llega: s <= 1/lambda
+    assert "Mott-Bethe" in ag
+    # y la nota de Scherrer solo sale si se pidió un tamaño de cristalito
+    pat = xrd.broaden(xrd.compute(at, two_theta_range=rango),
+                      two_theta_range=rango, size_nm=20.0)
+    assert "Scherrer with K = 0.9" in xrd.report(pat)

@@ -111,7 +111,24 @@ def _plano(atoms) -> np.ndarray:
 
 
 def _deformacion(A: np.ndarray, B: np.ndarray) -> np.ndarray:
-    """Matriz de deformación que lleva B a A: epsilon = B^-1 A - I."""
+    """Matriz de deformación que lleva B a A: epsilon = B^-1 A - I.
+
+    El convenio importa al comparar con otras herramientas:
+
+    - es la deformación LINEALIZADA (ingenieril), no la de Green-Lagrange
+      (B^-T A^T A B^-1 - I)/2. Las dos coinciden a primer orden y se
+      separan al cuadrado del desajuste: con un 5 % difieren en un 0.1 %,
+      con un 20 % en un 2 %;
+    - va referida a la celda que SE DEFORMA (B), no a la que se queda fija.
+      Con `--strain first` el material 1 es B, con `--strain second` lo es
+      el 2, así que el mismo par de materiales da epsilon de signo opuesto
+      según cuál se elija. Los buscadores de coincidencias tipo ZSL
+      informan del desajuste referido al sustrato y con su propio criterio
+      de tolerancia, así que un número de aquí y uno de allí no se comparan
+      sin traducir primero;
+    - `eps_max` es la componente mayor en valor ABSOLUTO de la matriz
+      2x2 entera, cizallas incluidas, no la traza ni la media.
+    """
     try:
         return np.linalg.solve(B, A) - np.eye(2)
     except np.linalg.LinAlgError:

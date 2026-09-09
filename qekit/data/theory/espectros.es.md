@@ -525,6 +525,7 @@ Rejilla tipo Pourbaix (`echem.pourbaix`, sólo biblioteca): $\Delta G_{\lim}(U,\
 
 **Límites y trampas.**
 - *"El CHE es termodinámica de intermedios: NO hay barreras cinéticas, ni disolvente explícito, ni doble capa."*
+- La cumbre del volcán de la HER está en $\Delta G_{\mathrm{H^*}} = 0$. El $-0.09$ eV que aparece en el informe y en `selftest` es el valor calculado para el Pt(111), que es el mejor catalizador conocido justamente porque cae muy cerca de la cumbre: es una referencia experimental, no la posición del máximo. Leerlo como el objetivo manda una optimización hacia $-0.09$ en vez de hacia cero.
 - `-U` es frente al **SHE** (ayuda de la CLI: *"a pH 0 es el mismo que frente al RHE; el pH lo convierte"*); $U_L$ y $\eta$ están en la escala RHE. La HER es CATÓDICA: sus pasos consumen $\mathrm{H^+ + e^-}$, así que $U_L = -|\Delta G_{\mathrm{H^*}}|/e < 0$ y $\eta = U_{\mathrm{eq}} - U_L = |\Delta G_{\mathrm{H^*}}|/e \ge 0$. Aplicarle el signo de la OER, como decía antes este documento, daba un $U_L$ positivo para una reacción catódica y movía la escalera de energías al revés con $U$ y el pH.
 - Cuarto paso por diferencia: *"El cuarto paso sale NEGATIVO… o hay un error en las referencias, o tu superficie liga los intermedios muchísimo."*
 - `pourbaix()` no está conectada a ningún comando: el "diagrama de Pourbaix" del título del módulo no se produce desde la CLI.
@@ -746,6 +747,7 @@ Con `--strain both`: celda objetivo $= (w A' + v B')/(w+v)$ con $w = n_1\,|\det 
 | Límites de búsqueda | `--max-index`, `--tol`, `--max-atoms` | 4, 0.05, 200 |
 
 **Límites y trampas.**
+- El convenio importa al comparar con otra herramienta: $\boldsymbol\epsilon$ es la deformación LINEALIZADA (ingenieril), no la de Green-Lagrange $\tfrac12(B'^{-T}A'^TA'B'^{-1}-I)$ —coinciden a primer orden y se separan como el cuadrado del desajuste (0.1 % de diferencia con un 5 %, 2 % con un 20 %)— y va referida a la celda que SE DEFORMA, $B'$. Con `--strain first` el material 1 es $B'$ y con `--strain second` lo es el 2, así que el mismo par da $\boldsymbol\epsilon$ de signo opuesto según lo que se elija. Los buscadores de coincidencias tipo ZSL informan del desajuste referido al sustrato y con su propio criterio de tolerancia, así que un número de aquí y uno de allí no se comparan sin traducir primero.
 - Se reporta la **componente mayor** $\max|\epsilon_{ij}|$ de la matriz, no una norma ni un promedio: *"una deformación de 0 % en una dirección y 6 % en la otra no es '3 %'."*
 - *"La deformación es del X %. Por encima de ~3 % no se está modelando el material sino una versión estirada de él."*
 - La separación es un punto de partida: *"con un funcional sin corrección de dispersión la distancia de equilibrio saldrá demasiado grande."*
