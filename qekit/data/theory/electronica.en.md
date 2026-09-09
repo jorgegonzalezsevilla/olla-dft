@@ -527,7 +527,7 @@ Olla-DFT works in two stages. First it fits on the bands you already have (fast,
 Quadratic fit and mass (`qekit/modules/effmass.py: from_bands`, `collect_fine`, `_mass_from_quadratic`):
 
 $$
-E(k) \approx a\,k^2 + b\,k + c, \qquad \frac{m^*}{m_e} = \frac{\hbar^2/m_e}{2a}, \qquad \frac{\hbar^2}{m_e} = 7.6199682\ \text{eV·Å}^2
+E(k) \approx a\,k^2 + b\,k + c, \qquad \frac{m^*}{m_e} = \frac{\hbar^2/m_e}{2a}, \qquad \frac{\hbar^2}{m_e} = 7.6199642\ \text{eV·Å}^2
 $$
 
 - $k$: signed distance to the extremum along the line (Å⁻¹); $a$ in eV·Å²; the fit is `np.polyfit(x, y, 2)`.
@@ -557,7 +557,7 @@ Identification of the valence band in the fine calculation (`collect_fine`): $n_
 |---|---|---|
 | Eigenvalues and Cartesian k | `prefix.xml` from pw.x | `qeout.read_xml` (previous bands and fine calculation) |
 | VBM, CBM and their k | `bands.analyze_gap` | see `olla-dft bands` |
-| $\hbar^2/m_e$ | constant `effmass.HBAR2_OVER_ME` | 7.6199682 eV·Å² |
+| $\hbar^2/m_e$ | constant `effmass.HBAR2_OVER_ME` | 7.6199642 eV·Å² |
 | Number of electrons | `<nelec>` from the XML | to identify the valence in `collect_fine` |
 | Window, minimum points, half-width, points per line | user parameters | `--window` (default `effmass.WINDOW_DEFAULT` = 0.06 Å⁻¹), `--min-points 7`, `--half-width 0.06`, `--points 21` |
 | Parabolic limit | `effmass.PARABOLIC_MAX` | 0.12 Å⁻¹ of total span (slack `_TOL_VENTANA = 1e-6`) |

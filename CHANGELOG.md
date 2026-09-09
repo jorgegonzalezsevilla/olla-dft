@@ -2,7 +2,7 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
-## Unreleased
+## 1.6.0 — 2026-09-09
 
 **Scientific values change.** Three correctness fixes alter numbers reported by
 earlier versions. Results produced before this release should be recomputed for
@@ -46,6 +46,27 @@ the affected commands.
   the cumulative curve are unaffected (the factor cancels on normalisation);
   only the Λ axis moves. **The Λ₅₀ = 1.0 µm figure recorded in the validation
   documents was obtained with the old convention and is pending recomputation.**
+
+Packaging, for the first PyPI release:
+
+- Publish on PyPI as `olla-dft`; install with `pip install olla-dft`.
+- Declare the licence as the SPDX expression `AGPL-3.0-or-later` with explicit
+  `license-files` (PEP 639), replacing the deprecated licence table and
+  classifier. The build now emits no deprecation warnings.
+- Make every README link absolute. PyPI does not resolve relative links against
+  the repository, so the 17 links on the project page would all have been 404s.
+- Add `Source` and `Changelog` to the project URLs shown on the PyPI page.
+- Trim the source distribution from 6.7 MB to 2.0 MB by leaving the demo
+  figures and gallery PDFs on GitHub, while keeping it able to run its own test
+  suite; ship `.zenodo.json` with it.
+- Add a release workflow that publishes through PyPI trusted publishing (no
+  stored token), after rebuilding the sdist, running its test suite inside it,
+  checking the metadata with `twine --strict` and verifying that the version
+  matches the tag.
+- Correct hbar^2/m_e to the CODATA 2018 value 7.6199642 eV*Angstrom^2; the
+  previous 7.6199682 was the CODATA 1986 figure, 0.5 ppm high and inconsistent
+  with the package's own Hartree and Bohr constants. Effective masses shift by
+  0.5 ppm. A test now pins it against E_h * a0^2.
 
 Other fixes, with no effect on scientific values:
 

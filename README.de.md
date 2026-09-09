@@ -17,7 +17,7 @@ Berechnungen vorbereiten, Materialeigenschaften auswerten und Abbildungen teilen
 | Projekte | Geführter Einstieg, Berechnungsserien, Qualitätsprüfungen und nachvollziehbare Ergebnisse. |
 | Darstellung | Anpassbare Abbildungen, interaktiver Offline-Explorer und Datenexport. |
 
-[Alle Befehle](docs/BEFEHLE.md) · [Wissenschaftliche Grundlagen (Englisch)](docs/THEORY.md) · [Validierung (Englisch)](docs/VALIDATION.md)
+[Alle Befehle](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/BEFEHLE.md) · [Wissenschaftliche Grundlagen (Englisch)](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/THEORY.md) · [Validierung (Englisch)](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/VALIDATION.md)
 
 ## Installation und Sprache
 
@@ -56,20 +56,20 @@ Titel, Farbe und Achsen an. Exportiere **SVG, PNG, CSV, JSON oder interaktives
 HTML**. Der Explorer arbeitet offline mit einer festen Kopie der Daten;
 erzeuge ihn erneut, wenn weitere Ergebnisse hinzugekommen sind.
 
-[Beispiele](examples/) · [Galerie](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html) · [Exporthinweise (Englisch)](docs/RESULTS-EXPLORER.md)
+[Beispiele](https://github.com/jorgegonzalezsevilla/olla-dft/tree/main/examples/) · [Galerie](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html) · [Exporthinweise (Englisch)](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/RESULTS-EXPLORER.md)
 
 ## Nach einer Unterbrechung weiterrechnen
 
 `olla-dft resilient` schreibt und prüft Checkpoints, um unterstützte
 `pw.x`-Rechnungen fortzusetzen, solange die Festplatte erhalten bleibt. Dafür
 muss zuerst die persistente Umgebung eingerichtet werden:
-[Wiederherstellungsanleitung (Spanisch)](docs/resilience/RECUPERACION.md).
+[Wiederherstellungsanleitung (Spanisch)](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/resilience/RECUPERACION.md).
 
 Geprüft wurden lokale SCF-, `relax`- und `vc-relax`-Paare mit simulierten
 Prozessabbrüchen. Die Wiederherstellung nach einem physischen Stromausfall oder
 einem Festplattenverlust **ist nicht nachgewiesen**.
 [Ergebnisse und Toleranzen](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/index-en.html) ·
-[Wiederherstellungsvertrag (Englisch)](docs/resilience/CONTRACT.md).
+[Wiederherstellungsvertrag (Englisch)](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/resilience/CONTRACT.md).
 
 ## Dokumentation und Lizenz
 
@@ -77,11 +77,11 @@ Ein Projekt von **Jorge Enrique González Sevilla**, unabhängig von Quantum
 ESPRESSO. Freie Software unter **AGPL-3.0-or-later** mit den dokumentierten
 Ausnahmen für einzelne Dateien. Keine automatische Telemetrie.
 
-[Befehle](docs/BEFEHLE.md) · [Wissenschaftliche Referenz (Englisch)](docs/THEORY.md) · [Validierung (Englisch)](docs/VALIDATION.md) ·
-[Sprachen und Migration](docs/LANGUAGES.md) · [Änderungen](CHANGELOG.md) ·
+[Befehle](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/BEFEHLE.md) · [Wissenschaftliche Referenz (Englisch)](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/THEORY.md) · [Validierung (Englisch)](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/VALIDATION.md) ·
+[Sprachen und Migration](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/LANGUAGES.md) · [Änderungen](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/CHANGELOG.md) ·
 [Fehler melden](https://github.com/jorgegonzalezsevilla/olla-dft/issues) ·
-[Lizenz](LICENSE) · [Lizenzumfang](LICENSING.md)
+[Lizenz](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/LICENSE) · [Lizenzumfang](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/LICENSING.md)
 
-Zitiere die verwendete Version über [CITATION.cff](CITATION.cff) und den
+Zitiere die verwendete Version über [CITATION.cff](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/CITATION.cff) und den
 [einen Softwareeintrag auf Zenodo](https://doi.org/10.5281/zenodo.22263121).
 Zitiere außerdem Quantum ESPRESSO und die verwendeten Pseudopotentiale.

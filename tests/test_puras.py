@@ -30,8 +30,15 @@ def test_constantes_fisicas():
     assert qeout.HARTREE_EV == pytest.approx(27.211386, abs=1e-5)
     assert qeout.BOHR_ANG == pytest.approx(0.5291772, abs=1e-6)
     assert qeout.RY_EV == pytest.approx(13.605693, abs=1e-5)
-    # h^2/m_e = 2 * 3.80998 eV*A^2
-    assert effmass.HBAR2_OVER_ME == pytest.approx(7.6199682, abs=1e-6)
+    # ħ²/mₑ = 2 × 3.80998212 eV·Å² (CODATA 2018). El valor anterior,
+    # 7.6199682, era el de CODATA 1986: sobraban 0.5 ppm.
+    assert effmass.HBAR2_OVER_ME == pytest.approx(7.6199642, abs=1e-6)
+    # y tiene que ser COHERENTE con las otras dos constantes de esta misma
+    # prueba: ħ²/mₑ [eV·Å²] = E_h [eV] · a₀ [Å]². Un valor de otra edición de
+    # CODATA rompe esta identidad aunque pase el approx de arriba.
+    assert effmass.HBAR2_OVER_ME == pytest.approx(
+        qeout.HARTREE_EV * qeout.BOHR_ANG ** 2, rel=1e-7), \
+        "ħ²/mₑ no cuadra con E_h·a₀² del propio paquete"
     assert phonons.CM1_TO_THZ == pytest.approx(0.0299792458, abs=1e-10)
 
 

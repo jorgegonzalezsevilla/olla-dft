@@ -27,9 +27,16 @@ def test_existe_el_archivo_de_licencia_agpl3():
 
 
 def test_pyproject_declara_agpl3_y_al_autor():
+    """La licencia va como expresión SPDX (PEP 639), no como tabla + clasificador.
+
+    El clasificador `License :: OSI Approved :: ...` y `license = {file = ...}`
+    están obsoletos desde setuptools 77 y duplican el dato; PyPI publica ahora
+    el campo `License-Expression` de los metadatos.
+    """
     texto = _leer("pyproject.toml")
-    assert "GNU Affero General Public License v3 or later" in texto
-    assert 'license = { file = "LICENSE" }' in texto
+    assert 'license = "AGPL-3.0-or-later"' in texto
+    assert "license-files = [" in texto
+    assert "License :: OSI Approved" not in texto
     assert "Jorge Enrique González Sevilla" in texto
     assert "Private :: Do Not Upload" not in texto
 

@@ -11,7 +11,7 @@
 Cerca de un extremo, E(k) ≈ E₀ + ħ²(k−k₀)²/(2m*), así que la masa sale de
 la curvatura:
 
-    m*/mₑ = (ħ²/mₑ) / (d²E/dk²)     con ħ²/mₑ = 7.6199682 eV·Å²
+    m*/mₑ = (ħ²/mₑ) / (d²E/dk²)     con ħ²/mₑ = 7.6199642 eV·Å²
 
 El comando `olla-dft effmass ESTRUCTURA --bands-dir CARPETA` hace dos cosas
 seguidas, porque hacen falta las dos:
@@ -57,7 +57,11 @@ from qekit.modules import bands as bands_mod
 from qekit.core.errors import ErrorDeUso, FaltanDatos
 
 # ħ²/mₑ en eV·Å²  (= 2 × 3.80998212 eV·Å²)
-HBAR2_OVER_ME = 7.6199682
+# CODATA 2018: ħ²/mₑ = 7.6199642 eV·Å², que es 2×(ħ²/2mₑ = 3.80998212) y
+# coincide con E_h·a₀² usando las constantes de este mismo paquete. El valor
+# anterior, 7.6199682, era el de CODATA 1986: sobra 0.5 ppm, físicamente
+# despreciable en una masa efectiva, pero incoherente en una referencia.
+HBAR2_OVER_ME = 7.6199642
 
 DEGEN_TOL = 0.05        # eV: bandas "degeneradas" con el extremo
 # más allá de ~0.1 Å⁻¹ la banda ya no es parabólica en un

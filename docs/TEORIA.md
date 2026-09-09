@@ -529,7 +529,7 @@ Olla-DFT trabaja en dos etapas. Primero ajusta sobre las bandas que ya tienes (r
 Ajuste cuadrático y masa (`qekit/modules/effmass.py: from_bands`, `collect_fine`, `_mass_from_quadratic`):
 
 $$
-E(k) \approx a\,k^2 + b\,k + c, \qquad \frac{m^*}{m_e} = \frac{\hbar^2/m_e}{2a}, \qquad \frac{\hbar^2}{m_e} = 7.6199682\ \text{eV·Å}^2
+E(k) \approx a\,k^2 + b\,k + c, \qquad \frac{m^*}{m_e} = \frac{\hbar^2/m_e}{2a}, \qquad \frac{\hbar^2}{m_e} = 7.6199642\ \text{eV·Å}^2
 $$
 
 - $k$: distancia al extremo a lo largo de la línea (Å⁻¹, con signo); $a$ en eV·Å²; el ajuste es `np.polyfit(x, y, 2)`.
@@ -559,7 +559,7 @@ Identificación de la banda de valencia en el cálculo fino (`collect_fine`): $n
 |---|---|---|
 | Autovalores y k cartesianos | `prefix.xml` de pw.x | `qeout.read_xml` (bandas previas y cálculo fino) |
 | VBM, CBM y sus k | `bands.analyze_gap` | ver `olla-dft bands` |
-| $\hbar^2/m_e$ | constante `effmass.HBAR2_OVER_ME` | 7.6199682 eV·Å² |
+| $\hbar^2/m_e$ | constante `effmass.HBAR2_OVER_ME` | 7.6199642 eV·Å² |
 | Número de electrones | `<nelec>` del XML | para identificar la valencia en `collect_fine` |
 | Ventana, mínimo de puntos, semiancho, puntos por línea | parámetros del usuario | `--window` (por omisión `effmass.WINDOW_DEFAULT` = 0.06 Å⁻¹), `--min-points 7`, `--half-width 0.06`, `--points 21` |
 | Límite parabólico | `effmass.PARABOLIC_MAX` | 0.12 Å⁻¹ de tramo total (holgura `_TOL_VENTANA = 1e-6`) |

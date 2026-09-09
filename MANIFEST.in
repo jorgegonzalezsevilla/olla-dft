@@ -1,7 +1,13 @@
+include .zenodo.json
 include LICENSE LICENSING.md README.md README.es.md README.de.md CHANGELOG.md CONTRIBUTING.md CONTRIBUTING.es.md CITATION.cff THIRD_PARTY_NOTICES.md
 recursive-include LICENSES *.txt
 recursive-include docs *.md
-recursive-include examples *
+# Los ejemplos entran como TEXTO: sus README y estructuras son lo que
+# valida tests/test_examples.py y tests/test_inputgen_bench.py. Las
+# figuras y PDF de demostración pesan 3.7 MB y solo sirven en GitHub,
+# así que no viajan en el sdist.
+recursive-include examples *.md *.cif *.in *.dat *.json *.txt *.sh *.py
+include examples/POSCAR_*
 recursive-include tests *.py *.sh *.dat *.gz *.cif *.json *.txt *.in *.out *.freq *.dos *.eigen
 recursive-include qekit/data *.json *.txt *.md
 global-exclude __pycache__ *.py[cod]
