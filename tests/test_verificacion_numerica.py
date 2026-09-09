@@ -442,6 +442,11 @@ def test_las_constantes_de_conversion_son_las_mismas_en_todo_el_paquete():
 
 @pytest.mark.parametrize("T", [50.0, 100.0, 300.0, 800.0])
 def test_la_capacidad_calorifica_armonica_concuerda_con_phonopy(T):
+    # phonopy entra con el extra `kappa` (phono3py lo arrastra) y no con el
+    # paquete base: aquí solo se usa como implementación de referencia, así
+    # que sin él la prueba se salta en vez de reventar el trabajo de CI.
+    pytest.importorskip("phonopy",
+                        reason="phonopy is part of the optional 'kappa' extra")
     from phonopy.phonon.thermal_properties import mode_cv
 
     from qekit.modules import qha
