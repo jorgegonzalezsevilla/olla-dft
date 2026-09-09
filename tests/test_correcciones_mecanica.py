@@ -483,3 +483,54 @@ def test_eos_fit_fija_a0_y_el_informe_lo_usa():
     # sin celda cúbica no hay a0
     run2 = eos.EOSRun(volumes=list(V), energies=list(E), natoms=2)
     assert eos.fit(run2).a0 is None
+
+
+# ----------------------------------------------------------------------
+# Módulo de área 2D: las dos cotas
+# ----------------------------------------------------------------------
+def _C2(c11, c22, c12, c66):
+    import numpy as np
+    m = np.zeros((3, 3))
+    m[0, 0], m[1, 1] = c11, c22
+    m[0, 1] = m[1, 0] = c12
+    m[2, 2] = c66
+    return m
+
+
+def test_las_dos_cotas_del_modulo_de_area_coinciden_si_la_lamina_es_isotropa():
+    from qekit.modules import elastic
+    m = elastic.modulos_2d(_C2(352.0, 352.0, 60.0, 146.0))     # grafeno
+    assert m["K"] == pytest.approx(206.0)
+    assert m["K_R"] == pytest.approx(m["K"]), \
+        "con C11 = C22 Voigt y Reuss son el mismo número"
+
+
+def test_en_una_lamina_anisotropa_las_cotas_se_separan():
+    """Regresión: se informaba solo la de Voigt, sin decir que lo era.
+
+    En fosforeno (C11=105, C22=24, C12=18 N/m) la cota de Voigt vale 41.25 y
+    la de Reuss 23.61: citar «el» módulo de área sin decir cuál es deja un
+    factor 1.75 de ambigüedad.
+    """
+    from qekit.modules import elastic
+    m = elastic.modulos_2d(_C2(105.0, 24.0, 18.0, 22.0))
+    assert m["K"] == pytest.approx(41.25)
+    assert m["K_R"] == pytest.approx(23.61, abs=0.01)
+    assert m["K_H"] == pytest.approx(0.5 * (41.25 + 23.61), abs=0.01)
+    assert m["K_R"] < m["K_H"] < m["K"], "Reuss < Hill < Voigt siempre"
+
+
+def test_el_informe_avisa_cuando_las_cotas_no_coinciden():
+    """El informe 2D tiene que decir CUÁL de las dos cotas está citando."""
+    import numpy as np
+    from qekit.modules import elastic
+
+    altura = 20.0                       # Å de celda; N/m = GPa · altura / 10
+    C = np.zeros((6, 6))
+    for (i, j), v in {(0, 0): 105.0, (1, 1): 24.0,
+                      (0, 1): 18.0, (5, 5): 22.0}.items():
+        C[i, j] = C[j, i] = v * 10.0 / altura          # de N/m a GPa
+    run = elastic.ElasticRun(dosd=True, altura=altura, C=C)
+    texto = elastic._report_2d(run, C, [])
+    assert "K_V" in texto and "K_R" in texto
+    assert "anisotropic in the plane" in texto

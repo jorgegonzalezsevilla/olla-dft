@@ -133,6 +133,33 @@ def test_cruce_numero_de_modos_y_dulong_petit():
     assert dp.ok is True          # a 1500 K con w<500 cm⁻¹ ya es clásico
 
 
+def test_cruce_b0_del_barrido_de_deformacion_ya_viene_en_GPa(tmp_path):
+    """Regresión: la columna P de STRAIN.dat ya está en GPa.
+
+    La escribe strain.export con cabecera P(GPa) desde res.pressure, que
+    qeout convierte con HA_BOHR3_GPA. Volver a aplicar el factor kbar→GPa
+    dejaba B₀ DIEZ veces pequeño, y esta tercera ruta discrepaba siempre
+    aunque el cálculo estuviera perfecto.
+    """
+    from qekit.modules import crosscheck as cc
+    b0 = 94.2                                   # GPa
+    eps = np.linspace(-0.02, 0.02, 9)
+    # hidrostática: V = V0(1+ε)³ y B = −dP/d(lnV) => P = −3·B₀·ε
+    P = -3.0 * b0 * eps
+    filas = "\n".join(f"{e:12.6f} {0.0:18.8f} {0.0:12.5f} {p:12.4f} {0.0:10.4f}"
+                       for e, p in zip(eps, P))
+    (tmp_path / "STRAIN.dat").write_text(
+        "# eps E(eV) gap(eV) P(GPa) M(muB)\n" + filas + "\n",
+        encoding="utf-8")
+
+    r = cc.run(project=str(tmp_path), b0_eos=b0)
+    tercera = [c for c in r.checks if "third route" in c.ruta_b
+               or "third route" in c.nombre]
+    assert len(tercera) == 1
+    assert tercera[0].valor_b == pytest.approx(b0, rel=1e-6)
+    assert tercera[0].ok is True
+
+
 def test_cruce_sin_datos_no_inventa():
     from qekit.modules import crosscheck as cc
     r = cc.run(project=None)
@@ -156,6 +183,28 @@ def test_qha_recupera_el_gruneisen_impuesto():
     F = [_modos_con_gruneisen(v, gamma=1.5) for v in V]
     r = qha.run(V, E, F, T=np.arange(0, 601, 20), natoms=2)
     assert r.gruneisen == pytest.approx(1.5, rel=0.02)
+
+
+def test_qha_no_depende_del_orden_de_los_volumenes():
+    """Regresión: la QHA suponía los volúmenes ordenados sin comprobarlo.
+
+    La parábola se toma por ÍNDICE alrededor del mínimo y el C_v se
+    interpola con np.interp, que exige V creciente. Un fichero con los
+    volúmenes al revés —listar carpetas V_1.10, V_1.05... da justo eso—
+    ajustaba puntos arbitrarios y devolvía un C_v sin sentido, sin avisar.
+    """
+    from qekit.modules import qha
+    V = np.linspace(36.0, 44.0, 7)
+    E = 0.02 * (V - 40.0) ** 2
+    F = [_modos_con_gruneisen(v, gamma=1.5) for v in V]
+    T = np.arange(0, 601, 50)
+
+    subiendo = qha.run(V, E, F, T=T, natoms=2)
+    bajando = qha.run(V[::-1], E[::-1], F[::-1], T=T, natoms=2)
+
+    assert bajando.gruneisen == pytest.approx(subiendo.gruneisen, rel=1e-9)
+    assert np.allclose(bajando.V_T, subiendo.V_T)
+    assert np.allclose(bajando.Cv, subiendo.Cv)
 
 
 def test_qha_da_expansion_positiva_con_gruneisen_positivo():

@@ -159,8 +159,29 @@ def test_language_catalogs_and_documentation_are_packaged():
     for lang in ('en', 'es', 'de'):
         for name in ('menu', 'studio', 'onboarding', 'dashboard', 'cli'):
             assert json.loads((root / f'qekit/data/i18n/{name}_{lang}.json').read_text(encoding='utf-8'))
-    for name in ('README.es.md', 'docs/COMANDOS.md', 'docs/TEORIA.md', 'docs/COMMANDS.md', 'docs/THEORY.md'):
+    # El alemán se quedaba fuera de esta lista aunque el bucle de arriba ya lo
+    # recorra: README.de.md y docs/BEFEHLE.md no estaban protegidos por nada.
+    for name in ('README.md', 'README.es.md', 'README.de.md',
+                 'docs/COMANDOS.md', 'docs/TEORIA.md',
+                 'docs/COMMANDS.md', 'docs/THEORY.md', 'docs/BEFEHLE.md'):
         assert (root / name).is_file()
+
+
+def test_los_tres_readme_advierten_del_alcance_de_la_resiliencia():
+    """La salvedad tiene que estar en los TRES, no solo en en/es.
+
+    README.de.md no mencionaba `resilient` en ningún punto, así que el lector
+    alemán no veía que la recuperación tras apagón físico o pérdida de disco no
+    está demostrada. Es justo el límite que no se puede omitir.
+    """
+    root = Path(__file__).resolve().parents[1]
+    marcas = {'README.md': 'has not been demonstrated',
+              'README.es.md': 'no está demostrada',
+              'README.de.md': 'ist nicht nachgewiesen'}
+    for nombre, marca in marcas.items():
+        texto = (root / nombre).read_text(encoding='utf-8')
+        assert 'resilient' in texto, f'{nombre} no menciona el comando'
+        assert marca in texto, f'{nombre} no advierte del alcance'
 
 
 def test_legacy_settings_survive_language_selection(preferences, monkeypatch):
@@ -209,3 +230,38 @@ def test_explorer_keeps_utf8_labels_and_title(tmp_path, language):
     assert f'lang="{language}"' in document
     assert 'Energía — silicio' in document
     assert 'Español' in document
+
+
+# ----------------------------------------------------------------------
+# Validación de los valores de configuración
+# ----------------------------------------------------------------------
+@pytest.mark.parametrize('key,value', [
+    ('ecutwfc', 'sesenta'),
+    ('dual', 'ocho'),
+    ('kspacing', 'x'),
+    ('band_points', '20.5'),
+    ('nproc', 'abc'),
+    ('nproc', '0'),
+    ('ecutwfc', '-30'),
+    ('degauss', '-0.01'),
+    ('smearing', 'raro'),
+])
+def test_config_set_rechaza_valores_invalidos(preferences, key, value):
+    """Regresión: `set_value` solo validaba `language`.
+
+    `config set ecutwfc sesenta` respondía «saved» con rc=0 y el fallo
+    aparecía mucho después, en otro comando y como error del programa con
+    traza, en vez de aquí y como error de uso.
+    """
+    with pytest.raises(KeyError):
+        config.set_value(key, value)
+
+
+@pytest.mark.parametrize('key,value', [
+    ('ecutwfc', '60'), ('ecutwfc', '60.5'), ('dual', '4'),
+    ('kspacing', '0.20'), ('band_points', '20'), ('nproc', '8'),
+    ('degauss', '0'), ('degauss', '0.01'), ('smearing', 'cold'),
+])
+def test_config_set_acepta_los_valores_de_siempre(preferences, key, value):
+    config.set_value(key, value)
+    assert config.load()[key] == value

@@ -490,9 +490,9 @@ def export(run: StrainRun, outdir: str = ".") -> list:
         m = run.moments[i] if run.moments[i] is not None else nan
         lines.append(f"{eps:12.6f} {run.energies[i]:18.8f} {g:12.5f} "
                      f"{p:12.4f} {m:10.4f}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     txt = out / "STRAIN.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

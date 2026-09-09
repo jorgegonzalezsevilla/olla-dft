@@ -2561,4 +2561,4 @@ die Konfiguration anzeigen oder ändern
 
 ---
 
-*Olla-DFT 1.5.0*
+*Olla-DFT 1.6.0*

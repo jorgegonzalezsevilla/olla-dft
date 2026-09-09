@@ -175,7 +175,7 @@ def run(project=".", masas=None, volumen=None, natoms=None,
         gap_bandas: float = None, C: np.ndarray = None,
         b0_eos: float = None, qdist=None, band_freqs=None,
         dos_w=None, dos=None, gap_tauc: float = None,
-        cell=None) -> CrossResult:
+        cell=None, n_primitiva: int = None) -> CrossResult:
     """Ejecuta todos los cruces para los que haya datos."""
     from qekit.modules import derived
 
@@ -328,8 +328,10 @@ def run(project=".", masas=None, volumen=None, natoms=None,
         _vl, _vt, vm = derived.sound_velocities(m.B_hill, m.G_hill, rho)
         td = derived.debye_from_velocity(vm, natoms, volumen)
         gam = derived.gruneisen_from_poisson(m.nu)
+        # la n de Slack es la de la celda primitiva, no la de la celda dada
         ks = derived.slack(td, gam, float(np.mean(masas)), natoms, volumen,
-                           T=T_usada) if (td and gam) else None
+                           T=T_usada,
+                           n_celda=n_primitiva or natoms) if (td and gam) else None
         if ks:
             res.checks.append(Check(
                 nombre="lattice thermal conductivity",
@@ -404,7 +406,12 @@ def run(project=".", masas=None, volumen=None, natoms=None,
             if bien.sum() >= 3:
                 # hidrostática: V = V0(1+ε)³  ->  B = −dP/d(lnV) = −dP/dε / 3
                 pend = np.polyfit(eps[bien], P[bien], 1)[0]
-                b0_strain = -pend / 3.0 * 0.1        # kbar -> GPa
+                # La columna 3 de STRAIN.dat ya viene en GPa (la escribe
+                # strain.export con cabecera P(GPa), desde res.pressure, que
+                # qeout convierte con HA_BOHR3_GPA). No hay nada que pasar
+                # de kbar: multiplicar por 0.1 dejaba B0 diez veces pequeño
+                # y esta tercera ruta discrepaba siempre.
+                b0_strain = -pend / 3.0
                 if b0_strain > 0:
                     res.checks.append(Check(
                         nombre="bulk modulus B₀ (third route)",

@@ -287,6 +287,16 @@ def _kgrid_card(grid: tuple) -> str:
 # Estimación de nbnd para nscf/bands
 # ----------------------------------------------------------------------
 def _estimate_nbnd(atoms: Atoms, pseudos: dict):
+    """Bandas para nscf/bands: 1.25 x las ocupadas, y 4 mas.
+
+    NO es el defecto de pw.x y no hay que presentarlo como tal. pw.x pone
+    nelec/2 con `occupations='fixed'` (justo las ocupadas: cero bandas de
+    conduccion, ningun gap) y max(1.2*nelec/2, nelec/2+4) con smearing.
+    Este es mas generoso a proposito, porque un nscf sin bandas vacias de
+    sobra deja el gap y la DOS truncados justo donde interesan. Comparar
+    este nbnd con el de un pw.x lanzado a mano dara numeros distintos: es
+    deliberado, no una discrepancia.
+    """
     total = 0.0
     for symbol in atoms.get_chemical_symbols():
         z = pseudos[symbol].get("z_valence")

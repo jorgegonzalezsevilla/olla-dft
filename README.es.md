@@ -24,7 +24,7 @@ Prepara cálculos, analiza propiedades y comparte gráficas y datos.</p>
 | Organización | Inicio guiado, proyectos, campañas, controles de calidad y procedencia de resultados. |
 | Visualización y continuidad | Gráficas configurables, explorador sin conexión y recuperación de trabajos `pw.x`. |
 
-La [referencia completa](docs/COMANDOS.md) cubre también cargas, espectros avanzados, NEB, dinámica molecular y módulos opcionales. Cada método tiene supuestos y un alcance de validación propio: consulta [teoría](docs/TEORIA.md) y [validación](docs/VALIDACION.md).
+La [referencia completa](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/COMANDOS.md) cubre también cargas, espectros avanzados, NEB, dinámica molecular y módulos opcionales. Cada método tiene supuestos y un alcance de validación propio: consulta [teoría](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/TEORIA.md) y [validación](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/VALIDACION.md).
 
 ## Una muestra de resultados
 
@@ -41,11 +41,11 @@ La [referencia completa](docs/COMANDOS.md) cubre también cargas, espectros avan
 
 Pulsa cada imagen para consultar los inputs, resultados y condiciones del ejemplo. Son ejemplos de cálculos anteriores, no una validación universal ni simulaciones nuevas de esta versión.
 
-[Galería PDF para leer o compartir](docs/gallery/olla-dft-gallery-es.pdf) · [Condiciones y fuentes](docs/gallery/manifest.json)
+[Galería PDF para leer o compartir](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/gallery/olla-dft-gallery-es.pdf) · [Condiciones y fuentes](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/gallery/manifest.json)
 
 ## Empezar
 
-Requiere **Python 3.9+**. Instala Quantum ESPRESSO y pseudopotenciales por separado para ejecutar cálculos; el análisis de resultados existentes no los necesita. [Plataformas e instalación](docs/PLATAFORMAS.md).
+Requiere **Python 3.9+**. Instala Quantum ESPRESSO y pseudopotenciales por separado para ejecutar cálculos; el análisis de resultados existentes no los necesita. [Plataformas e instalación](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/PLATAFORMAS.md).
 
 ```bash
 git clone https://github.com/jorgegonzalezsevilla/olla-dft.git
@@ -57,11 +57,11 @@ olla-dft info examples/demo_Si/Si.cif
 olla-dft
 ```
 
-`start` guía la creación del proyecto. Consulta `olla-dft --help` o la [guía de uso](docs/COMANDOS.md) para continuar. El paquete conserva el nombre interno `qekit` y `python -m qekit` por compatibilidad.
+`start` guía la creación del proyecto. Consulta `olla-dft --help` o la [guía de uso](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/COMANDOS.md) para continuar. El paquete conserva el nombre interno `qekit` y `python -m qekit` por compatibilidad.
 
 `olla-dft` abre el selector **English / Español / Deutsch** y recuerda tu elección. Pulsa **l** en el menú para cambiarla; `olla-dft --language es` entra directamente en español. Para scripts puedes usar `--language en|es|de`, `OLLA_DFT_LANG` o `olla-dft config set language es`, sin preguntas interactivas.
 
-¿Vienes del repositorio español anterior? Sigue la [guía de migración](docs/LANGUAGES.md#migrar-desde-la-edición-española). Los tres idiomas comparten este repositorio, paquete y versiones.
+¿Vienes del repositorio español anterior? Sigue la [guía de migración](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/LANGUAGES.md#migrar-desde-la-edición-española). Los tres idiomas comparten este repositorio, paquete y versiones.
 
 Los informes científicos se generan en **inglés**, cualquiera que sea el idioma de la interfaz. La referencia teórica detallada de la interfaz alemana también se ofrece en inglés.
 
@@ -74,22 +74,22 @@ olla-dft results explore --project ./mi-proyecto -o resultados.html
 
 Abre `resultados.html`: filtra cálculos, elige métricas y unidades, selecciona registros y ajusta título, color, tamaño y ejes. Descarga **SVG, PNG, CSV, JSON o HTML interactivo**, sin conexión. El HTML contiene una copia fija de los registros: no consulta la base de datos ni se actualiza solo. Regénéralo para incorporar resultados nuevos.
 
-[Probar la demo de 1.2.0](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/explorer.html) · [Guía de exportación y límites](docs/EXPLORADOR-RESULTADOS.md)
+[Probar la demo de 1.2.0](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/explorer.html) · [Guía de exportación y límites](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/EXPLORADOR-RESULTADOS.md)
 
 ## Continuar después de una interrupción
 
-`olla-dft resilient` guarda y verifica checkpoints para reanudar trabajos compatibles de `pw.x` cuando se conserva el disco. Requiere configurar el entorno persistente: [guía de recuperación](docs/resilience/RECUPERACION.md).
+`olla-dft resilient` guarda y verifica checkpoints para reanudar trabajos compatibles de `pw.x` cuando se conserva el disco. Requiere configurar el entorno persistente: [guía de recuperación](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/resilience/RECUPERACION.md).
 
-Se verificaron parejas locales SCF, `relax` y `vc-relax` con cortes simulados de procesos. La recuperación tras un apagón físico o la pérdida del disco **no está demostrada**. [Resultados y tolerancias](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/) · [Contrato](docs/resilience/CONTRACT.md).
+Se verificaron parejas locales SCF, `relax` y `vc-relax` con cortes simulados de procesos. La recuperación tras un apagón físico o la pérdida del disco **no está demostrada**. [Resultados y tolerancias](https://jorgegonzalezsevilla.github.io/olla-dft-bench/publication-1.2.0/) · [Contrato](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/resilience/CONTRACT.md).
 
 ## Documentación, calidad y cita
 
-[Comandos](docs/COMANDOS.md) · [Teoría](docs/TEORIA.md) · [Validación](docs/VALIDACION.md) · [Arquitectura](docs/ARQUITECTURA.md) · [Benchmark reproducible](https://github.com/jorgegonzalezsevilla/olla-dft-bench) · [Cambios](CHANGELOG.md)
+[Comandos](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/COMANDOS.md) · [Teoría](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/TEORIA.md) · [Validación](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/VALIDACION.md) · [Arquitectura](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/docs/ARQUITECTURA.md) · [Benchmark reproducible](https://github.com/jorgegonzalezsevilla/olla-dft-bench) · [Cambios](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/CHANGELOG.md)
 
-Proyecto personal de **Jorge Enrique González Sevilla**, desarrollado en Guadalajara, México; independiente de Quantum ESPRESSO. Software libre **AGPL-3.0-or-later**, sin telemetría automática. Se agradecen [incidencias e ideas](https://github.com/jorgegonzalezsevilla/olla-dft/issues); el mantenimiento de código es del autor ([contribución](CONTRIBUTING.es.md)).
+Proyecto personal de **Jorge Enrique González Sevilla**, desarrollado en Guadalajara, México; independiente de Quantum ESPRESSO. Software libre **AGPL-3.0-or-later**, sin telemetría automática. Se agradecen [incidencias e ideas](https://github.com/jorgegonzalezsevilla/olla-dft/issues); el mantenimiento de código es del autor ([contribución](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/CONTRIBUTING.es.md)).
 
 Esta es la edición en español del mismo proyecto. En Zenodo se publica y cita únicamente el repositorio principal **olla-dft**; esta edición no genera registros independientes.
 
-Para citar la versión utilizada: [CITATION.cff](CITATION.cff) y [Zenodo](https://doi.org/10.5281/zenodo.22263121). Cita también Quantum ESPRESSO y los pseudopotenciales empleados. [Licencia](LICENSE) · [Créditos de terceros](THIRD_PARTY_NOTICES.md).
+Para citar la versión utilizada: [CITATION.cff](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/CITATION.cff) y [Zenodo](https://doi.org/10.5281/zenodo.22263121). Cita también Quantum ESPRESSO y los pseudopotenciales empleados. [Licencia](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/LICENSE) · [Créditos de terceros](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/THIRD_PARTY_NOTICES.md).
 
-[Licencia y uso comercial](LICENSING.md): AGPLv3 o posterior desde 1.3.0; las versiones anteriores conservan GPL. Se permite el uso comercial.
+[Licencia y uso comercial](https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/LICENSING.md): AGPLv3 o posterior desde 1.3.0; las versiones anteriores conservan GPL. Se permite el uso comercial.

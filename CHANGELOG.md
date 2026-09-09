@@ -2,6 +2,137 @@
 
 All notable changes to Olla-DFT. Dates are ISO 8601.
 
+## 1.6.0 — 2026-09-09
+
+**Scientific values change.** Three correctness fixes alter numbers reported by
+earlier versions. Results produced before this release should be recomputed for
+the affected commands.
+
+- `transport`: fix the transformation of dE/dk from fractional to Cartesian
+  coordinates (the transpose was inverted). Band velocities, and therefore σ/τ,
+  κ_e/τ and the Seebeck tensor, were wrong for every cell whose reciprocal
+  lattice is not symmetric — hexagonal, trigonal, monoclinic and triclinic. The
+  Seebeck coefficient of cubic, tetragonal and orthorhombic cells is unaffected.
+- `transport`: carry the spin degeneracy in the k-point weights, as Quantum
+  ESPRESSO does. Without spin polarization σ/τ, κ_e/τ and the power factor were
+  reported at half their value; the Seebeck coefficient and the Lorenz number
+  are ratios and were already correct.
+- `echem --her`: apply the potential and pH terms with the sign of a reduction.
+  The HER consumes H⁺+e⁻, so ΔG = ΔG₀ + eU: its limiting potential is negative
+  versus RHE, and the ΔG(U,pH) column and the energy ladder now move in the
+  right direction. The ΔG_H* descriptor and the overpotential magnitude are
+  unchanged.
+- `kappa`: weight the cumulative curve with phono3py's own per-mode `mode_kappa`
+  instead of reconstructing C·v²·τ/3 by hand, and build the mean free path from
+  the effective linewidth Γ_ph-ph + Γ_iso + Γ_boundary, the same sum phono3py
+  uses for κ. The curve now adds up to the reported κ by construction and
+  matches phono3py's own `kaccum`. Before, `--isotopes` and `--grain` changed κ
+  but left the mean free paths at their pure-infinite-crystal values: a silicon
+  run with a 1 µm grain reported Λ₉₀ = 14 µm, longer than the grain itself.
+- `kappa`: warn that Λ₉₀ is not converged below a 25³ q-grid. Measured in
+  silicon with a Stillinger-Weber potential on a 3×3×3 supercell, Λ₉₀ grows from
+  4.4 to 21.9 µm between 11³ and 31³ while Λ₅₀ moves only 21 % (0.68 → 0.82 µm).
+- `crosscheck`: stop applying a kbar→GPa factor to a pressure column that is
+  already in GPa. The third route to B₀ was reported ten times too small and
+  disagreed with the equation of state even when both agreed.
+
+- `kappa --grain`: pass the grain size to phono3py in micrometres, the unit it
+  documents, instead of converting it to Angstrom. The conversion made boundary
+  scattering 10,000 times weaker than requested, so `--grain` had no effect on κ
+  while the report stated it had been applied.
+- `kappa`: use phono3py's own lifetime convention, τ = 1/(2·2π·Γ). The missing
+  2π — which converts cyclic to angular frequency — made every reported mean
+  free path 2π times too long. κ, its temperature dependence and the shape of
+  the cumulative curve are unaffected (the factor cancels on normalisation);
+  only the Λ axis moves. **The Λ₅₀ = 1.0 µm figure recorded in the validation
+  documents was obtained with the old convention and is pending recomputation.**
+
+Found by the formula audit against the literature:
+
+- The `ecutrho` floor now depends on the pseudopotential TYPE. It was a fixed
+  4x, which is the physical minimum for norm-conserving but too low for
+  ultrasoft and PAW, whose augmentation charge needs 8 to 12. It slipped
+  through when mixing types: a hard norm-conserving O at 80 Ry together with
+  an ultrasoft Fe declaring ecutrho = 360 gave an effective dual of 4.5 where
+  the Fe needs 8 x 80 = 640, leaving the density under-converged and the
+  forces and energies wrong with no warning. The floor is now taken from the
+  hardest pseudopotential in the set, and an unknown type assumes the worst
+  case.
+- `elastic --2d` reports both bounds of the layer modulus. The formula in use,
+  (C11+C22+2C12)/4, is the Voigt (uniform biaxial strain) definition that the
+  2D literature reports, and it is correct — but it is an upper bound, and in
+  an anisotropic sheet the uniform-stress (Reuss) bound is far away: in
+  phosphorene 41 against 24 N/m. Quoting one number without saying which left
+  a factor of 1.75 unstated, so the report now prints Voigt, Reuss and Hill
+  and warns when they differ by more than 5 %.
+
+Packaging, for the first PyPI release:
+
+- Publish on PyPI as `olla-dft`; install with `pip install olla-dft`.
+- Declare the licence as the SPDX expression `AGPL-3.0-or-later` with explicit
+  `license-files` (PEP 639), replacing the deprecated licence table and
+  classifier. The build now emits no deprecation warnings.
+- Make every README link absolute. PyPI does not resolve relative links against
+  the repository, so the 17 links on the project page would all have been 404s.
+- Add `Source` and `Changelog` to the project URLs shown on the PyPI page.
+- Trim the source distribution from 6.7 MB to 2.0 MB by leaving the demo
+  figures and gallery PDFs on GitHub, while keeping it able to run its own test
+  suite; ship `.zenodo.json` with it.
+- Add a release workflow that publishes through PyPI trusted publishing (no
+  stored token), after rebuilding the sdist, running its test suite inside it,
+  checking the metadata with `twine --strict` and verifying that the version
+  matches the tag.
+- Correct hbar^2/m_e to the CODATA 2018 value 7.6199642 eV*Angstrom^2; the
+  previous 7.6199682 was the CODATA 1986 figure, 0.5 ppm high and inconsistent
+  with the package's own Hartree and Bohr constants. Effective masses shift by
+  0.5 ppm. A test now pins it against E_h * a0^2.
+
+Other fixes, with no effect on scientific values:
+
+- Do not split an executable path on spaces when building the pw.x command.
+  `C:\Program Files\QE\bin\pw.exe` — the default location on Windows —
+  failed with «not found: C:\Program».
+- Read `KPATH.txt` as UTF-8: the Γ, Δ, Σ and Λ tick labels of band figures came
+  out as mojibake on Windows, or raised `UnicodeDecodeError`.
+- Validate numeric configuration values in `config set`, instead of accepting
+  them and failing later in another command.
+- Report bad `--position`, `--miller` and `--fix` values as usage errors rather
+  than as program incidents with a traceback; `--miller` now checks it got
+  three indices.
+- Write the `kappa` run script with POSIX line endings and the execute bit, as
+  the other generated scripts already did.
+- Sort the volumes in `qha` before fitting, instead of assuming the input file
+  is ordered.
+- Return no accumulation in `kappa` when no mode contributes, instead of
+  raising `IndexError`.
+- Open documentation with a valid `file://` URI on Windows.
+- Write every generated file as UTF-8 explicitly, and read back as UTF-8 the
+  files the program itself wrote. 51 writes across 33 modules used the machine's
+  locale encoding: on Windows, exporting any report containing Δ, Å, κ or ⁻¹
+  raised `UnicodeEncodeError`, and JSON state written as UTF-8 came back as
+  mojibake. A test now enforces the convention for the whole package.
+- `exfoliate`: warn when the layers in the cell are not equivalent. E_exf
+  divides E(bulk) by the number of layers, which is meaningless for a
+  heterostructure; the number came out silently.
+- `converge`: reject malformed `--values` k-meshes (`4x4` raised `IndexError`),
+  and require two finished calculations before drawing the curve (one raised a
+  matplotlib error). The "not converged" branch of the report was unreachable —
+  the densest point is its own reference and always qualifies — so its advice
+  never reached anyone; the reachable branch now carries it.
+- `doctor --system`: measure available memory on macOS and Windows instead of
+  only Linux, look for the platform's binary names (`pw.exe` on Windows), and
+  stop reporting a Quantum ESPRESSO installation as fine when pw.x is missing.
+- `kappa`: build the report warnings without mutating the run, so they are no
+  longer duplicated in `KAPPA.txt`; and say so when phono3py does not expose the
+  per-mode data instead of dropping a section, a file and a figure in silence.
+- Run the lattice-thermal-conductivity tests in CI. Their `phono3py` skip was at
+  module level, so all 30 were skipped and three of them had been failing since
+  the 1.5.0 English translation without anyone seeing it.
+- Add the resilience scope caveat to `README.de.md`, which did not mention
+  `resilient` at all, so German readers never saw that recovery after a physical
+  power outage or disk loss has not been demonstrated.
+- Write Hubbard cards, thermochemistry reports and exported themes as UTF-8.
+
 ## 1.5.0 — 2026-09-05
 
 - Write scientific reports, diagnostics and new plot labels in English in every interface locale. Text output changes; structured identifiers, scientific values and calculation logic remain compatible.

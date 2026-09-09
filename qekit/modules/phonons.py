@@ -621,7 +621,7 @@ def export(run: PhononRun, outdir: str = ".", natoms: int = None) -> list:
         for i, (w, a) in enumerate(run.gamma_freqs, start=1):
             lines.append(f"{i:6d} {w:12.3f} {w * CM1_TO_THZ:11.4f} "
                          f"{a if a is not None else float('nan'):12.4f}")
-        f.write_text("\n".join(lines) + "\n")
+        f.write_text("\n".join(lines) + "\n", encoding="utf-8")
         return [str(f)]
 
     f = out / "FONONES_BANDAS.dat"

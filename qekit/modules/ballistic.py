@@ -452,7 +452,7 @@ def export(run: CondRun, outdir: str = ".") -> list:
                    titulo="Landauer conductance") + "\n" +
                "  ".join(f"{n:>14s}" for n in nombres), comments="# ")
     txt = out / "BALISTICO.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

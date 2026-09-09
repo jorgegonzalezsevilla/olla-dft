@@ -275,9 +275,9 @@ def export(run: BarridoT, outdir: str = ".") -> list:
         im = run.imaginarias(T)
         lines.append(f"{T:12.2f} {degauss_de_T(T):14.6f} {len(im):8d} "
                      + (f"{im.min():13.3f}" if len(im) else f"{'0.000':>13s}"))
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     txt = out / "FONONES_T.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

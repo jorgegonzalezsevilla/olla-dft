@@ -162,7 +162,7 @@ def user_templates() -> dict:
     if USER_DIR.is_dir():
         for f in sorted(USER_DIR.glob("*.json")):
             try:
-                data = json.loads(f.read_text())
+                data = json.loads(f.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
                 continue
             if isinstance(data, dict):
@@ -217,7 +217,7 @@ def load(name=None, **overrides) -> dict:
         text = str(name)
         path = Path(text)
         if path.suffix.lower() == ".json" and path.is_file():
-            base.update(json.loads(path.read_text()))
+            base.update(json.loads(path.read_text(encoding="utf-8")))
         elif text in THEMES:
             base.update(THEMES[text])
         else:
@@ -285,5 +285,9 @@ def export(name: str, path: str = None) -> str:
     data["extends"] = name if name in THEMES else DEFAULT
     target = Path(path) if path else USER_DIR / f"{name}-copia.json"
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+    # ensure_ascii=False deja acentos y símbolos en el JSON, así que hace
+    # falta UTF-8 explícito: si no, la plantilla se guarda en la
+    # codificación ANSI de la máquina y no se puede intercambiar.
+    target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n",
+                      encoding="utf-8")
     return str(target)

@@ -484,5 +484,5 @@ def export_json(db_path="olla-dft.db", out="calculos.json") -> str:
     doc = {"qekit_version": __version__,
            "generado": provenance.fields()["generado"],
            "n": len(filas), "calculos": filas}
-    Path(out).write_text(json.dumps(doc, ensure_ascii=False, indent=2))
+    Path(out).write_text(json.dumps(doc, ensure_ascii=False, indent=2), encoding="utf-8")
     return str(out)

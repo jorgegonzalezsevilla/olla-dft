@@ -291,7 +291,7 @@ def report(al: Alineamiento) -> str:
 def export(al: Alineamiento, outdir: str = ".") -> list:
     out = Path(outdir); out.mkdir(parents=True, exist_ok=True)
     f = out / "ALINEAMIENTO.txt"
-    f.write_text(report(al) + "\n")
+    f.write_text(report(al) + "\n", encoding="utf-8")
     d = out / "ALINEAMIENTO.dat"
     lines = [provenance.header(
         "band alignment",
@@ -304,7 +304,7 @@ def export(al: Alineamiento, outdir: str = ".") -> list:
             + (f"{lado.cbm_rel:12.5f}" if lado.cbm_rel is not None
                else f"{'nan':>12s}")
             + (f" {lado.gap:10.5f}" if lado.gap else f" {'nan':>10s}"))
-    d.write_text("\n".join(lines) + "\n")
+    d.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return [str(d), str(f)]
 
 

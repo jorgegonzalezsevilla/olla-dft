@@ -484,12 +484,12 @@ Gran canónico (`esm.gran_canonico`, sólo biblioteca): $\Omega = E + q\,\Phi$.
 **Fórmulas.** En `qekit/modules/echem.py`.
 
 Dependencia con $U$ y pH (`Echem.dG`):
-$$\Delta G_i(U, \mathrm{pH}) = \Delta G_i(0,0) - eU - k_B T\ln 10\cdot\mathrm{pH} = \Delta G_i(0,0) - e\,U_{\mathrm{RHE}}$$
+$$\Delta G_i(U, \mathrm{pH}) = \Delta G_i(0,0) - n_e\left(eU + k_B T\ln 10\cdot\mathrm{pH}\right) = \Delta G_i(0,0) - n_e\,e\,U_{\mathrm{RHE}}, \qquad n_e = \begin{cases} +1 & \text{OER: el paso LIBERA } \mathrm{H^+ + e^-} \\ -1 & \text{HER: el paso lo CONSUME} \end{cases}$$
 $$U_{\mathrm{RHE}} = U_{\mathrm{SHE}} + k_B T\ln 10\cdot\mathrm{pH}\quad(\text{`echem.u_rhe`; } 0.0592\,\mathrm{pH\ V\ a\ 298\ K})$$
 - $k_B$ = `KB_EV` = $8.617333262\times10^{-5}$ eV/K; $T$ = `--temperature` (298.15 K); $U$ = `-U` en V **frente al SHE** (a pH 0 coincide con RHE); el término de pH es exactamente la conversión SHE → RHE, así que en la escala RHE los $\Delta G$ no dependen del pH. Un electrón por paso.
 
 HER (`echem.her`):
-$$\Delta G_{\mathrm{H^*}} = E_{\mathrm{ads}}(\mathrm{H}) + c_{\mathrm{H}},\qquad \text{pasos: } (+\Delta G_{\mathrm{H^*}},\ -\Delta G_{\mathrm{H^*}})$$
+$$\Delta G_{\mathrm{H^*}} = E_{\mathrm{ads}}(\mathrm{H}) + c_{\mathrm{H}},\qquad \text{Volmer } \mathrm{H^+ + e^- + {*} \to H^*}\ (+\Delta G_{\mathrm{H^*}}),\quad \text{Heyrovsky } \mathrm{H^* + H^+ + e^- \to H_2 + {*}}\ (-\Delta G_{\mathrm{H^*}})$$
 - $E_{\mathrm{ads}}(\mathrm{H})$: `--her`, referida a $\tfrac12\mathrm{H_2}$ (eV); $c_{\mathrm{H}}$ = ZPE − TΔS = 0.24 eV por omisión (`CORRECCIONES`).
 
 OER (`echem.oer`), con $G_X = E_{\mathrm{ads}}(X) + c_X$:
@@ -497,7 +497,7 @@ $$\Delta G_1 = G_{\mathrm{OH}},\quad \Delta G_2 = G_{\mathrm{O}} - G_{\mathrm{OH
 - $c_{\mathrm{OH}} = 0.35$, $c_{\mathrm{O}} = 0.05$, $c_{\mathrm{OOH}} = 0.40$ eV por omisión; `DG_AGUA_TOTAL` = 4.92 eV (experimental, $2\mathrm{H_2O} \to \mathrm{O_2} + 2\mathrm{H_2}$).
 
 Potencial limitante y sobrepotencial (`Echem.U_limitante`, `Echem.sobrepotencial`):
-$$U_L = \max_i \Delta G_i(0,0)/e,\qquad \eta = U_L - U_{\mathrm{eq}},\quad U_{\mathrm{eq}}^{\mathrm{OER}} = 1.229\ \mathrm{V},\ U_{\mathrm{eq}}^{\mathrm{HER}} = 0$$
+$$U_L = n_e\max_i \Delta G_i(0,0)/e,\qquad \eta = n_e\left(U_L - U_{\mathrm{eq}}\right),\quad U_{\mathrm{eq}}^{\mathrm{OER}} = 1.229\ \mathrm{V},\ U_{\mathrm{eq}}^{\mathrm{HER}} = 0$$
 - $\eta$ se devuelve **con signo**: positivo = en $U_{\mathrm{eq}}$ el paso limitante sigue cuesta arriba (con los perfiles de aquí nunca sale negativo; sólo podría con un `dG_total` distinto del experimental).
 
 Relación de escala (`echem.escala_ooh_oh`, OER) y su límite (`echem.sobrepotencial_minimo_escala`):
@@ -525,7 +525,8 @@ Rejilla tipo Pourbaix (`echem.pourbaix`, sólo biblioteca): $\Delta G_{\lim}(U,\
 
 **Límites y trampas.**
 - *"El CHE es termodinámica de intermedios: NO hay barreras cinéticas, ni disolvente explícito, ni doble capa."*
-- `-U` es frente al **SHE** (ayuda de la CLI: *"a pH 0 es el mismo que frente al RHE; el pH lo convierte"*); $U_L$ y $\eta$ están en la escala RHE. Para la HER $U_L = |\Delta G_{\mathrm{H^*}}|$, así que $\eta \ge 0$ siempre.
+- La cumbre del volcán de la HER está en $\Delta G_{\mathrm{H^*}} = 0$. El $-0.09$ eV que aparece en el informe y en `selftest` es el valor calculado para el Pt(111), que es el mejor catalizador conocido justamente porque cae muy cerca de la cumbre: es una referencia experimental, no la posición del máximo. Leerlo como el objetivo manda una optimización hacia $-0.09$ en vez de hacia cero.
+- `-U` es frente al **SHE** (ayuda de la CLI: *"a pH 0 es el mismo que frente al RHE; el pH lo convierte"*); $U_L$ y $\eta$ están en la escala RHE. La HER es CATÓDICA: sus pasos consumen $\mathrm{H^+ + e^-}$, así que $U_L = -|\Delta G_{\mathrm{H^*}}|/e < 0$ y $\eta = U_{\mathrm{eq}} - U_L = |\Delta G_{\mathrm{H^*}}|/e \ge 0$. Aplicarle el signo de la OER, como decía antes este documento, daba un $U_L$ positivo para una reacción catódica y movía la escalera de energías al revés con $U$ y el pH.
 - Cuarto paso por diferencia: *"El cuarto paso sale NEGATIVO… o hay un error en las referencias, o tu superficie liga los intermedios muchísimo."*
 - `pourbaix()` no está conectada a ningún comando: el "diagrama de Pourbaix" del título del módulo no se produce desde la CLI.
 
@@ -746,6 +747,7 @@ Con `--strain both`: celda objetivo $= (w A' + v B')/(w+v)$ con $w = n_1\,|\det 
 | Límites de búsqueda | `--max-index`, `--tol`, `--max-atoms` | 4, 0.05, 200 |
 
 **Límites y trampas.**
+- El convenio importa al comparar con otra herramienta: $\boldsymbol\epsilon$ es la deformación LINEALIZADA (ingenieril), no la de Green-Lagrange $\tfrac12(B'^{-T}A'^TA'B'^{-1}-I)$ —coinciden a primer orden y se separan como el cuadrado del desajuste (0.1 % de diferencia con un 5 %, 2 % con un 20 %)— y va referida a la celda que SE DEFORMA, $B'$. Con `--strain first` el material 1 es $B'$ y con `--strain second` lo es el 2, así que el mismo par da $\boldsymbol\epsilon$ de signo opuesto según lo que se elija. Los buscadores de coincidencias tipo ZSL informan del desajuste referido al sustrato y con su propio criterio de tolerancia, así que un número de aquí y uno de allí no se comparan sin traducir primero.
 - Se reporta la **componente mayor** $\max|\epsilon_{ij}|$ de la matriz, no una norma ni un promedio: *"una deformación de 0 % en una dirección y 6 % en la otra no es '3 %'."*
 - *"La deformación es del X %. Por encima de ~3 % no se está modelando el material sino una versión estirada de él."*
 - La separación es un punto de partida: *"con un funcional sin corrección de dispersión la distancia de equilibrio saldrá demasiado grande."*

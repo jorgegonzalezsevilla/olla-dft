@@ -11,7 +11,7 @@
 Cerca de un extremo, E(k) ≈ E₀ + ħ²(k−k₀)²/(2m*), así que la masa sale de
 la curvatura:
 
-    m*/mₑ = (ħ²/mₑ) / (d²E/dk²)     con ħ²/mₑ = 7.6199682 eV·Å²
+    m*/mₑ = (ħ²/mₑ) / (d²E/dk²)     con ħ²/mₑ = 7.6199642 eV·Å²
 
 El comando `olla-dft effmass ESTRUCTURA --bands-dir CARPETA` hace dos cosas
 seguidas, porque hacen falta las dos:
@@ -57,7 +57,11 @@ from qekit.modules import bands as bands_mod
 from qekit.core.errors import ErrorDeUso, FaltanDatos
 
 # ħ²/mₑ en eV·Å²  (= 2 × 3.80998212 eV·Å²)
-HBAR2_OVER_ME = 7.6199682
+# CODATA 2018: ħ²/mₑ = 7.6199642 eV·Å², que es 2×(ħ²/2mₑ = 3.80998212) y
+# coincide con E_h·a₀² usando las constantes de este mismo paquete. El valor
+# anterior, 7.6199682, era el de CODATA 1986: sobra 0.5 ppm, físicamente
+# despreciable en una masa efectiva, pero incoherente en una referencia.
+HBAR2_OVER_ME = 7.6199642
 
 DEGEN_TOL = 0.05        # eV: bandas "degeneradas" con el extremo
 # más allá de ~0.1 Å⁻¹ la banda ya no es parabólica en un
@@ -365,10 +369,12 @@ def prepare(atoms, bs: bands_mod.BandStructure, outdir: str = "masa_efectiva",
            "Order: pw.x -in scf.in  ->  pw.x -in masa.in",
            "Then: olla-dft effmass structure.cif --collect -o " + str(outdir)]
     if sweep.writing_inputs():
-        (out / "masa_meta.json").write_text(json.dumps(
-            {"lineas": [{"portador": c, "direccion": d, "npts": n,
-                         "kindex": int(k)} for c, d, n, k in meta]},
-            ensure_ascii=False, indent=2))
+        (out / "masa_meta.json").write_text(
+            json.dumps(
+                {"lineas": [{"portador": c, "direccion": d, "npts": n,
+                             "kindex": int(k)} for c, d, n, k in meta]},
+                ensure_ascii=False, indent=2),
+            encoding="utf-8")
     warn = sweep.missing_pseudo_warning(common)
     if warn:
         rep.append(warn)
@@ -382,7 +388,7 @@ def load_meta(outdir) -> list:
         raise FileNotFoundError(
             f"{f} is missing: first run 'olla-dft effmass ... --bands-dir ...' "
             "to prepare the fine calculation")
-    d = json.loads(f.read_text())
+    d = json.loads(f.read_text(encoding="utf-8"))
     return [(x["portador"], x["direccion"], x["npts"], x["kindex"])
             for x in d["lineas"]]
 
@@ -513,5 +519,5 @@ def export(run: EffMassRun, outdir: str = ".") -> list:
         lines.append(f"{x.carrier:12s} {x.band + 1:6d} {x.mass:10.4f} "
                      f"{x.r2:8.4f} {x.npts:4d} {x.window:10.4f}  "
                      f"{x.direction}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return [str(f)]

@@ -131,7 +131,18 @@ def modulos_2d(C2: np.ndarray) -> dict:
     if c11 != 0:
         out["Y_y"] = (c11 * c22 - c12 ** 2) / c11
         out["nu_y"] = c12 / c11
-    out["K"] = (c11 + c22 + 2 * c12) / 4.0     # módulo de área 2D
+    # Módulo de área (layer modulus) en las DOS cotas. La de Voigt, que es la
+    # que se cita como «el» layer modulus en la literatura 2D, supone
+    # deformación biaxial uniforme; la de Reuss supone tensión biaxial
+    # uniforme y sale de invertir el bloque 2x2 de C. Coinciden en una lámina
+    # isótropa (C11 = C22) y se separan mucho en una anisótropa: en fosforeno,
+    # 41 frente a 24 N/m. Informar solo una escondía ese margen.
+    out["K"] = (c11 + c22 + 2 * c12) / 4.0            # Voigt (cota superior)
+    det = c11 * c22 - c12 ** 2
+    denom = c11 + c22 - 2 * c12
+    if denom != 0:
+        out["K_R"] = det / denom                      # Reuss (cota inferior)
+        out["K_H"] = 0.5 * (out["K"] + out["K_R"])    # promedio de Hill
     out["G"] = c66
     return out
 
@@ -612,7 +623,19 @@ def _report_2d(run: ElasticRun, C: np.ndarray, lines: list) -> str:
                      f"Yy = {m.get('Y_y', float('nan')):8.2f}")
         lines.append(f"  Poisson ratio        νx = {m['nu_x']:8.4f}   "
                      f"νy = {m.get('nu_y', float('nan')):8.4f}")
-    lines.append(f"  2D area modulus       K = {m['K']:8.2f}")
+    lines.append(f"  2D layer modulus (Voigt)  K_V = {m['K']:8.2f}")
+    if "K_R" in m:
+        lines.append(f"  2D layer modulus (Reuss)  K_R = {m['K_R']:8.2f}"
+                     f"   |   Hill {m['K_H']:8.2f}")
+        # Las dos cotas coinciden si la lámina es isótropa en el plano; si se
+        # separan, el número que se cite tiene que decir cuál es.
+        if m["K_R"] > 0 and (m["K"] - m["K_R"]) / m["K_R"] > 0.05:
+            lines.append(
+                f"    The two bounds differ by "
+                f"{100 * (m['K'] - m['K_R']) / m['K_R']:.0f} %: the sheet is "
+                "anisotropic in the plane (C11 != C22),\n    so quoting a "
+                "single area modulus is ambiguous. Say which one you mean; "
+                "the literature\n    usually reports the Voigt one.")
     lines.append(f"  Shear modulus         G = {m['G']:8.2f}")
 
     estable, fallan = born_2d(C2)
@@ -664,7 +687,7 @@ def export(run: ElasticRun, outdir: str = ".") -> list:
                    comments="# ")
     written.append(str(fname))
     txt = out / "ELASTIC.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     written.append(str(txt))
     return written
 

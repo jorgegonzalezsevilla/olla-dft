@@ -328,11 +328,11 @@ def export(bs: BandStructure, outdir: str = ".", ref: str = "auto") -> list:
         lines = ["# label   k(Ang^-1)   k_index"]
         for idx, lab in bs.labels:
             lines.append(f"{lab:12s} {bs.kdist[idx]:14.8f} {idx:8d}")
-        Path(fname).write_text("\n".join(lines) + "\n")
+        Path(fname).write_text("\n".join(lines) + "\n", encoding="utf-8")
         written.append(str(fname))
 
     fname = out / "BAND_GAP.txt"
-    Path(fname).write_text(gap_report(bs) + "\n")
+    Path(fname).write_text(gap_report(bs) + "\n", encoding="utf-8")
     written.append(str(fname))
     return written
 

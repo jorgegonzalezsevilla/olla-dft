@@ -380,7 +380,7 @@ def export(d: Desdoblado, outdir: str = ".") -> list:
                "\n     distance           E-EF(eV)          weight",
                comments="# ")
     txt = out / "UNFOLD.txt"
-    txt.write_text(report(d) + "\n")
+    txt.write_text(report(d) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

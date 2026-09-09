@@ -447,3 +447,37 @@ def test_el_eigen_esta_en_rydberg_y_se_convierte():
     run = td.collect(d, metodo="davidson")
     assert run.excitaciones[0][0] == pytest.approx(
         crudo[0, 0] * td.RY_EV, rel=1e-6)
+
+
+# ----------------------------------------------------------------------
+# El suelo de ecutrho depende del TIPO de pseudopotencial
+# ----------------------------------------------------------------------
+def test_el_dual_minimo_lo_manda_el_pseudopotencial_mas_duro():
+    from qekit.core import pseudo
+    assert pseudo.dual_minimo({"O": {"type": "NC"}}) == 4.0
+    assert pseudo.dual_minimo({"Fe": {"type": "US"}}) == 8.0
+    assert pseudo.dual_minimo({"Ti": {"type": "PAW"}}) == 8.0
+    # basta UNO ultrasuave entre varios norm-conserving
+    assert pseudo.dual_minimo({"O": {"type": "NC"}, "Fe": {"type": "US"}}) == 8.0
+    # sin tipo conocido se supone el caso peor, que es no quedarse corto
+    assert pseudo.dual_minimo({"X": {"type": None}}) == 8.0
+
+
+def test_un_ultrasuave_no_se_queda_con_el_dual_de_un_norm_conserving():
+    """Regresión: el suelo era 4x fijo y se colaba al mezclar tipos.
+
+    Con O norm-conserving duro (80 Ry, ρ=320) y un Fe ultrasuave que declara
+    ρ=360, salía ecutwfc=80 y ecutrho=360 — un dual de 4.5 cuando el Fe
+    necesita 8x80 = 640. La densidad quedaba infraconvergida y las fuerzas y
+    energías salían mal sin que nada avisara.
+    """
+    from qekit.core import pseudo
+    mezcla = {"O":  {"ecutwfc": 80.0, "ecutrho": 320.0, "type": "NC"},
+              "Fe": {"ecutwfc": 45.0, "ecutrho": 360.0, "type": "US"}}
+    wfc, rho = pseudo.recommend_cutoffs(mezcla, 60.0, 8.0)
+    assert wfc == 80.0
+    assert rho == 640.0, "el ultrasuave tiene que imponer dual 8 sobre 80 Ry"
+
+    solo_nc = {"O": {"ecutwfc": 80.0, "ecutrho": 320.0, "type": "NC"}}
+    assert pseudo.recommend_cutoffs(solo_nc, 60.0, 8.0) == (80.0, 320.0), \
+        "un norm-conserving no debe subir a 8x: 4x es su mínimo físico"

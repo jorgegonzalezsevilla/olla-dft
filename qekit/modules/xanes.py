@@ -473,7 +473,7 @@ def export(run: XanesRun, outdir: str = ".") -> list:
                "\n" + "  ".join(f"{n:>14s}" for n in nombres),
                comments="# ")
     txt = out / "XANES.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

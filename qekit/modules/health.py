@@ -24,11 +24,15 @@ from pathlib import Path
 
 from qekit import __version__
 from qekit import config
+from qekit.core import plataforma
 
 
 DEPENDENCIES = ("numpy", "ase", "spglib", "seekpath", "matplotlib", "scipy")
-QE_BINARIES = ("pw.x", "ph.x", "q2r.x", "matdyn.x", "bands.x", "dos.x",
-               "projwfc.x", "epsilon.x", "pp.x")
+# Sin extensión: en Windows los binarios son pw.exe y aquí se buscaba pw.x,
+# así que el diagnóstico no encontraba nunca una instalación de QE. El nombre
+# de cada sistema lo da plataforma.nombres_ejecutable.
+QE_BINARIES = ("pw", "ph", "q2r", "matdyn", "bands", "dos",
+               "projwfc", "epsilon", "pp")
 
 
 def _item(code, title, level, detail, evidence=""):
@@ -37,13 +41,18 @@ def _item(code, title, level, detail, evidence=""):
 
 
 def _memory_available_gb():
+    """GB disponibles, en los tres sistemas.
+
+    Se delega en `runner.memoria_libre_gb`, que ya sabe leer /proc/meminfo en
+    Linux, `vm_stat` en macOS y GlobalMemoryStatusEx en Windows. Antes esto
+    leía solo /proc/meminfo, así que `doctor --system` respondía «could not be
+    measured on this platform» en macOS y en Windows teniendo la medida a mano.
+    """
+    from qekit.core import runner
     try:
-        for line in Path("/proc/meminfo").read_text(encoding="utf-8").splitlines():
-            if line.startswith("MemAvailable:"):
-                return float(line.split()[1]) / 1024 / 1024
-    except (OSError, ValueError, IndexError):
+        return runner.memoria_libre_gb()
+    except Exception:  # noqa: BLE001
         return None
-    return None
 
 
 def check(path=".", project_path=None) -> dict:
@@ -69,11 +78,24 @@ def check(path=".", project_path=None) -> dict:
         "all declared dependencies are installed",
         json.dumps(installed, ensure_ascii=False, sort_keys=True)))
 
-    found_qe = {name: shutil.which(name) for name in QE_BINARIES}
-    found_qe = {name: value for name, value in found_qe.items() if value}
-    if found_qe:
+    found_qe = {}
+    for base in QE_BINARIES:
+        for nombre in plataforma.nombres_ejecutable(base):
+            ruta = shutil.which(nombre)
+            if ruta:
+                found_qe[nombre] = ruta
+                break
+    # pw.x es el que hace falta para CUALQUIER cálculo: tener ph.x o dos.x sin
+    # él no es una instalación utilizable, y decir "ok" ahí engaña.
+    pw = next((n for n in plataforma.nombres_ejecutable("pw") if n in found_qe),
+              None)
+    if pw:
         detail = f"{len(found_qe)}/{len(QE_BINARIES)} binaries found"
         level = "ok"
+    elif found_qe:
+        detail = (f"{len(found_qe)}/{len(QE_BINARIES)} binaries found, but NOT "
+                  "pw.x: no calculation can be run")
+        level = "warn"
     else:
         detail = "pw.x not found; Olla-DFT can still prepare and analyze files"
         level = "warn"

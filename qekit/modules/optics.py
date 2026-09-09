@@ -96,7 +96,8 @@ def prepare(atoms, outdir: str = "opticas", pseudo_dir: str = None,
     job_scf = sweep.write_scf_job(atoms, common, out, "scf", grid_scf)
     job_scf.input_file = "scf.in"; job_scf.output_file = "scf.out"
     if sweep.writing_inputs():
-        sweep.write_input(out / "scf.in", (out / "pw.in").read_text())
+        sweep.write_input(out / "scf.in",
+                          (out / "pw.in").read_text(encoding="utf-8"))
 
     # nscf: epsilon.x necesita la malla completa sin reducción de simetría
     from qekit.modules import inputgen

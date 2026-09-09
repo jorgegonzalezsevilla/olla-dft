@@ -18,3 +18,8 @@ barrido.log
 .idea/
 .DS_Store
 Thumbs.db
+
+# Artefactos de ejecuciones de Quantum ESPRESSO
+CRASH
+input_tmp.in
+*.in.tmp

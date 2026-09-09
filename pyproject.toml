@@ -1,21 +1,21 @@
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "olla-dft"
-version = "1.5.0"
+version = "1.6.0"
 description = "Command-line toolkit for Quantum ESPRESSO: input generation, post-processing, materials properties and quality control"
 readme = "README.md"
 requires-python = ">=3.9"
-license = { file = "LICENSE" }
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE", "LICENSES/*.txt", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "Jorge Enrique González Sevilla" }]
 keywords = ["quantum-espresso", "dft", "materials-science", "band-structure", "phonons", "cli"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Natural Language :: Spanish",
     "Natural Language :: English",
     "Natural Language :: German",
@@ -43,6 +43,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/jorgegonzalezsevilla/olla-dft"
 Documentation = "https://github.com/jorgegonzalezsevilla/olla-dft/tree/main/docs"
+Source = "https://github.com/jorgegonzalezsevilla/olla-dft"
+Changelog = "https://github.com/jorgegonzalezsevilla/olla-dft/blob/main/CHANGELOG.md"
 Issues = "https://github.com/jorgegonzalezsevilla/olla-dft/issues"
 
 [project.scripts]
@@ -54,9 +56,6 @@ test = ["pytest>=7", "pyflakes>=3"]
 mlip = ["torch", "mace-torch"]
 # Lattice thermal conductivity (olla-dft kappa): solves the phonon BTE.
 kappa = ["phono3py>=3"]
-
-[tool.setuptools]
-license-files = ["LICENSE", "LICENSES/*.txt", "THIRD_PARTY_NOTICES.md"]
 
 [tool.setuptools.packages.find]
 include = ["qekit*"]

@@ -388,9 +388,9 @@ def export(run: GammaRun, outdir: str = ".") -> list:
         lines.append(f"{n:8d} {run.natomos[n]:8d} {run.energias[n]:18.8f} "
                      + (f"{g * EV_A2_A_J_M2:21.6f}" if g is not None
                         else f"{'nan':>21s}"))
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     txt = out / "GAMMA.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

@@ -581,7 +581,7 @@ def export(run: TddftRun, outdir: str = ".") -> list:
                    comments="# ")
         escritos.append(str(f))
     txt = out / "TDDFT.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     escritos.append(str(txt))
     return escritos
 

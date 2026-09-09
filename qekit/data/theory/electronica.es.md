@@ -39,7 +39,7 @@ Cutoffs recomendados (`qekit/core/pseudo.py: recommend_cutoffs`):
 
 $$
 E_{\text{wfc}} = \max_s E^{\text{UPF}}_{\text{wfc},s}, \qquad
-E_{\rho} = \max\!\left(\max_s E^{\text{UPF}}_{\rho,s},\ 4\,E_{\text{wfc}}\right)
+E_{\rho} = \max\!\left(\max_s E^{\text{UPF}}_{\rho,s},\ d_{\min}\,E_{\text{wfc}}\right), \qquad d_{\min} = \max_s \begin{cases} 4 & \text{NC} \\ 8 & \text{US, PAW, unknown} \end{cases}
 $$
 
 - $E^{\text{UPF}}_{\text{wfc},s}$, $E^{\text{UPF}}_{\rho,s}$: cutoffs sugeridos en la cabecera del UPF de la especie $s$ (Ry), leídos por `pseudo.suggested_cutoffs` (atributos `wfc_cutoff`/`rho_cutoff` en UPF v2 o el texto "Suggested minimum cutoff for wavefunctions/charge density" en UPF v1). Valores $\le 1$ se ignoran.
@@ -51,7 +51,7 @@ $$
 n_{\text{bnd}} = \left\lceil 1.25\cdot\frac{N_{\text{el}}}{2} + 4 \right\rceil, \qquad N_{\text{el}} = \sum_{\text{átomos}} Z^{\text{UPF}}_{\text{val}}
 $$
 
-Con `--nspin 2` se amplía a $\lfloor 1.2\,n_{\text{bnd}}\rfloor + 2$. Si algún UPF no declara `z_valence`, no se escribe `nbnd` y pw.x usa su valor por defecto.
+Con `--nspin 2` se amplía a $\lfloor 1.2\,n_{\text{bnd}}\rfloor + 2$. Si algún UPF no declara `z_valence`, no se escribe `nbnd` y pw.x usa su valor por defecto. Esta estimación **no** es el valor por defecto de pw.x y no hay que presentarla como comparable con él: pw.x pone $N_{\text{el}}/2$ con `occupations='fixed'` (justo las bandas ocupadas: ninguna de conducción, ningún gap) y $\max(1.2 N_{\text{el}}/2,\ N_{\text{el}}/2 + 4)$ con smearing. Olla-DFT es más generoso a propósito, porque un nscf sin bandas vacías de sobra deja truncados el gap y la DOS justo donde interesan.
 
 Paso de tiempo de la MD (`inputgen.build_pw_input`): $\mathrm{dt}_{\text{Ry}} = \mathrm{dt}_{\text{fs}} / 0.048378$, porque pw.x pide `dt` en unidades atómicas de Rydberg (`_FS_POR_UA = 4.8378e-2` fs).
 
@@ -527,7 +527,7 @@ Olla-DFT trabaja en dos etapas. Primero ajusta sobre las bandas que ya tienes (r
 Ajuste cuadrático y masa (`qekit/modules/effmass.py: from_bands`, `collect_fine`, `_mass_from_quadratic`):
 
 $$
-E(k) \approx a\,k^2 + b\,k + c, \qquad \frac{m^*}{m_e} = \frac{\hbar^2/m_e}{2a}, \qquad \frac{\hbar^2}{m_e} = 7.6199682\ \text{eV·Å}^2
+E(k) \approx a\,k^2 + b\,k + c, \qquad \frac{m^*}{m_e} = \frac{\hbar^2/m_e}{2a}, \qquad \frac{\hbar^2}{m_e} = 7.6199642\ \text{eV·Å}^2
 $$
 
 - $k$: distancia al extremo a lo largo de la línea (Å⁻¹, con signo); $a$ en eV·Å²; el ajuste es `np.polyfit(x, y, 2)`.
@@ -557,7 +557,7 @@ Identificación de la banda de valencia en el cálculo fino (`collect_fine`): $n
 |---|---|---|
 | Autovalores y k cartesianos | `prefix.xml` de pw.x | `qeout.read_xml` (bandas previas y cálculo fino) |
 | VBM, CBM y sus k | `bands.analyze_gap` | ver `olla-dft bands` |
-| $\hbar^2/m_e$ | constante `effmass.HBAR2_OVER_ME` | 7.6199682 eV·Å² |
+| $\hbar^2/m_e$ | constante `effmass.HBAR2_OVER_ME` | 7.6199642 eV·Å² |
 | Número de electrones | `<nelec>` del XML | para identificar la valencia en `collect_fine` |
 | Ventana, mínimo de puntos, semiancho, puntos por línea | parámetros del usuario | `--window` (por omisión `effmass.WINDOW_DEFAULT` = 0.06 Å⁻¹), `--min-points 7`, `--half-width 0.06`, `--points 21` |
 | Límite parabólico | `effmass.PARABOLIC_MAX` | 0.12 Å⁻¹ de tramo total (holgura `_TOL_VENTANA = 1e-6`) |

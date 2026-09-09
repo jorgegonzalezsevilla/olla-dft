@@ -237,3 +237,37 @@ def test_run_all_usa_la_ruta_resuelta_del_ejecutable(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "run_one", falso_run_one)
     runner.run_all(jobs, verbose=False)
     assert visto == [["/opt/qe/bin/pw.x"]]
+
+
+# ----------------------------------------------------------------------
+# la orden de lanzamiento
+# ----------------------------------------------------------------------
+def test_una_ruta_con_espacios_no_se_parte(monkeypatch):
+    """Regresión: `cmd.split()` rompía C:\\Program Files\\QE\\bin\\pw.exe.
+
+    Es la ruta por omisión de QE en Windows —la que busca
+    `plataforma.dirs_probables_qe()` y la que el mensaje de error le pide al
+    usuario que ponga con `config set pw_cmd`—, así que `--run` fallaba
+    siempre diciendo que no encontraba 'C:\\Program'.
+    """
+    monkeypatch.setattr(runner.qcfg, "load",
+                        lambda: {"nproc": 1, "pw_cmd": "", "mpi_cmd": ""})
+    ruta = "/opt/Quantum Espresso/bin/pw.x"
+    assert runner.build_command(ruta) == [ruta]
+
+
+def test_la_orden_con_argumentos_si_se_parte(monkeypatch):
+    monkeypatch.setattr(runner.qcfg, "load",
+                        lambda: {"nproc": 1, "pw_cmd": "", "mpi_cmd": ""})
+    assert runner.build_command("mpirun -np 4 pw.x") == [
+        "mpirun", "-np", "4", "pw.x"]
+    assert runner.build_command("pw.x -nk 4") == ["pw.x", "-nk", "4"]
+    assert runner.build_command("pw.x") == ["pw.x"]
+
+
+def test_las_comillas_resuelven_el_caso_ambiguo(monkeypatch):
+    """Ruta con espacios Y argumentos: se distingue entrecomillando."""
+    monkeypatch.setattr(runner.qcfg, "load",
+                        lambda: {"nproc": 1, "pw_cmd": "", "mpi_cmd": ""})
+    assert runner.build_command('"/opt/QE 7.2/pw.x" -nk 2') == [
+        "/opt/QE 7.2/pw.x", "-nk", "2"]

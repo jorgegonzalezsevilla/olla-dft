@@ -17,18 +17,23 @@ tienen la MISMA energía libre. Así que cada vez que un paso libera un par
 (H⁺ + e⁻), se le puede poner la energía de ½H₂, que sí se calcula. El
 potencial y el pH entran después, como términos que se suman:
 
-    ΔG(U, pH) = ΔG(0, 0) − n·e·U − n·k_B·T·ln(10)·pH
+    ΔG(U, pH) = ΔG(0, 0) ∓ n·e·U ∓ n·k_B·T·ln(10)·pH
 
 con n el número de pares transferidos y U medido frente al electrodo
-estándar de hidrógeno (SHE): el término de pH es justo lo que convierte
-la escala SHE en la RHE, U_RHE = U_SHE + 0.0592·pH, así que en la escala
-RHE los ΔG no dependen del pH. A pH 0 las dos escalas coinciden. De ahí
-salen las dos magnitudes que se citan:
+estándar de hidrógeno (SHE). El SIGNO lo pone la dirección del paso: la
+OER es una oxidación y cada paso LIBERA el par (H⁺+e⁻), así que subir U
+la ayuda y va con «−»; la HER es la reducción contraria, sus pasos lo
+CONSUMEN y va con «+». Por eso la HER necesita potencial catódico y su
+U_L sale negativo. El término de pH es justo lo que convierte la escala
+SHE en la RHE, U_RHE = U_SHE + 0.0592·pH, así que en la escala RHE los ΔG
+no dependen del pH. A pH 0 las dos escalas coinciden. De ahí salen las
+dos magnitudes que se citan:
 
-  potencial limitante U_L = max(ΔG_i)/(n·e)   el potencial (vs RHE) al que
+  potencial limitante U_L = ±max(ΔG_i)/(n·e)  el potencial (vs RHE) al que
                                               TODOS los pasos se vuelven
-                                              cuesta abajo
-  sobrepotencial      η   = U_L − U_eq        lo que hay que aplicar de más
+                                              cuesta abajo (+ OER, − HER)
+  sobrepotencial      η   = U_L − U_eq (OER)  lo que hay que aplicar de más
+                          = U_eq − U_L (HER)
 
 η se devuelve CON SIGNO: positivo quiere decir que al potencial de
 equilibrio el paso limitante sigue cuesta arriba (lo normal; con los
@@ -105,7 +110,20 @@ class Echem:
         U = self.U if U is None else U
         pH = self.pH if pH is None else pH
         desp = U + KB_EV * self.T * math.log(10.0) * pH
-        return [(nombre, g - desp) for nombre, g in self.pasos]
+        return [(nombre, g - self.n_electron * desp) for nombre, g in self.pasos]
+
+    @property
+    def n_electron(self) -> float:
+        """+1 si el paso LIBERA H⁺+e⁻ (OER), −1 si lo CONSUME (HER).
+
+        La OER es una oxidación: cada paso suelta un protón y un electrón, y
+        subir el potencial la ayuda (ΔG = ΔG₀ − eU). La HER es la reducción
+        contraria —Volmer y Heyrovsky, los dos consumiendo H⁺+e⁻—, así
+        que consume electrones y va como ΔG = ΔG₀ + eU. Aplicarle el signo de
+        la OER daba un U_L positivo para una reacción CATÓDICA y movía la
+        escalera de energías al revés al aplicar potencial o cambiar el pH.
+        """
+        return -1.0 if self.reaccion == "her" else 1.0
 
     @property
     def limitante(self):
@@ -116,17 +134,25 @@ class Echem:
 
     @property
     def U_limitante(self):
+        """El U que pone a cero el paso peor: +ΔG en la OER, −ΔG en la HER."""
         _, g = self.limitante
-        return None if g is None else g          # un electrón por paso
+        return None if g is None else self.n_electron * g   # un electrón por paso
 
     @property
     def sobrepotencial(self):
-        """η = U_L − U_eq, con signo (positivo = cuesta arriba en U_eq)."""
+        """η con signo (positivo = cuesta arriba en U_eq).
+
+        U_L − U_eq en la OER (anódica) y U_eq − U_L en la HER (catódica),
+        para que en las dos un η positivo signifique lo mismo.
+        """
         u = self.U_limitante
         if u is None:
             return None
         eq = U_EQ_OER if self.reaccion == "oer" else U_EQ_HER
-        return u - eq
+        # η siempre POSITIVO cuando el paso limitante sigue cuesta arriba en
+        # el equilibrio: anódico para la OER (U_L − U_eq) y catódico para la
+        # HER (U_eq − U_L, porque su U_L es negativo).
+        return self.n_electron * (u - eq)
 
     def U_rhe(self, U: float = None, pH: float = None) -> float:
         """Potencial frente al RHE que corresponde a (U vs SHE, pH)."""
@@ -148,15 +174,25 @@ def her(E_ads_H: float, correccion: float = None, T: float = 298.15) -> Echem:
 
     Dos pasos, y el descriptor es que ΔG_H* esté cerca de cero: si el
     hidrógeno se pega demasiado poco no llega a adsorberse, y si se pega
-    demasiado no se suelta. Es la cumbre del volcán de Nørskov, y en Pt(111)
-    vale −0.09 eV.
+    demasiado no se suelta.
+
+    La cumbre del volcán de Nørskov está EN ΔG_H* = 0, no en −0.09 eV. El
+    −0.09 eV es el valor calculado para el Pt(111), que es el mejor
+    catalizador conocido justamente porque cae muy cerca de la cumbre; es
+    una referencia experimental, no la posición del máximo. Confundir las
+    dos cosas lleva a "optimizar" un material hacia −0.09 en vez de hacia
+    cero.
     """
     c = CORRECCIONES["H"] if correccion is None else float(correccion)
     e = Echem(reaccion="her", T=T,
               energias={"H": float(E_ads_H)}, correcciones={"H": c})
     g = e.dG_H
+    # Los DOS pasos consumen un H⁺+e⁻ (Volmer y Heyrovsky), que es lo que
+    # hace que su ΔG dependa del potencial. Escribir el segundo como el paso
+    # de Tafel (H* → ½H₂, químico) y aun así desplazarlo con U sería
+    # incoherente; entre los dos suman la reacción de dos electrones.
     e.pasos = [("H⁺ + e⁻ + * → H*", g),
-               ("H* → ½H₂ + *", -g)]
+               ("H* + H⁺ + e⁻ → H₂ + *", -g)]
     if correccion is None:
         e.avisos.append(
             "The thermal correction of H* (ZPE − TΔS = +0.24 eV) is the "
@@ -263,7 +299,10 @@ def report(e: Echem) -> str:
     L += ["", f"Limiting step: {paso}   (ΔG = {gmax:+.3f} eV)",
           f"Limiting potential U_L = {e.U_limitante:+.3f} V vs RHE"]
     eq = U_EQ_OER if e.reaccion == "oer" else U_EQ_HER
-    L.append(f"Overpotential η = U_L − {eq:.3f} = "
+    # La HER es catódica: su U_L es negativo y η se mide como U_eq − U_L.
+    formula = (f"U_L − {eq:.3f}" if e.reaccion == "oer"
+               else f"{eq:.3f} − U_L")
+    L.append(f"Overpotential η = {formula} = "
              f"{e.sobrepotencial:+.3f} V   (positive = at U_eq the limiting "
              "step is still uphill)")
 
@@ -271,8 +310,9 @@ def report(e: Echem) -> str:
         g = e.dG_H
         L += ["", f"Descriptor ΔG_H* = {g:+.3f} eV"]
         if abs(g) < 0.10:
-            L.append("  Very close to zero: at the top of the volcano, like "
-                     "Pt (−0.09 eV).")
+            L.append("  Very close to zero, which is where the top of the "
+                     "volcano is. Pt(111) sits\n  at −0.09 eV: near the top, "
+                     "not the top itself.")
         elif g < 0:
             L.append("  Negative: hydrogen binds too strongly and is hard to "
                      "release. The left\n  branch of the volcano; the slow step "
@@ -317,9 +357,10 @@ def pourbaix(e: Echem, U=None, pH=None) -> dict:
     U = np.linspace(-0.5, 2.0, 121) if U is None else np.asarray(U, float)
     pH = np.linspace(0.0, 14.0, 57) if pH is None else np.asarray(pH, float)
     g0 = np.array([g for _, g in e.pasos])
-    # ΔG_i(U,pH) = ΔG_i(0,0) − eU − k_B T ln10 pH, igual para todos los pasos
+    # ΔG_i(U,pH) = ΔG_i(0,0) ∓ (eU + k_B T ln10 pH), igual para todos los
+    # pasos; el signo lo pone e.n_electron (− en la OER, + en la HER)
     desp = U[None, :] + KB_EV * e.T * math.log(10.0) * pH[:, None]
-    lim = g0.max() - desp                       # (npH, nU)
+    lim = g0.max() - e.n_electron * desp        # (npH, nU)
     return {"U": U, "pH": pH, "dG_limitante": lim}
 
 
@@ -334,9 +375,9 @@ def export(e: Echem, outdir: str = ".") -> list:
         f"# {'step':46s} {'dG0(eV)':>10s}"]
     for nom, g in e.pasos:
         lines.append(f"  {nom:46s} {g:10.5f}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     txt = out / "ECHEM.txt"
-    txt.write_text(report(e) + "\n")
+    txt.write_text(report(e) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

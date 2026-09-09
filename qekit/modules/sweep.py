@@ -50,7 +50,7 @@ def write_input(path, text):
     path = Path(path)
     if _WRITE_INPUTS:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text)
+        path.write_text(text, encoding="utf-8")
     return path
 
 

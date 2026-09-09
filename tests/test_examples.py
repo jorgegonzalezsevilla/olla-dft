@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.marcadores import solo_repositorio
+
 RAIZ = Path(__file__).resolve().parent.parent
 EJEMPLOS = RAIZ / "examples"
 
@@ -125,6 +127,7 @@ def test_todos_los_comandos_de_los_ejemplos_existen_de_verdad(readme):
     assert not malos, "\n".join(malos)
 
 
+@solo_repositorio
 def test_los_archivos_citados_en_cada_readme_existen():
     """Todo `archivo` en la tabla de archivos tiene que estar en la carpeta."""
     for rd in _readmes():

@@ -303,3 +303,70 @@ def test_ningun_guion_generado_cablea_mpirun_a_secas():
                 continue
             malos.append(f"{f.name}:{i}")
     assert not malos, malos
+
+
+# ----------------------------------------------------------------------
+# Escritura de archivos: la otra mitad del mismo fallo
+# ----------------------------------------------------------------------
+def _llamadas_sin_encoding(arbol, metodos):
+    """(línea, método) de las llamadas a `metodos` que no pasan `encoding`."""
+    fuera = []
+    for nodo in ast.walk(arbol):
+        if not isinstance(nodo, ast.Call):
+            continue
+        fn = nodo.func
+        if not isinstance(fn, ast.Attribute) or fn.attr not in metodos:
+            continue
+        if any(k.arg == "encoding" for k in nodo.keywords):
+            continue
+        # Distribution.read_text(nombre) de importlib.metadata no acepta
+        # `encoding`: es otra API que casualmente se llama igual.
+        if fn.attr == "read_text" and isinstance(fn.value, ast.Name) \
+                and fn.value.id == "dist":
+            continue
+        fuera.append((nodo.lineno, fn.attr))
+    return fuera
+
+
+def test_ningun_informe_se_escribe_con_la_codificacion_de_la_maquina():
+    """`write_text` sin `encoding` usa la codificación de la locale.
+
+    Los informes llevan Δ, Å, ⁻¹ y κ, que cp1252 no sabe escribir: en Windows
+    el export moría con UnicodeEncodeError. Y un archivo que escribimos en
+    UTF-8 y releemos con la locale vuelve con mojibake. Esta prueba fija el
+    convenio para todo el paquete de una vez.
+    """
+    raiz = Path(__file__).resolve().parent.parent / "qekit"
+    culpables = []
+    for f in sorted(raiz.rglob("*.py")):
+        arbol = ast.parse(f.read_text(encoding="utf-8"))
+        for linea, metodo in _llamadas_sin_encoding(arbol, {"write_text"}):
+            culpables.append(f"{f.relative_to(raiz.parent)}:{linea} ({metodo})")
+    assert not culpables, (
+        "estas escrituras usan la codificación de la máquina:\n  "
+        + "\n  ".join(culpables))
+
+
+@pytest.mark.parametrize("modulo,fabrica", [
+    ("converge", lambda: __import__(
+        "qekit.modules.converge", fromlist=["x"]).report(_serie_convergencia())),
+    ("echem", lambda: __import__(
+        "qekit.modules.echem", fromlist=["x"]).report(
+            __import__("qekit.modules.echem", fromlist=["x"]).her(-0.33))),
+])
+def test_los_informes_se_pueden_guardar_aunque_lleven_simbolos(modulo, fabrica,
+                                                               tmp_path):
+    """El texto va a UTF-8 sin pérdida, lleve los símbolos que lleve."""
+    texto = fabrica()
+    destino = tmp_path / f"{modulo}.txt"
+    destino.write_text(texto, encoding="utf-8")
+    assert destino.read_text(encoding="utf-8") == texto
+
+
+def _serie_convergencia():
+    from qekit.modules import converge
+    r = converge.ConvergenceRun(kind="ecutwfc", natoms=2, threshold=1.0)
+    r.values = [30.0, 40.0, 50.0]
+    r.labels = [f"ecutwfc = {v:g} Ry" for v in r.values]
+    r.energies = [-1.0, -1.5, -1.5001]
+    return r

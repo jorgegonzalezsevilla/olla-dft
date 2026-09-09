@@ -301,7 +301,7 @@ def export(res: HullResult, outdir: str = ".") -> list:
         eh = x.e_hull if x.e_hull is not None else float("nan")
         lines.append(f"{x.nombre:>16s} {x.natoms:7d} {x.energia:14.6f} "
                      f"{ef:12.5f} {eh:14.5f}  {x.ruta}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return [str(f)]
 
 

@@ -560,9 +560,9 @@ def export(run: AdsorbRun, outdir: str = ".") -> list:
             f"  {s.etiqueta:<12s} {s.tipo:<8s} {eads[i]:>12.5f} "
             f"{(run.alturas[i] if run.alturas[i] is not None else nan):>11.3f} "
             f"{(run.contactos[i] if run.contactos[i] is not None else nan):>12.3f}")
-    f.write_text("\n".join(lines) + "\n")
+    f.write_text("\n".join(lines) + "\n", encoding="utf-8")
     txt = out / "ADSORCION.txt"
-    txt.write_text(report(run) + "\n")
+    txt.write_text(report(run) + "\n", encoding="utf-8")
     return [str(f), str(txt)]
 
 

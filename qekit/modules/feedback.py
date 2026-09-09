@@ -151,7 +151,8 @@ def registrar(descripcion: str = "", exc: BaseException = None,
             continue
 
     (carpeta / "incidencia.json").write_text(
-        json.dumps(inc.__dict__, ensure_ascii=False, indent=2) + "\n")
+        json.dumps(inc.__dict__, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
     return inc
 
 
@@ -162,7 +163,7 @@ def listar(dir_=None) -> list:
     out = []
     for f in sorted(base.glob("*/incidencia.json")):
         try:
-            out.append(Incidencia(**json.loads(f.read_text())))
+            out.append(Incidencia(**json.loads(f.read_text(encoding="utf-8"))))
         except Exception:                              # noqa: BLE001
             continue
     return sorted(out, key=lambda i: i.fecha, reverse=True)
@@ -173,11 +174,11 @@ def cerrar(ident: str, nota: str = "", dir_=None) -> bool:
     f = base / ident / "incidencia.json"
     if not f.exists():
         return False
-    d = json.loads(f.read_text())
+    d = json.loads(f.read_text(encoding="utf-8"))
     d["estado"] = "cerrada"
     if nota:
         d["nota"] = nota
-    f.write_text(json.dumps(d, ensure_ascii=False, indent=2) + "\n")
+    f.write_text(json.dumps(d, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return True
 
 
@@ -228,7 +229,8 @@ def exportar(destino="incidencias_qekit.json", dir_=None,
         "incidencias": [i.__dict__ for i in incs],
     }
     Path(destino).write_text(
-        json.dumps(doc, ensure_ascii=False, indent=2) + "\n")
+        json.dumps(doc, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8")
     return str(destino)
 
 

@@ -33,7 +33,7 @@ $$
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_converge` carga la estructura y llama a `qekit/modules/converge.py: prepare`.
-2. `sweep.prepare_common` resuelve pseudopotenciales y cutoffs (`pseudo.recommend_cutoffs`: el máximo que declaran los UPF; si no declaran, `ecutwfc` de configuración (60 Ry) y `dual` (8); `ecutrho` nunca por debajo de $4\,\mathrm{ecutwfc}$).
+2. `sweep.prepare_common` resuelve pseudopotenciales y cutoffs (`pseudo.recommend_cutoffs`: el máximo que declaran los UPF; si no declaran, `ecutwfc` de configuración (60 Ry) y `dual` (8); `ecutrho` nunca por debajo del dual mínimo del pseudopotencial MÁS duro del conjunto: 4 para norm-conserving, 8 para ultrasuave y PAW, y 8 si no se conoce el tipo).
 3. Serie por omisión: `ecutwfc` = 30, 40, …, 100 Ry con `ecutrho = dual × ecutwfc`; `ecutrho` = 4, 6, 8, 10, 12 × ecutwfc; `kmesh` = mallas de los espaciados 0.40, 0.30, 0.25, 0.20, 0.15, 0.12 Å⁻¹ (sin repetir). Con `--values` se sustituye la serie (para `kmesh` admite `8x8x8` o espaciados).
 4. Un `pw.in` (`calculation='scf'`, `conv_thr = 1e-8`, `tstress`/`tprnfor` activados) por punto vía `sweep.write_scf_job`, más `run.sh` y `run.py`.
 5. Con `--run`, `runner.run_all` ejecuta `pw.x`; con `--collect`, `converge.collect` lee `out/*.xml` (`qeout.read_xml`, etiqueta `<total_energy><etot>`).
@@ -50,7 +50,7 @@ $$
 | Malla k fija | `sweep.default_grid` | `kspacing` de configuración (0.20 Å⁻¹) |
 | Ry ↔ eV | `qeout.RY_EV` | 13.605693122994 eV |
 
-**Límites y trampas.** Solo mira la energía total; el reporte avisa: "la convergencia depende de la propiedad: la energía total converge antes que los esfuerzos o los fonones". Si solo el último punto cumple, dice: "Solo el último punto queda bajo … no hay margen para asegurar que ahí ya aplanó". Si ninguno cumple: "NO converge dentro de … Extiende la serie hacia valores más densos". El campo `energies` del dataclass está comentado como "eV por celda", pero la tabla se imprime en Ry (se divide por `RY_EV`): no es un error, solo una conversión de presentación. Con `--collect` no se reescriben los inputs (`sweep.set_write_inputs(False)`), así que el reporte describe lo que realmente corrió.
+**Límites y trampas.** Solo mira la energía total; el reporte avisa de que este umbral es de ENERGÍA y es el más laxo de los criterios: los esfuerzos y los fonones convergen más tarde y contra sus propias varas de medir. El protocolo SSSP, sobre los mismos pseudopotenciales, pide un 1 % en la presión y 2 cm⁻¹ en las frecuencias de fonón, y llegar ahí suele exigir un corte más alto que el de la energía. Un número que pase aquí no vale automáticamente para constantes elásticas, fonones o una ecuación de estado. Si solo el último punto cumple, dice: "Solo el último punto queda bajo … no hay margen para asegurar que ahí ya aplanó". Si ninguno cumple: "NO converge dentro de … Extiende la serie hacia valores más densos". El campo `energies` del dataclass está comentado como "eV por celda", pero la tabla se imprime en Ry (se divide por `RY_EV`): no es un error, solo una conversión de presentación. Con `--collect` no se reescriben los inputs (`sweep.set_write_inputs(False)`), así que el reporte describe lo que realmente corrió.
 
 **Referencias.** Manual de Quantum ESPRESSO (`pw.x`, variables `ecutwfc`, `ecutrho`, `K_POINTS`). Monkhorst y Pack, *Phys. Rev. B* 13, 5188 (1976), DOI 10.1103/PhysRevB.13.5188.
 
@@ -181,9 +181,11 @@ Lámina (`elastic.constantes_2d`, `modulos_2d`, `born_2d`): $C^{2D}_{ij} = C_{ij
 
 $$
 Y_x = \frac{C_{11}C_{22}-C_{12}^2}{C_{22}},\quad \nu_x = \frac{C_{12}}{C_{22}},\quad
-K = \frac{C_{11}+C_{22}+2C_{12}}{4},\quad G = C_{66};\qquad
+K_V = \frac{C_{11}+C_{22}+2C_{12}}{4},\quad K_R = \frac{C_{11}C_{22}-C_{12}^2}{C_{11}+C_{22}-2C_{12}},\quad K_H = \tfrac{1}{2}(K_V+K_R),\quad G = C_{66};\qquad
 C_{11}>0,\; C_{66}>0,\; C_{11}C_{22}-C_{12}^2>0
 $$
+
+- $K_V$ es el layer modulus tal como lo reporta la literatura 2D (DEFORMACIÓN biaxial uniforme, cota superior de Voigt); $K_R$ es la cota de TENSIÓN biaxial uniforme. Coinciden si $C_{11}=C_{22}$ y se separan en una lámina anisótropa —en fosforeno, 41 frente a 24 N/m—, así que el informe imprime las dos y avisa si difieren más de un 5 %.
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_elastic` → `qekit/modules/elastic.py: prepare`. En 3D la estructura se lleva SIEMPRE a la primitiva estandarizada de spglib (`structure.primitive`) para que los ejes cartesianos coincidan con los cristalofísicos; en `--2d` no (exige vacío en $c$ vía `kpoints.direcciones_con_vacio`).
@@ -222,7 +224,6 @@ $$
 E_{\mathrm{gap}}(\varepsilon) \approx m\,\varepsilon + b, \qquad R^2 = 1 - \frac{\sum (y - \hat y)^2}{\sum (y-\bar y)^2}
 $$
 
-- $m$: en eV por unidad de deformación (fracción, no por ciento). Gap $= E_{\mathrm{LUMO}} - E_{\mathrm{HOMO}}$ del XML.
 - Cierre del gap (`strain.cierre_de_gap`): interpolación lineal de la deformación en que el gap cruza 0.02 eV.
 
 Módulo biaxial 2D (`strain.modulo_biaxial`, solo modo biaxial, puntos con $|\varepsilon|\le 0.03$):
@@ -400,7 +401,7 @@ $$
 | Constante de Scherrer | `xrd.SCHERRER_K` | 0.9 |
 | Celda convencional | spglib (`structure.conventional`) | si falla, se usa la de entrada |
 
-**Límites y trampas.** No hay refinamiento Rietveld ni factor R: la comparación con `--exp` es puramente visual (superposición). No aplica factor de absorción, ni orientación preferente, ni corrección de dispersión anómala, ni doblete Kα1/Kα2 (una sola λ). El factor de temperatura es un único $B$ isotrópico para todos los átomos. El ensanchamiento de Scherrer ignora la deformación (strain broadening). La fórmula de $f(s)$ es la parametrización de pymatgen (misma que la de las *International Tables* en su forma $Z - 41.78214 s^2\sum a_i e^{-b_i s^2}$), válida para rayos X. Con `--basis input` sobre una primitiva, "los hkl NO son los de la ficha PDF".
+**Límites y trampas.** No hay refinamiento Rietveld ni factor R: la comparación con `--exp` es puramente visual (superposición). No aplica factor de absorción, ni orientación preferente, ni corrección de dispersión anómala, ni doblete Kα1/Kα2 (una sola λ). El factor de temperatura es un único $B$ isotrópico para todos los átomos. El ensanchamiento de Scherrer ignora la deformación (strain broadening), y su constante de forma $K = 0.9$ supone cristalitos aproximadamente esféricos con la anchura medida como FWHM: $K$ va de 0.89 (esfera) a 0.94 (cubo) a 1.0 (anchura integral en vez de FWHM), así que el tamaño lleva un ±10 % que es de convenio y no de medida. Hay que decir qué $K$ se usó. La fórmula de $f(s)$ es la parametrización de pymatgen, y **no** es la parametrización de rayos X de Cromer-Mann: los $a_i, b_i$ son los factores de dispersión de ELECTRONES de las *International Tables* y $41.78214 = 8\pi^2 a_0$, así que la expresión es la inversión de Mott-Bethe que devuelve el factor de rayos X. Medida contra Cromer-Mann en Si, O, Fe y C concuerda por debajo del 1 % hasta $s \approx 0.5$ Å⁻¹, es 1.6 % en $s = 0.6$, 7 % en $s = 1.0$ y 26 % en $s = 1.5$; como $I \propto |f|^2$, lo último son un 60 % en intensidad. Las POSICIONES de los picos no se ven afectadas. Con Cu Kα el patrón no pasa de $s = 1/\lambda = 0.65$ Å⁻¹ y el error se queda por debajo del 2 %; con Mo Kα y Ag Kα sí se llega, y el informe avisa por encima de $s = 0.9$ Å⁻¹ (`xrd.S_MOTT_BETHE_FIABLE`). Con `--basis input` sobre una primitiva, "los hkl NO son los de la ficha PDF".
 
 **Referencias.** *International Tables for Crystallography*, Vol. C (factores de dispersión). P. Scherrer, *Nachr. Ges. Wiss. Göttingen* 2, 98 (1918). S. P. Ong et al., *Comput. Mater. Sci.* 68, 314 (2013), DOI 10.1016/j.commatsci.2012.10.028 (pymatgen, origen de los coeficientes). B. E. Warren, *X-ray Diffraction*, Dover (1990).
 
@@ -577,7 +578,7 @@ A = \frac{3.1\times10^{-6}}{1 - 0.514/\gamma + 0.228/\gamma^2}, \qquad
 v_L^{[100]} = \sqrt{C_{11}/\rho},\ v_T^{[100]} = \sqrt{C_{44}/\rho}
 $$
 
-- $B$, $G$: promedios de Hill en GPa (×10⁹ a Pa); $\rho$ en kg/m³ (masas en amu × 1.66053906660e-27, $V$ en Å³ × 1e-30); $n$: átomos por m³; $\hbar$ = 1.054571817e-34 J·s, $k_B$ = 1.380649e-23 J/K; $\bar M$: masa media en amu; $\delta = (V/n_{\mathrm{at}})^{1/3}$ en Å; $T$ en K (`--temp`, 300); $\kappa_L$ en W/(m·K).
+- $B$, $G$: promedios de Hill en GPa (×10⁹ a Pa); $\rho$ en kg/m³ (masas en amu × 1.66053906660e-27, $V$ en Å³ × 1e-30); $n$: átomos por m³; $\hbar$ = 1.054571817e-34 J·s, $k_B$ = 1.380649e-23 J/K; $\bar M$: masa media en amu; $\delta = (V/n_{\mathrm{at}})^{1/3}$ en Å, con $n_{\mathrm{at}}$ los átomos de la celda PRIMITIVA (cuenta ramas ópticas; la CLI reduce con spglib antes de calcularlo); $T$ en K (`--temp`, 300); $\kappa_L$ en W/(m·K).
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_derived` carga la estructura (masas y volumen) y `--cij` (`ELASTIC_C.dat` de `elastic`, matriz 6×6).
@@ -594,7 +595,7 @@ $$
 | $\hbar$, $k_B$, amu | `derived.HBAR`, `KB`, `AMU` | CODATA 2018 |
 | Prefactor de Slack | literal 3.1e-6 y corrección $(1 - 0.514/\gamma + 0.228/\gamma^2)$ | Slack / Julian |
 
-**Límites y trampas.** La $\Theta_D$ es la ELÁSTICA (límite acústico de baja temperatura): "La que sale de la DOS de fonones usa todo el espectro y da otro número; no son la misma cantidad" (existe `derived.debye_from_dos`, $\Theta_D = (\hbar/k_B)\sqrt{5\langle\omega^2\rangle/3}$, usada por `crosscheck`, no por este comando). El Grüneisen "viene de una correlación empírica con la razón de Poisson" (Belomestnykh) y Slack "es una estimación de orden de magnitud". Poisson negativo: aviso de material auxético. La κ de Slack se rotula con la temperatura realmente usada (`Termoelastico.T`, clave `kappa_Slack_<T>K` en `DERIVED.dat`). Si $G \le 0$ no hay velocidades.
+**Límites y trampas.** La $\Theta_D$ es la ELÁSTICA (límite acústico de baja temperatura): "La que sale de la DOS de fonones usa todo el espectro y da otro número; no son la misma cantidad" (existe `derived.debye_from_dos`, $\Theta_D = (\hbar/k_B)\sqrt{5\langle\omega^2\rangle/3}$, usada por `crosscheck`, no por este comando). El Grüneisen "viene de una correlación empírica con la razón de Poisson" (Belomestnykh) y Slack "es una estimación de orden de magnitud". Poisson negativo: aviso de material auxético. La κ de Slack se rotula con la temperatura realmente usada (`Termoelastico.T`, clave `kappa_Slack_<T>K` en `DERIVED.dat`). Si $G \le 0$ no hay velocidades. **Condiciones que no estaban escritas antes de la 1.6.0.** (i) la $\Theta_D$ de aquí es la *tradicional*: mete los $3N$ modos en una esfera de Debye, es decir trata el cristal como monoatómico con la masa promedio. La temperatura de Debye *acústica*, que es con la que se suele escribir el modelo de Slack, es $\Theta_a = \Theta_D\, n^{-1/3}$ con $n$ los átomos de la celda primitiva; Olla-DFT le pasa al modelo la $\Theta_D$, y contra un conjunto de ocho cristales con $\kappa$ medida la variante con $\Theta_a$ sale sin sesgo mientras que ésta se queda alta en aproximadamente un factor $n$. Léase $\kappa_{\rm Slack}$ como cota superior, no como una estimación centrada en la respuesta. (ii) $n_{\mathrm{at}}$ tiene que ser la celda **primitiva**. Hasta la 1.6.0 se usaba el número de átomos de la celda que se pasara, así que el silicio daba 95.3 W/(m·K) con su primitiva y 37.8 con la convencional. (iii) el Grüneisen a partir de la razón de Poisson es una correlación sin barra de error: para el silicio da 1.38 donde la dilatación térmica mide 0.56, y como $\kappa \propto \gamma^{-2}$ eso son un factor seis.
 
 **Referencias.** O. L. Anderson, *J. Phys. Chem. Solids* 24, 909 (1963), DOI 10.1016/0022-3697(63)90067-2 ($\Theta_D$ elástica). G. A. Slack, *Solid State Phys.* 34, 1 (1979); D. T. Morelli y G. A. Slack, en *High Thermal Conductivity Materials*, Springer (2006) (prefactor con corrección de Julian). V. N. Belomestnykh y E. P. Tesleva, *Tech. Phys.* 49, 1098 (2004) (Grüneisen–Poisson).
 
@@ -708,22 +709,22 @@ $$
 **Fórmulas.** Las resuelve phono3py (`kappa.resolver`); Olla-DFT post-procesa:
 
 $$
-\kappa_L^{\alpha\beta} = \frac{1}{NV}\sum_\lambda C_\lambda\, v_\lambda^\alpha v_\lambda^\beta\, \tau_\lambda, \qquad \tau_\lambda = \frac{1}{2\Gamma_\lambda}, \qquad \Lambda_\lambda = |\mathbf{v}_\lambda|\,\tau_\lambda
+\kappa_L^{\alpha\beta} = \frac{1}{NV}\sum_\lambda C_\lambda\, v_\lambda^\alpha v_\lambda^\beta\, \tau_\lambda, \qquad \tau_\lambda = \frac{1}{2\cdot 2\pi\,\Gamma_\lambda}, \qquad \Lambda_\lambda = |\mathbf{v}_\lambda|\,\tau_\lambda
 $$
 
 $$
 \bar\kappa = \frac{\kappa_{xx}+\kappa_{yy}+\kappa_{zz}}{3}, \qquad
 \kappa \propto T^{-n}\ (n \text{ por recta en } \ln\kappa\text{–}\ln T,\ T \ge 200\ \mathrm{K}), \qquad
-\kappa_{\mathrm{acum}}(\Lambda) = \frac{\sum_{\lambda:\Lambda_\lambda<\Lambda} w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}{\sum_\lambda w_\lambda C_\lambda \tfrac{|\mathbf{v}_\lambda|^2}{3}\tau_\lambda}
+\kappa_{\mathrm{acum}}(\Lambda) = \frac{\sum_{\lambda:\Lambda_\lambda<\Lambda} \bar\kappa_\lambda}{\sum_\lambda \bar\kappa_\lambda}
 $$
 
-- $\Gamma_\lambda$: anchura de línea (THz) de phono3py; $\mathbf{v}_\lambda$: velocidad de grupo (THz·Å); $C_\lambda$: capacidad calorífica modal; $w_\lambda$: peso del punto q; $\Lambda$ en Å (se reporta en nm). Se descartan los modos con $\Gamma = 0$ (acústicos en Γ).
+- $\Gamma_\lambda$: anchura de línea (THz de frecuencia ordinaria, HWHM) de phono3py — de ahí el $2\cdot 2\pi$ de $\tau$, que es el convenio del propio phono3py (`get_mfp`, y el $1/2\pi$ de su factor a W/mK); $\mathbf{v}_\lambda$: velocidad de grupo (THz·Å); $C_\lambda$: capacidad calorífica modal; $w_\lambda$: peso del punto q; $\Lambda$ en Å (se reporta en nm). Se descartan los modos con $\Gamma = 0$ (acústicos en Γ). $\bar\kappa_\lambda$ es la traza/3 de la `mode_kappa` por modo del propio phono3py, que ya lleva $w_\lambda$ dentro, así que la curva acumulada suma por construcción la $\bar\kappa$ que aparece encima. La $\Gamma_\lambda$ de $\tau$ y $\Lambda$ es la anchura EFECTIVA, $\Gamma_{\mathrm{ph}} + \Gamma_{\mathrm{iso}} + \Gamma_{\mathrm{b}}$ con $\Gamma_{\mathrm{b}} = |\mathbf{v}_\lambda|/(4\pi L)$ para un grano de tamaño $L$ — la misma suma que phono3py usa para $\kappa$, así que `--isotopes` y `--grain` mueven también los recorridos libres medios.
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_kappa` → `qekit/modules/kappa.py: preparar`: `Phono3py(..., supercell_matrix=--dim (2x2x2), phonon_supercell_matrix=--dim-fc2, primitive_matrix="auto", symprec=1e-5)` y `generate_displacements(distance=--distance 0.03 Å)`.
 2. `kappa.configuraciones` convierte las superceldas desplazadas a ASE (fc3 y, si hay, fc2).
 3. Fuerzas: (a) `--model mace|chgnet|m3gnet` → `kappa.fuerzas_mlip`; (b) sin `--model` → `kappa.escribir_inputs` escribe un `scf` por configuración en `fc3/dNNNN/pw.in` (y `fc2/`), `conv_thr = 1e-10`, malla por `--kspacing` 0.35 Å⁻¹, `occupations='fixed'` salvo `--metal` (smearing), más `correr.sh`; se niega por encima de 150 configuraciones sin `--force`; (c) `--collect` → `kappa.leer_fuerzas` lee `<forces>` de cada XML (Ha/bohr → eV/Å) y exige TODAS.
-4. `kappa.resolver`: `produce_fc3`, `produce_fc2`, simetrización, `mesh_numbers = --mesh (13)`, `init_phph_interaction`, `run_thermal_conductivity(temperatures=--temps 100:800:8, is_isotope=--isotopes, boundary_mfp=--grain µm ×1e4 Å o 1e6)`.
+4. `kappa.resolver`: `produce_fc3`, `produce_fc2`, simetrización, `mesh_numbers = --mesh (13)`, `init_phph_interaction`, `run_thermal_conductivity(temperatures=--temps 100:800:8, is_isotope=--isotopes, boundary_mfp=--grain en µm, o 1e6 µm = 1 m si no hay fronteras)`.
 5. `kappa.recoger` guarda κ (Voigt 6), Γ, velocidades, $C_\lambda$, pesos; `kappa.report`, `export` (`KAPPA.dat`, `KAPPA_recorrido.dat`, `KAPPA.txt`), `plot` (κ(T) log-log con guía $T^{-1}$; acumulada vs Λ).
 
 **De dónde sale cada dato.**
@@ -784,7 +785,7 @@ $$
 | $\mu^*$ | literal (0.10, 0.13, 0.16) | empírico |
 | $T_{\mathrm{Debye}}$ | `--debye` | solo para marcar el régimen de validez de τ |
 
-**Límites y trampas.** El valor de λ de `ph.out` NO se lee (solo σ y N(E_F)); λ sale de `lambda.x` o del $\alpha^2F$. La columna "Tc(K)" de la tabla por ensanchamiento es la de `lambda.x` (Allen–Dynes SIN $f_1 f_2$, con el $\mu^*$ de `lambda.in`) o la recalculada igual por Olla-DFT; las $T_c$ con correcciones y para los tres $\mu^*$ son las del bloque "Temperatura crítica", y sin `a2F.dos*` no hay $\bar\omega_2$ y $f_2 = 1$. Sin plató: "la malla de k es insuficiente … Cualquier lambda que se reporte de aquí es arbitrario". $\mu^*$ "es empírico (0.10-0.16) y NO se calcula aquí". τ "vale por ENCIMA de la temperatura de Debye; por debajo sobreestima la dispersión". `lambda.x` con malla q gruesa deja $\omega_{\log}$ en NaN: se recalcula del $\alpha^2F$ si existe. El τ NO se inyecta automáticamente en `transport`: el docstring del módulo lo dice explícitamente y da la secuencia (`transport --collect` → `elph --collect` → $\sigma(T) = [\sigma/\tau](T)\cdot\tau(T)$ a mano sobre las columnas de `TRANSPORTE.dat`).
+**Límites y trampas.** El valor de λ de `ph.out` NO se lee (solo σ y N(E_F)); λ sale de `lambda.x` o del $\alpha^2F$. La columna "Tc(K)" de la tabla por ensanchamiento es la de `lambda.x` (Allen–Dynes SIN $f_1 f_2$, con el $\mu^*$ de `lambda.in`) o la recalculada igual por Olla-DFT; las $T_c$ con correcciones y para los tres $\mu^*$ son las del bloque "Temperatura crítica", y sin `a2F.dos*` no hay $\bar\omega_2$ y $f_2 = 1$. Sin plató: "la malla de k es insuficiente … Cualquier lambda que se reporte de aquí es arbitrario". $\mu^*$ "es empírico (0.10-0.16) y NO se calcula aquí". Allen–Dynes es un **ajuste empírico**, no una derivación: $f_1$ y $f_2$ salieron de soluciones numéricas de las ecuaciones de Eliashberg hasta $\lambda \approx 1.5$ (`elph.LAMBDA_MAX_AJUSTE`), y el caso de calibración es el plomo, $\lambda = 1.55$, $\omega_{\log} = 56$ K, $\mu^* = 0.10$, que la implementación reproduce en $T_c = 7.20$ K frente a los 7.2 K medidos. Por encima de ese acoplamiento la fórmula subestima $T_c$ y el informe lo dice: el número es una cota inferior, y si importa hay que resolver Eliashberg. τ "vale por ENCIMA de la temperatura de Debye; por debajo sobreestima la dispersión". `lambda.x` con malla q gruesa deja $\omega_{\log}$ en NaN: se recalcula del $\alpha^2F$ si existe. El τ NO se inyecta automáticamente en `transport`: el docstring del módulo lo dice explícitamente y da la secuencia (`transport --collect` → `elph --collect` → $\sigma(T) = [\sigma/\tau](T)\cdot\tau(T)$ a mano sobre las columnas de `TRANSPORTE.dat`).
 
 **Referencias.** P. B. Allen y R. C. Dynes, *Phys. Rev. B* 12, 905 (1975), DOI 10.1103/PhysRevB.12.905. W. L. McMillan, *Phys. Rev.* 167, 331 (1968), DOI 10.1103/PhysRev.167.331. P. B. Allen, *Phys. Rev. B* 3, 305 (1971) (τ a alta T). G. Grimvall, *The Electron–Phonon Interaction in Metals*, North-Holland (1981).
 
@@ -796,7 +797,7 @@ $$
 
 **Fundamento para no expertos.** Un electrón en una banda se mueve con velocidad $v = (1/\hbar)\,dE/dk$. A una temperatura dada solo los estados a unos $k_BT$ del potencial químico participan en el transporte (la "ventana" $-\partial f/\partial E$). Sumando velocidad por velocidad sobre esa ventana sale la conductividad; ponderando además por $(E-\mu)$ sale el Seebeck, que mide cuánto voltaje aparece por grado de diferencia de temperatura. La aproximación de tiempo de relajación constante (CRTA) supone que todos los electrones chocan con la misma frecuencia $1/\tau$: entonces $\tau$ se cancela en $S$ y en el número de Lorenz (predicciones reales) pero no en σ ni en κ_e, que se reportan divididas por τ.
 
-**Fórmulas.** (`transport._fd_derivative`, `transport.compute`, `lorenz`, `cancelacion`, `TransporteEspin`) Con $x = (E-\mu)/k_BT$, $-\partial f/\partial E = \mathrm{sech}^2(x/2)/(4k_BT)$, pesos $w_k = 1/N_k$, $V$ el volumen de la celda:
+**Fórmulas.** (`transport._fd_derivative`, `transport.compute`, `lorenz`, `cancelacion`, `TransporteEspin`) Con $x = (E-\mu)/k_BT$, $-\partial f/\partial E = \mathrm{sech}^2(x/2)/(4k_BT)$, pesos $w_k$ normalizados a la DEGENERACIÓN DE ESPÍN, como los $wk$ de Quantum ESPRESSO: $\sum_k w_k = 2$ sin polarizar (dos electrones por estado) y $=1$ por canal con `nspin=2`, $V$ el volumen de la celda:
 
 $$
 \mathbf{v}_{n\mathbf{k}} = \frac{1}{\hbar}\nabla_{\mathbf{k}}E_{n\mathbf{k}}\ (\text{diferencias finitas periódicas, } \texttt{np.gradient}), \qquad
@@ -811,8 +812,8 @@ $$
 $$
 
 $$
-n = \frac{N_{\mathrm{elec}} - 2\sum_{n\mathbf{k}} w_k f(E_{n\mathbf{k}})}{V}, \qquad
-L = \frac{\bar\kappa_e}{\bar\sigma T}, \qquad L_0 = 2.44\times10^{-8}\ \mathrm{W\,\Omega/K^2}, \qquad
+n = \frac{N_{\mathrm{elec}} - \sum_{n\mathbf{k}} w_k f(E_{n\mathbf{k}})}{V}, \qquad
+L = \frac{\bar\kappa_e}{\bar\sigma T}, \qquad L_0 = \frac{\pi^2}{3}\left(\frac{k_B}{e}\right)^2 = 2.4430\times10^{-8}\ \mathrm{W\,\Omega/K^2}, \qquad
 c = \frac{|\bar\kappa_e|}{|\bar\kappa_e + \bar S^2\bar\sigma T|}
 $$
 
@@ -836,7 +837,7 @@ $$
 |---|---|---|
 | Autovalores, k, pesos | XML del nscf (`ks_energies`, Hartree → eV) | `qeout.read_xml`; `weights` se sustituyen por $1/N_k$ |
 | $E_F$, $N_{\mathrm{elec}}$, volumen, celda | XML (`fermi_energy`, `nelec`, `cell`) | `qeout.read_xml` |
-| Constantes | `transport.E_CHARGE`, `HBAR_EVS`, `KB_EV`, `L0_SOMMERFELD` | CODATA; $L_0$ = 2.44e-8 |
+| Constantes | `transport.E_CHARGE`, `HBAR_EVS`, `KB_EV`, `L0_SOMMERFELD` | CODATA; $L_0$ is computed as $(\pi^2/3)(k_B/e)^2$ = 2.4430e-8, not copied as the rounded 2.44e-8 of the textbooks: it is a defined constant, and the 0.12 % showed in the three decimals of the printed $L/L_0$ |
 
 **Límites y trampas.** Solo CRTA: "Para dar σ en S/m hace falta un τ que venga de un ajuste a una medida o de un cálculo de electrón-fonón — Olla-DFT no lo inventa". NO calcula ZT (haría falta κ_red y τ) ni acopla automáticamente el τ de `elph`. No interpola bandas (a diferencia de BoltzTraP): con malla < 24 por lado o < 12000 puntos avisa "INSUFICIENTE … sigma sale en picos aislados". El número de Lorenz dentro del gap sufre cancelación catastrófica: "NO TE FÍES DE ESTE NÚMERO … sobrevive el X %"; solo se resumen puntos con $c > 0.10$. `--spin-resolved` sobre un XML con `nspin = 1` se rechaza con la instrucción de volver a preparar con `--nspin 2 --mag EL=0.7 --run`. Modelo de dos corrientes: "Vale mientras la dispersión con inversión de espín sea lenta … deja de valer cerca de [la temperatura de Curie]".
 

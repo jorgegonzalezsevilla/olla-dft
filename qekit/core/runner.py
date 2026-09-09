@@ -30,6 +30,7 @@ Dos decisiones de diseño que importan en la práctica:
 """
 
 import os
+import shlex
 import shutil
 import subprocess
 import threading
@@ -196,6 +197,45 @@ class JobResult:
         return self.result.total_energy if self.result else None
 
 
+def partir_orden(cmd: str) -> list:
+    """Parte una orden en tokens SIN romper las rutas que llevan espacios.
+
+    `cmd.split()` convertía `C:\\Program Files\\QE\\bin\\pw.exe` en dos
+    tokens y el lanzamiento fallaba diciendo que no encuentra
+    `C:\\Program` — justo la ruta que `plataforma.dirs_probables_qe()`
+    busca en Windows y la que el mensaje de error le pide al usuario que
+    ponga con `olla-dft config set pw_cmd`.
+
+    Dos precauciones: una ruta que existe tal cual es UN token aunque
+    tenga espacios (nadie escribe comillas al copiarla), y en Windows se
+    parte con `posix=False` para que `shlex` no se coma las barras
+    invertidas de la ruta.
+    """
+    cmd = (cmd or "").strip()
+    if not cmd:
+        return []
+    if Path(cmd).exists():
+        return [cmd]
+    try:
+        tokens = shlex.split(cmd, posix=(os.name != "nt"))
+    except ValueError:                  # comillas sin cerrar
+        tokens = cmd.split()
+    if os.name == "nt":
+        tokens = [t.strip('"') for t in tokens]
+    tokens = [t for t in tokens if t]
+    # Sin comillas, "ruta con espacios" y "orden con argumentos" se escriben
+    # igual. Se decide por lo que hay: si el primer token no es un programa
+    # que exista y ningún token es una opción, los espacios son de la ruta.
+    # Así `C:\Program Files\QE\bin\pw.exe` sobrevive, y `mpirun -np 4 pw.x`
+    # o `env OMP_NUM_THREADS=1 pw.x` se siguen partiendo bien.
+    if len(tokens) > 1:
+        cabeza_valida = Path(tokens[0]).exists() or shutil.which(tokens[0])
+        opciones = any(t.startswith("-") for t in tokens[1:])
+        if not cabeza_valida and not opciones:
+            return [cmd]
+    return tokens
+
+
 def build_command(pw_cmd: str = None, nproc: int = None) -> list:
     """Comando para lanzar pw.x, en serie o con MPI.
 
@@ -213,13 +253,13 @@ def build_command(pw_cmd: str = None, nproc: int = None) -> list:
     n = int(nproc if nproc is not None else cfg.get("nproc", 1) or 1)
 
     if any(tok in cmd for tok in ("mpirun", "mpiexec", "srun")):
-        return cmd.split()          # el usuario ya especificó cómo lanzarlo
+        return partir_orden(cmd)    # el usuario ya especificó cómo lanzarlo
     if n > 1:
         launcher = (cfg.get("mpi_cmd") or plataforma.lanzador_mpi())
         if launcher:
-            return launcher.format(n=n).split() + cmd.split()
+            return partir_orden(launcher.format(n=n)) + partir_orden(cmd)
         # sin MPI en la máquina: correr en serie es mejor que fallar
-    return cmd.split()
+    return partir_orden(cmd)
 
 
 def resolver_ejecutable(exe: str) -> str:

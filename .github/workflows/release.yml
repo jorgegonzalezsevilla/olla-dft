@@ -1,0 +1,63 @@
+name: Publish to PyPI
+
+# Se dispara al publicar una release en GitHub. Usa "trusted publishing"
+# (OIDC): no hay ningún token de PyPI guardado en el repositorio, PyPI
+# verifica que el artefacto viene de este workflow y de esta rama.
+# Hay que darlo de alta una vez en https://pypi.org/manage/account/publishing/
+# con: proyecto olla-dft, propietario jorgegonzalezsevilla, repo olla-dft,
+# workflow release.yml, entorno pypi.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build and check the distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip build twine
+      - run: python -m build
+      # Que el sdist se baste a sí mismo: se desempaqueta y corre SU suite.
+      # Es la comprobación que descubre que falta un dato en el MANIFEST.
+      - name: the sdist passes its own test suite
+        run: |
+          mkdir -p /tmp/desde-sdist && tar xzf dist/*.tar.gz -C /tmp/desde-sdist
+          cd /tmp/desde-sdist/olla_dft-*
+          python -m pip install -e ".[test]"
+          python -m pytest -q
+      - run: python -m twine check --strict dist/*
+      - name: the version matches the tag
+        if: github.event_name == 'release'
+        run: |
+          etiqueta="${GITHUB_REF_NAME#v}"
+          version=$(python -c "import tomllib,pathlib;print(tomllib.loads(pathlib.Path('pyproject.toml').read_text())['project']['version'])")
+          test "$etiqueta" = "$version" || {
+            echo "la etiqueta $etiqueta no coincide con la versión $version"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: publish to PyPI
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/olla-dft
+    permissions:
+      id-token: write        # lo único que hace falta para el trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
