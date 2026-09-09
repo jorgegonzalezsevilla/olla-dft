@@ -412,3 +412,277 @@ def test_el_difractograma_avisa_solo_cuando_llega_a_s_alta():
     pat = xrd.broaden(xrd.compute(at, two_theta_range=rango),
                       two_theta_range=rango, size_nm=20.0)
     assert "Scherrer with K = 0.9" in xrd.report(pat)
+
+
+# ----------------------------------------------------------------------
+# Termodinámica armónica: phonopy, consistencia interna y entre módulos
+# ----------------------------------------------------------------------
+#: phonopy deriva su k_B de su propio juego de unidades y sale 5.8e-7 por
+#: encima del exacto de CODATA 2018 (k_B/e con las dos constantes que
+#: definen el SI). La comparación se hace con ese margen, no más.
+REL_PHONOPY = 5e-6
+
+MODOS_CM1 = np.array([1000.0, 620.0, 450.0, 310.0, 180.0, 95.0])
+
+
+def test_las_constantes_de_conversion_son_las_mismas_en_todo_el_paquete():
+    """Tres módulos convierten cm⁻¹ a eV por su cuenta. Si uno se desvía,
+    la energía libre de `qha` y la de `thermochem` dejan de ser la misma
+    magnitud sin que nada falle."""
+    from qekit.modules import phonons as ph
+    from qekit.modules import qha
+    from qekit.modules import thermochem as tc
+
+    exacto = 299792458 * 100 * 4.135667696e-15      # c[cm/s] * h[eV s]
+    for valor in (qha.CM1_EV, ph.CM1_TO_EV, float(tc.cm1_a_eV(1.0))):
+        assert valor == pytest.approx(exacto, rel=1e-10)
+    # k_B en eV/K es exacto en el SI: k_B/e con las dos constantes que lo definen
+    assert tc.KB_EV == pytest.approx(1.380649e-23 / 1.602176634e-19, rel=1e-10)
+
+
+@pytest.mark.parametrize("T", [50.0, 100.0, 300.0, 800.0])
+def test_la_capacidad_calorifica_armonica_concuerda_con_phonopy(T):
+    from phonopy.phonon.thermal_properties import mode_cv
+
+    from qekit.modules import qha
+    from qekit.modules import thermochem as tc
+
+    ref = float(np.sum(mode_cv(T, MODOS_CM1 * qha.CM1_EV)))     # eV/K
+    assert tc.Cv_vib(MODOS_CM1, T) == pytest.approx(ref, rel=REL_PHONOPY)
+    # cv_modos va en meV/K
+    assert qha.cv_modos(MODOS_CM1, T) / 1000.0 == pytest.approx(
+        ref, rel=REL_PHONOPY)
+
+
+@pytest.mark.parametrize("T", [50.0, 300.0, 800.0])
+def test_qha_y_thermochem_dan_la_misma_energia_libre(T):
+    """Dos implementaciones independientes dentro del paquete. Si divergen,
+    una de las dos está mal y nada lo delataría."""
+    from qekit.modules import qha
+    from qekit.modules import thermochem as tc
+
+    esperado = (tc.zpe(MODOS_CM1) + tc.H_vib(MODOS_CM1, T)
+                - T * tc.S_vib(MODOS_CM1, T))
+    assert qha.f_vib(MODOS_CM1, T) == pytest.approx(esperado, rel=1e-9)
+
+
+@pytest.mark.parametrize("T", [100.0, 300.0, 800.0])
+def test_las_funciones_termodinamicas_son_derivadas_unas_de_otras(T):
+    """C_v = dU/dT y S = −dF/dT, por diferencias finitas. Es lo que atrapa
+    un factor perdido en una sola de las tres."""
+    from qekit.modules import qha
+    from qekit.modules import thermochem as tc
+
+    h = 1e-3 * T
+    dU = ((tc.H_vib(MODOS_CM1, T + h) - tc.H_vib(MODOS_CM1, T - h)) / (2 * h))
+    assert dU == pytest.approx(tc.Cv_vib(MODOS_CM1, T), rel=1e-5)
+    dF = ((qha.f_vib(MODOS_CM1, T + h) - qha.f_vib(MODOS_CM1, T - h)) / (2 * h))
+    assert -dF == pytest.approx(tc.S_vib(MODOS_CM1, T), rel=1e-5)
+
+
+def test_dulong_petit():
+    from qekit.modules import thermochem as tc
+
+    assert tc.Cv_vib(MODOS_CM1, 40000.0) == pytest.approx(
+        len(MODOS_CM1) * tc.KB_EV, rel=1e-3)
+
+
+def test_la_termodinamica_por_DOS_reproduce_la_suma_sobre_modos():
+    """`phonons.thermodynamics` integra una DOS; `qha` suma modos. Sobre una
+    DOS que son esos mismos modos ensanchados, tienen que coincidir."""
+    from qekit.modules import phonons as ph
+    from qekit.modules import qha
+    from qekit.modules import thermochem as tc
+
+    w = np.linspace(1.0, 1400.0, 40000)
+    sigma = 2.0
+    g = np.zeros_like(w)
+    for w0 in MODOS_CM1:
+        g += np.exp(-0.5 * ((w - w0) / sigma) ** 2) / (sigma * np.sqrt(2 * np.pi))
+    run = ph.PhononRun()
+    run.dos_w, run.dos = w, g
+    Ts = np.array([100.0, 300.0, 800.0])
+    res = ph.thermodynamics(run, T=Ts, natoms=2)          # 3N = 6 modos
+    assert res["ZPE"] == pytest.approx(tc.zpe(MODOS_CM1), rel=1e-3)
+    for i, T in enumerate(Ts):
+        assert res["F"][i] == pytest.approx(qha.f_vib(MODOS_CM1, T), rel=3e-3)
+        assert res["Cv"][i] == pytest.approx(tc.Cv_vib(MODOS_CM1, T), rel=3e-3)
+        # la relación que define S en ese módulo
+        assert res["F"][i] == pytest.approx(res["U"][i] - T * res["S"][i],
+                                            rel=1e-12)
+
+
+# ----------------------------------------------------------------------
+# Masa efectiva, ecuación de estado, elasticidad y Tauc
+# ----------------------------------------------------------------------
+def test_la_masa_efectiva_de_un_electron_libre_es_uno():
+    """E = ħ²k²/2mₑ da a = 3.80998212 eV·Å². Si el 2 de m* = ħ²/(2a) se
+    perdiera, toda masa efectiva del paquete saldría con un factor 2."""
+    from qekit.modules import effmass
+
+    assert effmass._mass_from_quadratic(3.80998212) == pytest.approx(1.0, rel=1e-7)
+    # y la constante es la identidad, no un literal de una edición de CODATA
+    assert effmass.HBAR2_OVER_ME == pytest.approx(
+        27.211386245988 * 0.529177210903 ** 2, rel=1e-8)
+    # el signo distingue hueco de electrón
+    assert effmass._mass_from_quadratic(-3.80998212) < 0
+
+
+@pytest.mark.parametrize("ecuacion,funcion", [
+    ("birch-murnaghan", "birch_murnaghan"),
+    ("murnaghan", "murnaghan"),
+    ("vinet", "vinet"),
+])
+def test_las_ecuaciones_de_estado_recuperan_sus_propios_parametros(ecuacion, funcion):
+    """Se genera la curva con (V0, B0, B0') conocidos y se vuelve a ajustar.
+    Cierra el lazo entre la fórmula, el ajuste y la conversión eV/Å³ -> GPa."""
+    from qekit.modules import eos
+
+    V0, E0, B0_GPa, Bp = 40.0, -10.0, 90.0, 4.2
+    EV_A3_GPA = 160.21766208
+    V = np.linspace(0.90 * V0, 1.10 * V0, 11)
+    E = getattr(eos, funcion)(V, E0, V0, B0_GPa / EV_A3_GPA, Bp)
+    run = eos.EOSRun()
+    run.volumes, run.energies = V, E
+    f = eos.fit(run, equation=ecuacion)
+    assert f.V0 == pytest.approx(V0, rel=1e-6)
+    assert f.B0 == pytest.approx(B0_GPa, rel=1e-5)
+    assert f.Bp == pytest.approx(Bp, rel=1e-5)
+
+
+def test_birch_murnaghan_concuerda_con_ase():
+    from ase.eos import EquationOfState
+
+    from qekit.modules import eos
+
+    V0, E0, B0_GPa, Bp = 40.0, -10.0, 90.0, 4.2
+    EV_A3_GPA = 160.21766208
+    V = np.linspace(0.90 * V0, 1.10 * V0, 11)
+    E = eos.birch_murnaghan(V, E0, V0, B0_GPa / EV_A3_GPA, Bp)
+    v0, _e0, b0 = EquationOfState(list(V), list(E), eos="birchmurnaghan").fit()
+    assert v0 == pytest.approx(V0, rel=1e-6)
+    assert b0 * EV_A3_GPA == pytest.approx(B0_GPa, rel=1e-4)
+
+
+def test_en_un_solido_isotropo_voigt_y_reuss_coinciden():
+    """Con C construido de λ y μ, las cotas tienen que cerrarse: si no,
+    hay un error en la inversión de C o en los índices de Voigt."""
+    from qekit.modules import elastic
+
+    lam, mu = 60.0, 40.0                              # GPa
+    C = np.zeros((6, 6))
+    C[:3, :3] = lam
+    C[0, 0] = C[1, 1] = C[2, 2] = lam + 2 * mu
+    C[3, 3] = C[4, 4] = C[5, 5] = mu
+    m = elastic.moduli(C)
+    B, G = lam + 2 * mu / 3.0, mu
+    assert m.B_voigt == pytest.approx(B, rel=1e-12)
+    assert m.B_reuss == pytest.approx(B, rel=1e-12)
+    assert m.G_voigt == pytest.approx(G, rel=1e-12)
+    assert m.G_reuss == pytest.approx(G, rel=1e-12)
+    assert m.E == pytest.approx(9 * B * G / (3 * B + G), rel=1e-12)
+    assert m.nu == pytest.approx((3 * B - 2 * G) / (2 * (3 * B + G)), rel=1e-12)
+    assert abs(m.anisotropy) < 1e-9        # A^U = 0 exactamente si es isótropo
+
+
+@pytest.mark.parametrize("clase,potencia", [("direct", 0.5), ("indirect", 2.0)])
+def test_tauc_recupera_un_gap_puesto_a_mano(clase, potencia):
+    """ε₂ construida para que (αhν)^(1/r) sea exactamente una recta que corta
+    en Eg. Fija el exponente de cada clase y el corte con el eje."""
+    from qekit.modules import optics as op
+
+    Eg = 1.85
+    E = np.arange(0.05, 12.0, 0.005)
+    borde = np.maximum(E - Eg, 0.0)
+    e2 = np.where(E > Eg, borde ** potencia / E ** 2, 0.0)
+    e2 = e2 * (30.0 if clase == "direct" else 0.6)
+    run = op.OpticsRun()
+    run.energies, run.eps1, run.eps2 = E, np.full_like(E, 12.0), e2
+    gap, pendiente, _ventana, _y = op.tauc_gap(run, kind=clase)
+    assert gap == pytest.approx(Eg, abs=0.03)
+    assert pendiente > 0
+
+
+# ----------------------------------------------------------------------
+# Defectos cargados, conductancia y casco convexo
+# ----------------------------------------------------------------------
+@pytest.mark.parametrize("red,alpha_ref", [
+    ("sc", 2.8373), ("bcc", 2.8883), ("fcc", 2.8883),
+])
+def test_las_constantes_de_madelung_son_las_de_makov_payne(red, alpha_ref):
+    """α con L = V^(1/3) para una carga puntual en fondo neutralizante.
+    Son los tres números de la tabla de Makov-Payne y no dependen de nada
+    que haya que ir a buscar: la suma de Ewald los produce."""
+    from qekit.modules import defects
+
+    a = 5.0
+    celdas = {
+        "sc": np.eye(3) * a,
+        "bcc": a * np.array([[-.5, .5, .5], [.5, -.5, .5], [.5, .5, -.5]]),
+        "fcc": a * np.array([[0, .5, .5], [.5, 0, .5], [.5, .5, 0]]),
+    }
+    assert defects.constante_madelung(celdas[red]) == pytest.approx(
+        alpha_ref, abs=5e-4)
+
+
+def test_la_constante_de_madelung_no_depende_del_tamano_de_la_celda():
+    from qekit.modules import defects
+
+    a5 = defects.constante_madelung(np.eye(3) * 5.0)
+    a17 = defects.constante_madelung(np.eye(3) * 17.0)
+    assert a5 == pytest.approx(a17, rel=1e-7)
+
+
+def test_la_correccion_de_imagen_escala_como_q2_sobre_epsilon_L():
+    from qekit.modules import defects
+
+    c = np.eye(3) * 10.0
+    def mp(q, celda, eps):
+        return defects.correccion_imagen(q, celda, eps, "makov-payne")["E_mp"]
+    base = mp(1, c, 10.0)
+    assert mp(2, c, 10.0) / base == pytest.approx(4.0, rel=1e-9)
+    assert mp(1, np.eye(3) * 20.0, 10.0) / base == pytest.approx(0.5, rel=1e-6)
+    assert mp(1, c, 20.0) / base == pytest.approx(0.5, rel=1e-12)
+    # e²/(4πε₀) en eV·Å
+    assert defects.KE == pytest.approx(14.399645, rel=1e-7)
+
+
+def test_el_cuanto_de_conductancia_es_2e2_sobre_h():
+    from qekit.modules import ballistic
+
+    exacto = 2 * (1.602176634e-19) ** 2 / 6.62607015e-34
+    assert ballistic.G0 == pytest.approx(exacto, rel=1e-9)
+    assert ballistic.R0 == pytest.approx(1.0 / exacto, rel=1e-9)
+    assert ballistic.R0 == pytest.approx(12906.4, abs=0.1)
+
+
+def test_el_casco_convexo_binario_da_las_distancias_exactas():
+    """Cinco fases con la respuesta calculable a mano: A3B queda 0.1 eV/át
+    por encima del segmento A–AB, y AB3 0.2 por encima del AB–B."""
+    from qekit.modules import thermo
+
+    filas = [("A", {"A": 1}, 0.0), ("B", {"B": 1}, 0.0),
+             ("A3B", {"A": 3, "B": 1}, -0.4 * 4),
+             ("AB", {"A": 1, "B": 1}, -1.0 * 2),
+             ("AB3", {"A": 1, "B": 3}, -0.3 * 4)]
+    res = thermo.from_table(filas, elementos=["A", "B"])
+    esperado = {"A": 0.0, "B": 0.0, "A3B": 0.1, "AB": 0.0, "AB3": 0.2}
+    for f in res.fases:
+        assert f.e_hull == pytest.approx(esperado[f.nombre], abs=1e-9)
+        assert f.en_casco == (esperado[f.nombre] < 1e-9)
+
+
+def test_el_casco_ternario_interpola_en_el_simplex_correcto():
+    """A2BC está sobre la línea A–ABC: 0.75 de ABC y 0.25 de A dan −1.125,
+    así que su distancia al casco es exactamente 0.225 eV/átomo."""
+    from qekit.modules import thermo
+
+    filas = [("A", {"A": 1}, 0.0), ("B", {"B": 1}, 0.0), ("C", {"C": 1}, 0.0),
+             ("ABC", {"A": 1, "B": 1, "C": 1}, -1.5 * 3),
+             ("A2BC", {"A": 2, "B": 1, "C": 1}, -0.9 * 4)]
+    res = thermo.from_table(filas, elementos=["A", "B", "C"])
+    por_nombre = {f.nombre: f for f in res.fases}
+    assert por_nombre["ABC"].e_hull == pytest.approx(0.0, abs=1e-9)
+    assert por_nombre["ABC"].en_casco
+    assert por_nombre["A2BC"].e_hull == pytest.approx(0.225, abs=1e-9)
+    assert not por_nombre["A2BC"].en_casco
