@@ -39,7 +39,7 @@ Cutoffs recomendados (`qekit/core/pseudo.py: recommend_cutoffs`):
 
 $$
 E_{\text{wfc}} = \max_s E^{\text{UPF}}_{\text{wfc},s}, \qquad
-E_{\rho} = \max\!\left(\max_s E^{\text{UPF}}_{\rho,s},\ 4\,E_{\text{wfc}}\right)
+E_{\rho} = \max\!\left(\max_s E^{\text{UPF}}_{\rho,s},\ d_{\min}\,E_{\text{wfc}}\right), \qquad d_{\min} = \max_s \begin{cases} 4 & \text{NC} \\ 8 & \text{US, PAW, unknown} \end{cases}
 $$
 
 - $E^{\text{UPF}}_{\text{wfc},s}$, $E^{\text{UPF}}_{\rho,s}$: cutoffs sugeridos en la cabecera del UPF de la especie $s$ (Ry), leídos por `pseudo.suggested_cutoffs` (atributos `wfc_cutoff`/`rho_cutoff` en UPF v2 o el texto "Suggested minimum cutoff for wavefunctions/charge density" en UPF v1). Valores $\le 1$ se ignoran.

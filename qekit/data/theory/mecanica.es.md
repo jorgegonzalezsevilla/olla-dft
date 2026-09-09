@@ -33,7 +33,7 @@ $$
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_converge` carga la estructura y llama a `qekit/modules/converge.py: prepare`.
-2. `sweep.prepare_common` resuelve pseudopotenciales y cutoffs (`pseudo.recommend_cutoffs`: el máximo que declaran los UPF; si no declaran, `ecutwfc` de configuración (60 Ry) y `dual` (8); `ecutrho` nunca por debajo de $4\,\mathrm{ecutwfc}$).
+2. `sweep.prepare_common` resuelve pseudopotenciales y cutoffs (`pseudo.recommend_cutoffs`: el máximo que declaran los UPF; si no declaran, `ecutwfc` de configuración (60 Ry) y `dual` (8); `ecutrho` nunca por debajo del dual mínimo del pseudopotencial MÁS duro del conjunto: 4 para norm-conserving, 8 para ultrasuave y PAW, y 8 si no se conoce el tipo).
 3. Serie por omisión: `ecutwfc` = 30, 40, …, 100 Ry con `ecutrho = dual × ecutwfc`; `ecutrho` = 4, 6, 8, 10, 12 × ecutwfc; `kmesh` = mallas de los espaciados 0.40, 0.30, 0.25, 0.20, 0.15, 0.12 Å⁻¹ (sin repetir). Con `--values` se sustituye la serie (para `kmesh` admite `8x8x8` o espaciados).
 4. Un `pw.in` (`calculation='scf'`, `conv_thr = 1e-8`, `tstress`/`tprnfor` activados) por punto vía `sweep.write_scf_job`, más `run.sh` y `run.py`.
 5. Con `--run`, `runner.run_all` ejecuta `pw.x`; con `--collect`, `converge.collect` lee `out/*.xml` (`qeout.read_xml`, etiqueta `<total_energy><etot>`).
@@ -181,9 +181,11 @@ Lámina (`elastic.constantes_2d`, `modulos_2d`, `born_2d`): $C^{2D}_{ij} = C_{ij
 
 $$
 Y_x = \frac{C_{11}C_{22}-C_{12}^2}{C_{22}},\quad \nu_x = \frac{C_{12}}{C_{22}},\quad
-K = \frac{C_{11}+C_{22}+2C_{12}}{4},\quad G = C_{66};\qquad
+K_V = \frac{C_{11}+C_{22}+2C_{12}}{4},\quad K_R = \frac{C_{11}C_{22}-C_{12}^2}{C_{11}+C_{22}-2C_{12}},\quad K_H = \tfrac{1}{2}(K_V+K_R),\quad G = C_{66};\qquad
 C_{11}>0,\; C_{66}>0,\; C_{11}C_{22}-C_{12}^2>0
 $$
+
+- $K_V$ es el layer modulus tal como lo reporta la literatura 2D (DEFORMACIÓN biaxial uniforme, cota superior de Voigt); $K_R$ es la cota de TENSIÓN biaxial uniforme. Coinciden si $C_{11}=C_{22}$ y se separan en una lámina anisótropa —en fosforeno, 41 frente a 24 N/m—, así que el informe imprime las dos y avisa si difieren más de un 5 %.
 
 **Cómo lo calcula Olla-DFT.**
 1. `qekit/cli.py: _cmd_elastic` → `qekit/modules/elastic.py: prepare`. En 3D la estructura se lleva SIEMPRE a la primitiva estandarizada de spglib (`structure.primitive`) para que los ejes cartesianos coincidan con los cristalofísicos; en `--2d` no (exige vacío en $c$ vía `kpoints.direcciones_con_vacio`).
@@ -222,7 +224,6 @@ $$
 E_{\mathrm{gap}}(\varepsilon) \approx m\,\varepsilon + b, \qquad R^2 = 1 - \frac{\sum (y - \hat y)^2}{\sum (y-\bar y)^2}
 $$
 
-- $m$: en eV por unidad de deformación (fracción, no por ciento). Gap $= E_{\mathrm{LUMO}} - E_{\mathrm{HOMO}}$ del XML.
 - Cierre del gap (`strain.cierre_de_gap`): interpolación lineal de la deformación en que el gap cruza 0.02 eV.
 
 Módulo biaxial 2D (`strain.modulo_biaxial`, solo modo biaxial, puntos con $|\varepsilon|\le 0.03$):

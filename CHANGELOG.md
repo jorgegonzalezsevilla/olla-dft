@@ -47,6 +47,25 @@ the affected commands.
   only the Λ axis moves. **The Λ₅₀ = 1.0 µm figure recorded in the validation
   documents was obtained with the old convention and is pending recomputation.**
 
+Found by the formula audit against the literature:
+
+- The `ecutrho` floor now depends on the pseudopotential TYPE. It was a fixed
+  4x, which is the physical minimum for norm-conserving but too low for
+  ultrasoft and PAW, whose augmentation charge needs 8 to 12. It slipped
+  through when mixing types: a hard norm-conserving O at 80 Ry together with
+  an ultrasoft Fe declaring ecutrho = 360 gave an effective dual of 4.5 where
+  the Fe needs 8 x 80 = 640, leaving the density under-converged and the
+  forces and energies wrong with no warning. The floor is now taken from the
+  hardest pseudopotential in the set, and an unknown type assumes the worst
+  case.
+- `elastic --2d` reports both bounds of the layer modulus. The formula in use,
+  (C11+C22+2C12)/4, is the Voigt (uniform biaxial strain) definition that the
+  2D literature reports, and it is correct — but it is an upper bound, and in
+  an anisotropic sheet the uniform-stress (Reuss) bound is far away: in
+  phosphorene 41 against 24 N/m. Quoting one number without saying which left
+  a factor of 1.75 unstated, so the report now prints Voigt, Reuss and Hill
+  and warns when they differ by more than 5 %.
+
 Packaging, for the first PyPI release:
 
 - Publish on PyPI as `olla-dft`; install with `pip install olla-dft`.

@@ -41,7 +41,7 @@ Recommended cutoffs (`qekit/core/pseudo.py: recommend_cutoffs`):
 
 $$
 E_{\text{wfc}} = \max_s E^{\text{UPF}}_{\text{wfc},s}, \qquad
-E_{\rho} = \max\!\left(\max_s E^{\text{UPF}}_{\rho,s},\ 4\,E_{\text{wfc}}\right)
+E_{\rho} = \max\!\left(\max_s E^{\text{UPF}}_{\rho,s},\ d_{\min}\,E_{\text{wfc}}\right), \qquad d_{\min} = \max_s \begin{cases} 4 & \text{NC} \\ 8 & \text{US, PAW, unknown} \end{cases}
 $$
 
 - $E^{\text{UPF}}_{\text{wfc},s}$, $E^{\text{UPF}}_{\rho,s}$: suggested cutoffs in the UPF header of species $s$ (Ry), read by `pseudo.suggested_cutoffs` (attributes `wfc_cutoff`/`rho_cutoff` in UPF v2, or the text "Suggested minimum cutoff for wavefunctions/charge density" in UPF v1). Values $\le 1$ are ignored.
@@ -1144,7 +1144,7 @@ $$
 
 **How Olla-DFT computes it.**
 1. `qekit/cli.py: _cmd_converge` loads the structure and calls `qekit/modules/converge.py: prepare`.
-2. `sweep.prepare_common` resolves pseudopotentials and cutoffs (`pseudo.recommend_cutoffs`: the maximum declared by the UPF files; if none declares any, `ecutwfc` from the configuration (60 Ry) and `dual` (8); `ecutrho` never below $4\,\mathrm{ecutwfc}$).
+2. `sweep.prepare_common` resolves pseudopotentials and cutoffs (`pseudo.recommend_cutoffs`: the maximum declared by the UPF files; if none declares any, `ecutwfc` from the configuration (60 Ry) and `dual` (8); `ecutrho` never below the minimum dual of the HARDEST pseudopotential in the set: 4 for norm-conserving, 8 for ultrasoft and PAW, and 8 when the type is unknown).
 3. Default series: `ecutwfc` = 30, 40, …, 100 Ry with `ecutrho = dual × ecutwfc`; `ecutrho` = 4, 6, 8, 10, 12 × ecutwfc; `kmesh` = meshes for the spacings 0.40, 0.30, 0.25, 0.20, 0.15, 0.12 Å⁻¹ (without repeats). `--values` replaces the series (for `kmesh` it accepts `8x8x8` or spacings).
 4. One `pw.in` (`calculation='scf'`, `conv_thr = 1e-8`, `tstress`/`tprnfor` on) per point via `sweep.write_scf_job`, plus `run.sh` and `run.py`.
 5. With `--run`, `runner.run_all` executes `pw.x`; with `--collect`, `converge.collect` reads `out/*.xml` (`qeout.read_xml`, tag `<total_energy><etot>`).
@@ -1292,9 +1292,11 @@ Sheet (`elastic.constantes_2d`, `modulos_2d`, `born_2d`): $C^{2D}_{ij} = C_{ij}\
 
 $$
 Y_x = \frac{C_{11}C_{22}-C_{12}^2}{C_{22}},\quad \nu_x = \frac{C_{12}}{C_{22}},\quad
-K = \frac{C_{11}+C_{22}+2C_{12}}{4},\quad G = C_{66};\qquad
+K_V = \frac{C_{11}+C_{22}+2C_{12}}{4},\quad K_R = \frac{C_{11}C_{22}-C_{12}^2}{C_{11}+C_{22}-2C_{12}},\quad K_H = \tfrac{1}{2}(K_V+K_R),\quad G = C_{66};\qquad
 C_{11}>0,\; C_{66}>0,\; C_{11}C_{22}-C_{12}^2>0
 $$
+
+- $K_V$ is the layer modulus as the 2D literature reports it (uniform biaxial STRAIN, Voigt upper bound); $K_R$ is the uniform biaxial STRESS bound. They coincide when $C_{11}=C_{22}$ and diverge in an anisotropic sheet — in phosphorene, 41 against 24 N/m — so the report prints both and warns when they differ by more than 5 %.
 
 **How Olla-DFT computes it.**
 1. `qekit/cli.py: _cmd_elastic` → `qekit/modules/elastic.py: prepare`. In 3D the structure is ALWAYS taken to spglib's standardised primitive cell (`structure.primitive`) so that the Cartesian axes coincide with the crystal-physical ones; in `--2d` it is not (it requires vacuum along $c$ via `kpoints.direcciones_con_vacio`).
@@ -1333,7 +1335,6 @@ $$
 E_{\mathrm{gap}}(\varepsilon) \approx m\,\varepsilon + b, \qquad R^2 = 1 - \frac{\sum (y - \hat y)^2}{\sum (y-\bar y)^2}
 $$
 
-- $m$: in eV per unit strain (fraction, not per cent). Gap $= E_{\mathrm{LUMO}} - E_{\mathrm{HOMO}}$ from the XML.
 - Gap closing (`strain.cierre_de_gap`): linear interpolation of the strain at which the gap crosses 0.02 eV.
 
 2D biaxial modulus (`strain.modulo_biaxial`, biaxial mode only, points with $|\varepsilon|\le 0.03$):

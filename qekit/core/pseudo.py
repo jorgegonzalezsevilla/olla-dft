@@ -297,15 +297,44 @@ def _coherencia_de_funcional(result: dict, pdir, forzados: dict) -> dict:
     return result
 
 
+#: Dual mínimo por tipo de pseudopotencial. Para norm-conserving, 4 es el
+#: mínimo físico: la densidad es el cuadrado de la función de onda, así que su
+#: esfera de ondas planas tiene el doble de radio y cuatro veces la energía.
+#: Un ultrasuave o un PAW añaden la carga de aumento, mucho más localizada, y
+#: necesitan de 8 a 12 (Quantum ESPRESSO documenta 8-12 para ultrasuaves).
+DUAL_MINIMO = {"NC": 4.0, "SL": 4.0, "US": 8.0, "PAW": 8.0}
+
+
+def dual_minimo(pseudos: dict) -> float:
+    """El dual que exige el pseudopotencial MÁS duro del conjunto.
+
+    Manda el más exigente: basta un ultrasuave entre varios norm-conserving
+    para que la densidad necesite el dual grande. Si no se sabe el tipo se
+    supone el caso peor, que es no quedarse corto.
+    """
+    duales = []
+    for p in pseudos.values():
+        tipo = (p.get("type") or "").upper()
+        duales.append(DUAL_MINIMO.get(tipo, 8.0))
+    return max(duales) if duales else 8.0
+
+
 def recommend_cutoffs(pseudos: dict, default_wfc: float, dual: float) -> tuple:
     """(ecutwfc, ecutrho) para el sistema: el máximo sobre los elementos.
 
     Si ningún UPF declara cutoffs, se usan default_wfc y default_wfc*dual.
+
+    El suelo de ecutrho depende del TIPO de pseudopotencial. Antes era 4x
+    fijo, que es el mínimo del norm-conserving pero se queda corto para un
+    ultrasuave o un PAW. Se colaba al mezclar un NC duro con un ultrasuave
+    blando: con O norm-conserving a 80 Ry y un Fe ultrasuave que declara
+    ecutrho = 360, salía ecutwfc = 80 y ecutrho = 360, o sea un dual de 4.5
+    cuando el Fe necesita 8x80 = 640. La densidad quedaba infraconvergida y
+    las fuerzas y energías salían mal sin que nada avisara.
     """
     wfcs = [p["ecutwfc"] for p in pseudos.values() if p["ecutwfc"]]
     rhos = [p["ecutrho"] for p in pseudos.values() if p["ecutrho"]]
     ecutwfc = max(wfcs) if wfcs else default_wfc
     ecutrho = max(rhos) if rhos else ecutwfc * dual
-    # ecutrho nunca por debajo de 4*ecutwfc (mínimo físico)
-    ecutrho = max(ecutrho, 4.0 * ecutwfc)
+    ecutrho = max(ecutrho, dual_minimo(pseudos) * ecutwfc)
     return (round(ecutwfc, 1), round(ecutrho, 1))
