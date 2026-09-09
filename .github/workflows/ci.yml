@@ -54,7 +54,13 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -e ".[test,kappa]"
-      - run: python -m pytest -q tests/test_kappa.py
+      # test_verificacion_numerica tambien entra aqui: cuatro de sus pruebas
+      # comparan la capacidad calorifica armonica contra el mode_cv de phonopy,
+      # que llega con phono3py. En los trabajos base se saltan, asi que sin
+      # esta linea no se ejecutarian en ningun sitio — que es exactamente como
+      # tres pruebas de kappa se pasaron rotas desde la 1.5.0 sin que nadie
+      # lo viera.
+      - run: python -m pytest -q tests/test_kappa.py tests/test_verificacion_numerica.py
 
   package:
     name: build wheel
