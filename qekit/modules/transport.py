@@ -507,8 +507,12 @@ def plot(run: TransportRun, outfile: str = "transporte", formats="pdf,png",
 # ----------------------------------------------------------------------
 # Wiedemann-Franz y transporte por canal de espín
 # ----------------------------------------------------------------------
-# Número de Lorenz de Sommerfeld, (pi^2/3)(k_B/e)^2, en W·Ω/K²
-L0_SOMMERFELD = 2.44e-8
+# Numero de Lorenz de Sommerfeld, (pi^2/3)(k_B/e)^2, en W*ohm/K^2.
+# Se calcula, no se copia redondeado: el 2.44e-8 del libro de texto esta un
+# 0.12 % por debajo del exacto 2.4430e-8, y eso se ve en los tres decimales
+# con los que se imprime L/L0. k_B va en eV/K, asi que dividir por e ya esta
+# hecho: (k_B[eV/K])^2 son directamente V^2/K^2.
+L0_SOMMERFELD = (np.pi ** 2 / 3.0) * KB_EV ** 2
 
 
 def lorenz(run: TransportRun, it: int = 0) -> np.ndarray:
@@ -516,7 +520,7 @@ def lorenz(run: TransportRun, it: int = 0) -> np.ndarray:
 
     Es de las pocas magnitudes que la CRTA da en ABSOLUTO: κ_e y σ llevan
     los dos el mismo τ y se cancela en el cociente, igual que en el Seebeck.
-    Se compara con L₀ = 2.44e-8: por debajo hay transporte bipolar o
+    Se compara con L₀ = 2.4430e-8: por debajo hay transporte bipolar o
     dispersión inelástica, y por encima suele haber contribución de fonones
     mal separada.
     """

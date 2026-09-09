@@ -3338,6 +3338,10 @@ def _cmd_crosscheck(args) -> int:
         kw["volumen"] = atoms.get_volume()
         kw["natoms"] = len(atoms)
         kw["cell"] = atoms.cell.array
+        try:
+            kw["n_primitiva"] = len(structure.primitive(atoms))
+        except Exception:
+            pass
     if args.gap_bandas is not None:
         kw["gap_bandas"] = args.gap_bandas
     if args.gap_tauc is not None:
@@ -3358,8 +3362,20 @@ def _cmd_derived(args) -> int:
         print(f"'{args.cij}' does not contain a 6x6 matrix", file=sys.stderr)
         return 1
     m = elastic.moduli(C)
+    # la n del modelo de Slack son los atomos de la celda PRIMITIVA: cuenta
+    # ramas opticas, no atomos. Con la celda convencional del silicio (8) en
+    # vez de la primitiva (2) el mismo cristal daria 37.8 W/mK en vez de 95.3.
+    try:
+        n_prim = len(structure.primitive(atoms))
+    except Exception:
+        n_prim = len(atoms)
     r = derived.analyze(m.B_hill, m.G_hill, atoms.get_masses(),
-                        atoms.get_volume(), natoms=len(atoms), T=args.temp)
+                        atoms.get_volume(), natoms=len(atoms), T=args.temp,
+                        n_primitiva=n_prim)
+    if n_prim != len(atoms):
+        print(f"The cell given has {len(atoms)} atoms and its primitive has "
+              f"{n_prim}: Slack's n is the\n"
+              "primitive one.\n")
     print(derived.report(r))
     # v_L = sqrt(C11/rho) solo tiene sentido en un cristal cúbico: se mira la
     # simetría de la estructura y, por si el CIF viene sin ella, la forma

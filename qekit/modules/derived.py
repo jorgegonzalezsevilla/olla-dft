@@ -62,6 +62,7 @@ class Termoelastico:
     kappa_slack: float = None    # W/(m*K) a la temperatura T
     T: float = 300.0             # K, temperatura de la kappa de Slack
     natoms: int = 0
+    n_primitiva: int = 0         # atomos por celda PRIMITIVA (n de Slack)
     volumen: float = None        # A^3
     avisos: list = field(default_factory=list)
 
@@ -133,7 +134,8 @@ def gruneisen_from_poisson(nu: float) -> float:
 
 
 def slack(theta_D: float, gamma: float, masa_media_amu: float,
-          natoms: int, volumen_A3: float, T: float = 300.0) -> float:
+          natoms: int, volumen_A3: float, T: float = 300.0,
+          n_celda: int = None) -> float:
     """Conductividad térmica de red por el modelo de Slack (W/m/K).
 
         kappa = A * M_avg * theta_D^3 * delta / (gamma^2 * n^(2/3) * T)
@@ -141,29 +143,43 @@ def slack(theta_D: float, gamma: float, masa_media_amu: float,
     con delta el volumen por átomo elevado a 1/3. Es una ESTIMACIÓN de
     orden de magnitud: el prefactor A es empírico y el modelo supone
     dispersión de tres fonones dominante y cristal simple.
+
+    `natoms` y `volumen_A3` describen la celda que se pasa y solo sirven
+    para delta, que es el volumen POR ÁTOMO y no depende de cuál sea.
+    `n_celda` es la n del modelo: los átomos de la celda PRIMITIVA, que es
+    lo que fija cuántas ramas ópticas hay. Son cosas distintas y confundirlas
+    hace que el mismo cristal dé dos números: descrito con la celda
+    convencional del silicio (8 átomos) en vez de la primitiva (2) el
+    factor n^(2/3) cambia en 2.5. Si no se dice, se supone que la celda
+    dada YA es la primitiva, que es el caso corriente.
     """
     if not theta_D or not gamma:
         return None
+    n = int(n_celda or natoms)
     # delta va en ANGSTROM: el prefactor empirico A = 3.1e-6 esta ajustado
     # para M en amu, theta en K y delta en A. Pasarlo a metros mata el
     # resultado por diez ordenes de magnitud.
     delta = (volumen_A3 / natoms) ** (1.0 / 3.0)                # A
     A = 3.1e-6 / (1.0 - 0.514 / gamma + 0.228 / gamma ** 2)
     return float(A * masa_media_amu * theta_D ** 3 * delta
-                 / (gamma ** 2 * natoms ** (2.0 / 3.0) * T))
+                 / (gamma ** 2 * n ** (2.0 / 3.0) * T))
 
 
 def analyze(B_GPa: float, G_GPa: float, masas_amu, volumen_A3: float,
-            natoms: int = None, T: float = 300.0) -> Termoelastico:
+            natoms: int = None, T: float = 300.0,
+            n_primitiva: int = None) -> Termoelastico:
     natoms = natoms or len(masas_amu)
-    r = Termoelastico(natoms=natoms, volumen=volumen_A3, T=float(T))
+    n_prim = int(n_primitiva or natoms)
+    r = Termoelastico(natoms=natoms, n_primitiva=n_prim,
+                      volumen=volumen_A3, T=float(T))
     r.rho = density(masas_amu, volumen_A3)
     r.v_l, r.v_t, r.v_m = sound_velocities(B_GPa, G_GPa, r.rho)
     r.theta_D = debye_from_velocity(r.v_m, natoms, volumen_A3)
     r.poisson = poisson_ratio(B_GPa, G_GPa)
     r.gruneisen = gruneisen_from_poisson(r.poisson)
     r.kappa_slack = slack(r.theta_D, r.gruneisen,
-                          float(np.mean(masas_amu)), natoms, volumen_A3, T)
+                          float(np.mean(masas_amu)), natoms, volumen_A3, T,
+                          n_celda=n_prim)
     if r.poisson is not None and r.poisson < 0:
         r.avisos.append(
             f"negative Poisson ratio ({r.poisson:.3f}): possible "
@@ -279,6 +295,7 @@ def export(r: Termoelastico, outdir: str = ".") -> list:
              (f"kappa_Slack_{r.T:g}K", r.kappa_slack, "W/m/K")]
     L = [provenance.header("thermoelastic derived quantities",
                            {"atomos": r.natoms,
+                            "atomos_celda_primitiva": r.n_primitiva,
                             "volumen_A3": f"{r.volumen:.4f}"
                             if r.volumen else "?"}),
          f"# {'quantity':<24s} {'value':>16s}  unit"]
@@ -307,6 +324,8 @@ def report(r: Termoelastico) -> str:
     if r.kappa_slack:
         lines.append(f"Lattice thermal conductivity (Slack, {r.T:g} K): "
                      f"{r.kappa_slack:.1f} W/(m·K)")
+        lines.append(f"  computed with n = {r.n_primitiva} atoms per "
+                     "primitive cell")
     for a in r.avisos:
         lines.append(f"\nWARNING: {a}")
     lines += ["",
@@ -316,5 +335,8 @@ def report(r: Termoelastico) -> str:
               "number; they are not the same quantity.",
               "The Grüneisen parameter comes from an empirical correlation with the "
               "Poisson ratio and the\nSlack conductivity is an order-of-magnitude "
-              "estimate, not a value\nto report as is."]
+              "estimate, not a value\nto report as is.",
+              "Slack's n is the number of atoms in the PRIMITIVE cell, because it "
+              "counts the optical\nbranches. Density, sound velocities, θ_D and ν "
+              "do not care which cell you give;\nκ_Slack does, by n^(2/3)."]
     return "\n".join(lines)
